@@ -36,6 +36,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	f.Close()
 	q := url.Values{}
 	for _, p := range []string{
+		"auto_vacuum(INCREMENTAL)", // only effective before the first table exists
 		"journal_mode(WAL)", "foreign_keys(1)", "busy_timeout(5000)",
 		"synchronous(NORMAL)", "temp_store(MEMORY)",
 	} {

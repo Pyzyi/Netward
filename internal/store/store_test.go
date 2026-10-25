@@ -194,3 +194,83 @@ func TestSettingsRoundTrip(t *testing.T) {
 		t.Fatalf("got %v %v", v, err)
 	}
 }
+
+func TestMergeDevices(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	a := Device{MAC: "da:00:00:00:00:01", FirstSeen: 100, LastSeen: 200, MACKind: "random"}
+	b := Device{MAC: "da:00:00:00:00:02", FirstSeen: 300, LastSeen: 400, MACKind: "random"}
+	if err := s.InsertDevice(ctx, &a); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.InsertDevice(ctx, &b); err != nil {
+		t.Fatal(err)
+	}
+	name, notes := "Annas iPhone", "Arbeitshandy"
+	_ = s.PatchDevice(ctx, a.ID, DevicePatch{Name: &name, Notes: &notes})
+	_ = s.OpenPresence(ctx, a.ID, 100)
+	_ = s.ClosePresence(ctx, a.ID, 200)
+	_ = s.AddEvent(ctx, &Event{TS: 150, Kind: "device_new", DeviceID: a.ID})
+	if err := s.MergeDevices(ctx, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetDevice(ctx, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != name || got.Notes != notes || got.FirstSeen != 100 {
+		t.Fatalf("merge did not carry user data: %+v", got)
+	}
+	if _, err := s.GetDevice(ctx, a.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatal("source device still exists")
+	}
+	spans, _ := s.ListPresence(ctx, b.ID, 0, 1000)
+	evs, _ := s.ListEvents(ctx, EventQuery{DeviceID: b.ID})
+	if len(spans) != 1 || len(evs) != 1 {
+		t.Fatalf("history not moved: spans=%d events=%d", len(spans), len(evs))
+	}
+	if err := s.MergeDevices(ctx, b.ID, b.ID); err == nil {
+		t.Fatal("self-merge accepted")
+	}
+}
+
+func TestExpireRandomDevices(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	old := Device{MAC: "da:00:00:00:00:01", FirstSeen: 1, LastSeen: 10, MACKind: "random"}
+	kept := Device{MAC: "da:00:00:00:00:02", FirstSeen: 1, LastSeen: 10, MACKind: "random"}
+	uni := Device{MAC: "3c:00:00:00:00:03", FirstSeen: 1, LastSeen: 10}
+	for _, d := range []*Device{&old, &kept, &uni} {
+		if err := s.InsertDevice(ctx, d); err != nil {
+			t.Fatal(err)
+		}
+	}
+	yes := true
+	_ = s.PatchDevice(ctx, kept.ID, DevicePatch{Known: &yes})
+	ids, err := s.ExpireRandomDevices(ctx, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ids) != 1 || ids[0] != old.ID {
+		t.Fatalf("expired %v, want only %d", ids, old.ID)
+	}
+}
+
+func TestBackup(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	_ = s.SetSetting(ctx, "k", 1)
+	p := filepath.Join(t.TempDir(), "backup.db")
+	if err := s.Backup(ctx, p); err != nil {
+		t.Fatal(err)
+	}
+	b, err := Open(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer b.Close()
+	var v int
+	if err := b.GetSetting(ctx, "k", &v); err != nil || v != 1 {
+		t.Fatalf("backup content wrong: %v %v", v, err)
+	}
+}

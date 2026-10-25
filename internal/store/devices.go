@@ -10,6 +10,7 @@ import (
 // Device is one physical or virtual network device, identified by its MAC.
 type Device struct {
 	ID              int64  `json:"id"`
+	Ident           string `json:"-"`
 	MAC             string `json:"mac"`
 	IP              string `json:"ip"`
 	Name            string `json:"name"`     // set by the user
@@ -27,7 +28,9 @@ type Device struct {
 	Known           bool   `json:"known"`
 	Favorite        bool   `json:"favorite"`
 	Watch           bool   `json:"watch"`
-	Randomized      bool   `json:"randomized"`
+	MACKind         string `json:"macKind"` // universal | random | virtual
+	Proxy           bool   `json:"proxy"`
+	ViaProxy        bool   `json:"viaProxy"`
 	Online          bool   `json:"online"`
 	IsGateway       bool   `json:"isGateway"`
 	IsSelf          bool   `json:"isSelf"`
@@ -41,17 +44,17 @@ type Device struct {
 	New             bool   `json:"new"` // first seen after the learning phase and not yet acknowledged
 }
 
-const deviceCols = `id, mac, ip, name, hostname, vendor, vendor_official, model, os, type, type_confidence,
-	type_override, location, notes, known, favorite, watch, randomized, online, is_gateway, is_self,
+const deviceCols = `id, ident, mac, ip, name, hostname, vendor, vendor_official, model, os, type, type_confidence,
+	type_override, location, notes, known, favorite, watch, mac_kind, proxy, via_proxy, online, is_gateway, is_self,
 	interface, dhcp_fingerprint, dhcp_vendor, first_seen, last_seen, enriched_at, ports_scanned_at`
 
 type scanner interface{ Scan(...any) error }
 
 func scanDevice(r scanner) (Device, error) {
 	var d Device
-	err := r.Scan(&d.ID, &d.MAC, &d.IP, &d.Name, &d.Hostname, &d.Vendor, &d.VendorOfficial, &d.Model, &d.OS,
+	err := r.Scan(&d.ID, &d.Ident, &d.MAC, &d.IP, &d.Name, &d.Hostname, &d.Vendor, &d.VendorOfficial, &d.Model, &d.OS,
 		&d.DetectedType, &d.TypeConfidence, &d.TypeOverride, &d.Location, &d.Notes, &d.Known, &d.Favorite,
-		&d.Watch, &d.Randomized, &d.Online, &d.IsGateway, &d.IsSelf, &d.Interface, &d.DHCPFingerprint,
+		&d.Watch, &d.MACKind, &d.Proxy, &d.ViaProxy, &d.Online, &d.IsGateway, &d.IsSelf, &d.Interface, &d.DHCPFingerprint,
 		&d.DHCPVendor, &d.FirstSeen, &d.LastSeen, &d.EnrichedAt, &d.PortsScannedAt)
 	d.Type = d.DetectedType
 	if d.TypeOverride != "" {
@@ -89,11 +92,15 @@ func (s *Store) GetDevice(ctx context.Context, id int64) (Device, error) {
 
 // InsertDevice creates a device and returns its ID.
 func (s *Store) InsertDevice(ctx context.Context, d *Device) error {
-	res, err := s.db.ExecContext(ctx, `INSERT INTO devices (mac, ip, hostname, vendor, vendor_official, randomized,
-		online, is_gateway, is_self, interface, first_seen, last_seen, type, type_confidence)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		d.MAC, d.IP, d.Hostname, d.Vendor, d.VendorOfficial, b2i(d.Randomized), b2i(d.Online), b2i(d.IsGateway),
-		b2i(d.IsSelf), d.Interface, d.FirstSeen, d.LastSeen, nz(d.DetectedType, "unknown"), d.TypeConfidence)
+	if d.Ident == "" {
+		d.Ident = d.MAC
+	}
+	res, err := s.db.ExecContext(ctx, `INSERT INTO devices (ident, mac, ip, hostname, vendor, vendor_official, model, os,
+		mac_kind, proxy, via_proxy, online, is_gateway, is_self, interface, dhcp_fingerprint, dhcp_vendor, first_seen,
+		last_seen, type, type_confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		d.Ident, d.MAC, d.IP, d.Hostname, d.Vendor, d.VendorOfficial, d.Model, d.OS, nz(d.MACKind, "universal"),
+		b2i(d.Proxy), b2i(d.ViaProxy), b2i(d.Online), b2i(d.IsGateway), b2i(d.IsSelf), d.Interface, d.DHCPFingerprint,
+		d.DHCPVendor, d.FirstSeen, d.LastSeen, nz(d.DetectedType, "unknown"), d.TypeConfidence)
 	if err != nil {
 		return err
 	}
@@ -111,12 +118,12 @@ func nz(s, def string) string {
 // SaveDiscovered persists the fields that discovery and the presence logic own.
 func (s *Store) SaveDiscovered(ctx context.Context, d *Device) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE devices SET ip = ?, hostname = ?, vendor = ?, vendor_official = ?,
-		model = ?, os = ?, type = ?, type_confidence = ?, randomized = ?, online = ?, is_gateway = ?, is_self = ?,
-		interface = ?, dhcp_fingerprint = ?, dhcp_vendor = ?, last_seen = MAX(last_seen, ?), enriched_at = ?,
-		ports_scanned_at = ? WHERE id = ?`,
+		model = ?, os = ?, type = ?, type_confidence = ?, mac_kind = ?, proxy = ?, via_proxy = ?, online = ?,
+		is_gateway = ?, is_self = ?, interface = ?, dhcp_fingerprint = ?, dhcp_vendor = ?, last_seen = MAX(last_seen, ?),
+		enriched_at = ? WHERE id = ?`,
 		d.IP, d.Hostname, d.Vendor, d.VendorOfficial, d.Model, d.OS, nz(d.DetectedType, "unknown"), d.TypeConfidence,
-		b2i(d.Randomized), b2i(d.Online), b2i(d.IsGateway), b2i(d.IsSelf), d.Interface, d.DHCPFingerprint,
-		d.DHCPVendor, d.LastSeen, d.EnrichedAt, d.PortsScannedAt, d.ID)
+		nz(d.MACKind, "universal"), b2i(d.Proxy), b2i(d.ViaProxy), b2i(d.Online), b2i(d.IsGateway), b2i(d.IsSelf),
+		d.Interface, d.DHCPFingerprint, d.DHCPVendor, d.LastSeen, d.EnrichedAt, d.ID)
 	return err
 }
 
@@ -358,34 +365,100 @@ func (s *Store) ListPorts(ctx context.Context, id int64) (map[int64][]Port, erro
 	return out, rows.Err()
 }
 
-// IPRecord is one address a device has used.
-type IPRecord struct {
+// Address is one IPv4 address a device has used.
+type Address struct {
 	IP        string `json:"ip"`
+	Interface string `json:"interface"`
 	FirstSeen int64  `json:"firstSeen"`
 	LastSeen  int64  `json:"lastSeen"`
 }
 
-// TouchIP records that a device used ip at ts.
-func (s *Store) TouchIP(ctx context.Context, id int64, ip string, ts int64) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO ip_history (device_id, ip, first_seen, last_seen) VALUES (?, ?, ?, ?)
-		ON CONFLICT (device_id, ip) DO UPDATE SET last_seen = MAX(last_seen, excluded.last_seen)`, id, ip, ts, ts)
+// TouchAddress records that a device used ip at ts.
+func (s *Store) TouchAddress(ctx context.Context, id int64, ip, iface string, ts int64) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO device_addresses (device_id, ip, interface, first_seen, last_seen)
+		VALUES (?, ?, ?, ?, ?) ON CONFLICT (device_id, ip) DO UPDATE SET last_seen = MAX(last_seen, excluded.last_seen),
+		interface = excluded.interface`, id, ip, iface, ts, ts)
 	return err
 }
 
-// ListIPHistory returns the addresses a device has used, newest first.
-func (s *Store) ListIPHistory(ctx context.Context, id int64) ([]IPRecord, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT ip, first_seen, last_seen FROM ip_history WHERE device_id = ? ORDER BY last_seen DESC LIMIT 20`, id)
+// ListAddresses returns the addresses a device has used, newest first.
+func (s *Store) ListAddresses(ctx context.Context, id int64) ([]Address, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT ip, interface, first_seen, last_seen FROM device_addresses
+		WHERE device_id = ? ORDER BY last_seen DESC LIMIT 20`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []IPRecord
+	out := []Address{}
 	for rows.Next() {
-		var r IPRecord
-		if err := rows.Scan(&r.IP, &r.FirstSeen, &r.LastSeen); err != nil {
+		var a Address
+		if err := rows.Scan(&a.IP, &a.Interface, &a.FirstSeen, &a.LastSeen); err != nil {
 			return nil, err
 		}
-		out = append(out, r)
+		out = append(out, a)
 	}
 	return out, rows.Err()
+}
+
+// MergeDevices folds device "from" into device "into": history, names, ports
+// and user-set fields that "into" lacks move over, then "from" is deleted.
+func (s *Store) MergeDevices(ctx context.Context, from, into int64) error {
+	if from == into {
+		return errors.New("cannot merge a device into itself")
+	}
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		var n int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM devices WHERE id IN (?, ?)`, from, into).Scan(&n); err != nil {
+			return err
+		}
+		if n != 2 {
+			return ErrNotFound
+		}
+		stmts := []string{
+			`UPDATE presence SET device_id = ?2 WHERE device_id = ?1 AND ended_at IS NOT NULL`,
+			`DELETE FROM presence WHERE device_id = ?1`,
+			`UPDATE events SET device_id = ?2 WHERE device_id = ?1`,
+			`INSERT OR IGNORE INTO device_addresses (device_id, ip, interface, first_seen, last_seen)
+				SELECT ?2, ip, interface, first_seen, last_seen FROM device_addresses WHERE device_id = ?1`,
+			`INSERT OR IGNORE INTO device_names (device_id, source, name, updated_at)
+				SELECT ?2, source, name, updated_at FROM device_names WHERE device_id = ?1`,
+			`UPDATE devices SET
+				name = CASE WHEN name = '' THEN (SELECT name FROM devices WHERE id = ?1) ELSE name END,
+				notes = CASE WHEN notes = '' THEN (SELECT notes FROM devices WHERE id = ?1) ELSE notes END,
+				location = CASE WHEN location = '' THEN (SELECT location FROM devices WHERE id = ?1) ELSE location END,
+				type_override = CASE WHEN type_override = '' THEN (SELECT type_override FROM devices WHERE id = ?1) ELSE type_override END,
+				known = MAX(known, (SELECT known FROM devices WHERE id = ?1)),
+				favorite = MAX(favorite, (SELECT favorite FROM devices WHERE id = ?1)),
+				watch = MAX(watch, (SELECT watch FROM devices WHERE id = ?1)),
+				first_seen = MIN(first_seen, (SELECT first_seen FROM devices WHERE id = ?1))
+				WHERE id = ?2`,
+			`DELETE FROM devices WHERE id = ?1`,
+		}
+		for _, q := range stmts {
+			if _, err := tx.ExecContext(ctx, q, from, into); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// ExpireRandomDevices deletes unacknowledged devices with a private (random)
+// MAC that have been offline since before cutoff and returns their IDs.
+func (s *Store) ExpireRandomDevices(ctx context.Context, cutoff int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, `DELETE FROM devices WHERE mac_kind = 'random' AND known = 0 AND favorite = 0
+		AND watch = 0 AND name = '' AND online = 0 AND last_seen < ? RETURNING id`, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }

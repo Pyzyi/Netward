@@ -7,7 +7,8 @@ var migrations = []string{
 	`
 CREATE TABLE devices (
 	id               INTEGER PRIMARY KEY,
-	mac              TEXT NOT NULL UNIQUE,
+	ident            TEXT NOT NULL UNIQUE,  -- MAC, or "MAC/IP" for clients behind a MAC-NAT repeater
+	mac              TEXT NOT NULL,
 	ip               TEXT NOT NULL DEFAULT '',
 	name             TEXT NOT NULL DEFAULT '',
 	hostname         TEXT NOT NULL DEFAULT '',
@@ -23,7 +24,9 @@ CREATE TABLE devices (
 	known            INTEGER NOT NULL DEFAULT 0,
 	favorite         INTEGER NOT NULL DEFAULT 0,
 	watch            INTEGER NOT NULL DEFAULT 0,
-	randomized       INTEGER NOT NULL DEFAULT 0,
+	mac_kind         TEXT NOT NULL DEFAULT 'universal', -- universal | random | virtual
+	proxy            INTEGER NOT NULL DEFAULT 0,          -- answers ARP for several IPs (repeater)
+	via_proxy        INTEGER NOT NULL DEFAULT 0,          -- identity is MAC/IP behind a proxy
 	online           INTEGER NOT NULL DEFAULT 0,
 	is_gateway       INTEGER NOT NULL DEFAULT 0,
 	is_self          INTEGER NOT NULL DEFAULT 0,
@@ -36,6 +39,7 @@ CREATE TABLE devices (
 	ports_scanned_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX devices_ip ON devices(ip);
+CREATE INDEX devices_mac ON devices(mac);
 CREATE INDEX devices_online ON devices(online, last_seen);
 
 CREATE TABLE device_names (
@@ -65,9 +69,10 @@ CREATE TABLE device_ports (
 	PRIMARY KEY (device_id, port, proto)
 );
 
-CREATE TABLE ip_history (
+CREATE TABLE device_addresses (
 	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
 	ip         TEXT NOT NULL,
+	interface  TEXT NOT NULL DEFAULT '',
 	first_seen INTEGER NOT NULL,
 	last_seen  INTEGER NOT NULL,
 	PRIMARY KEY (device_id, ip)
@@ -97,6 +102,12 @@ CREATE TABLE internet_outages (
 	id         INTEGER PRIMARY KEY,
 	started_at INTEGER NOT NULL,
 	ended_at   INTEGER
+);
+
+CREATE TABLE monitor_gaps (
+	id         INTEGER PRIMARY KEY,
+	started_at INTEGER NOT NULL,
+	ended_at   INTEGER NOT NULL
 );
 
 CREATE TABLE security_findings (

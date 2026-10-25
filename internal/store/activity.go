@@ -170,6 +170,55 @@ func (s *Store) ListOutages(ctx context.Context, since int64) ([]Outage, error) 
 	return out, rows.Err()
 }
 
+// Gap is a period during which Netzwart was not running.
+type Gap struct {
+	Start int64 `json:"start"`
+	End   int64 `json:"end"`
+}
+
+// AddGap records a monitoring gap.
+func (s *Store) AddGap(ctx context.Context, start, end int64) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO monitor_gaps (started_at, ended_at) VALUES (?, ?)`, start, end)
+	return err
+}
+
+// ListGaps returns gaps overlapping [from, to].
+func (s *Store) ListGaps(ctx context.Context, from, to int64) ([]Gap, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT started_at, ended_at FROM monitor_gaps WHERE started_at <= ? AND ended_at >= ?
+		ORDER BY started_at`, to, from)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Gap{}
+	for rows.Next() {
+		var g Gap
+		if err := rows.Scan(&g.Start, &g.End); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
+// CloseAllPresence ends every open presence span at the device's last_seen
+// (capped at ts). Used after a monitoring gap.
+func (s *Store) CloseAllPresence(ctx context.Context, ts int64) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE presence SET ended_at = MAX(started_at,
+		MIN(?, (SELECT last_seen FROM devices WHERE devices.id = presence.device_id))) WHERE ended_at IS NULL`, ts)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, `UPDATE devices SET online = 0 WHERE online = 1`)
+	return err
+}
+
+// Backup writes a consistent copy of the database to path (VACUUM INTO).
+func (s *Store) Backup(ctx context.Context, path string) error {
+	_, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, path)
+	return err
+}
+
 // Finding is a result of the security check.
 type Finding struct {
 	ID        int64           `json:"id"`
@@ -253,6 +302,7 @@ func (s *Store) Prune(ctx context.Context, before int64) error {
 			`DELETE FROM events WHERE ts < ?`,
 			`DELETE FROM presence WHERE ended_at IS NOT NULL AND ended_at < ?`,
 			`DELETE FROM internet_outages WHERE ended_at IS NOT NULL AND ended_at < ?`,
+			`DELETE FROM monitor_gaps WHERE ended_at < ?`,
 			`DELETE FROM sessions WHERE expires_at < ?`,
 		} {
 			arg := before
