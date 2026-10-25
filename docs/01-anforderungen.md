@@ -82,7 +82,7 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | ID | Anforderung | Akzeptanzkriterium |
 |---|---|---|
 | F-20 | Port-Scan je Gerät (TCP connect, Top-Ports) | Ergebnis ≤ 15 s, Dienstname je Port |
-| F-21 | Sicherheitscheck | Findet riskante Dienste (Telnet, FTP, VNC, RDP, SMB, MQTT, Redis …), UPnP-IGD am Router, IP-Konflikte und unbekannte Geräte; jeder Befund mit verständlicher Handlungsempfehlung, quittierbar („akzeptiert“). Portprüfung nur auf Anforderung oder per opt-in-Zeitplan; ausschließlich TCP-Connect ohne Nutzdaten |
+| F-21 | Sicherheitscheck | Findet riskante Dienste (Telnet, FTP, VNC, RDP, SMB, MQTT, Redis …), UPnP-IGD am Router, IP-Konflikte und unbekannte Geräte; jeder Befund mit verständlicher Handlungsempfehlung, ausblendbar. Portprüfung nur auf Anforderung oder per opt-in-Zeitplan; ausschließlich TCP-Connect ohne Nutzdaten |
 | F-22 | Internet-Monitor | Verfügbarkeit, aktuelle Latenz, Ausfallhistorie; Gateway wird zuerst geprüft (LAN- vs. WAN-Ausfall); Benachrichtigung nach Wiederherstellung mit Dauer; abschaltbar |
 | F-23 | Wake-on-LAN | Magic Packet an Gerät senden |
 | F-24 | Ping je Gerät | Ergebnis mit Latenz |

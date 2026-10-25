@@ -34,7 +34,7 @@ aber auf jedem Linux-Host mit Docker.
 - **Home Assistant** per MQTT Discovery: beobachtete Geräte als `device_tracker`, dazu Sensoren für Geräteanzahl,
   neue Geräte und Internetstatus.
 - **Sicherheitscheck.** Riskante offene Dienste (Telnet, SMB, RDP, unverschlüsselte Datenbanken …), UPnP am Router,
-  IP-Konflikte, unbestätigte Geräte. Jeder Befund mit konkretem Tipp, was zu tun ist.
+  IP-Konflikte, unbekannte Geräte. Jeder Befund mit konkretem Tipp, was zu tun ist.
 - **Internet-Monitor.** Latenz der letzten 24 Stunden und Ausfallhistorie. Unterscheidet „Router weg“, „Internet weg“
   und „nur DNS gestört“.
 - **FRITZ!Box-Anbindung** (optional, TR-064): übernimmt die Namen, die du in der FRITZ!Box vergeben hast.
