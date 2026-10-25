@@ -132,6 +132,9 @@ func Run(ctx context.Context, o Options) error {
 	}
 	inet := internet.New(st, h, mon, disp, o.Priv.Pinger, policy, gateways, log)
 	inet.Configure(settings.InternetCheck && !env.Demo, settings.InternetTargets)
+	if env.Demo {
+		inet.SeedDemo(time.Now())
+	}
 	sec := security.New(st, mon, h, disp, log)
 	bridge := mqtt.NewBridge(mon, h, policy, inet.Status, o.Version, log)
 	bridge.Configure(settings.MQTT, settings.Language)
@@ -201,7 +204,9 @@ func Run(ctx context.Context, o Options) error {
 		start("watchdog", func(ctx context.Context) error { return watchdog(ctx, st, mon, sc, getSettings) })
 	}
 	start("notify", func(ctx context.Context) error { disp.Run(ctx); return nil })
-	start("internet", func(ctx context.Context) error { inet.Run(ctx); return nil })
+	if !env.Demo {
+		start("internet", func(ctx context.Context) error { inet.Run(ctx); return nil })
+	}
 	start("security", func(ctx context.Context) error {
 		sec.Schedule(ctx, func() int { return getSettings().SecurityScanDays })
 		return nil

@@ -5,6 +5,7 @@ package internet
 import (
 	"context"
 	"log/slog"
+	"math"
 	"net"
 	"net/netip"
 	"sync"
@@ -69,6 +70,7 @@ type Monitor struct {
 	gateways Gateways
 
 	mu       sync.Mutex
+	demo     bool
 	enabled  bool
 	targets  []string
 	status   Status
@@ -87,6 +89,9 @@ func New(st *store.Store, h *hub.Hub, events Logger, n notify.Notifier, pinger *
 func (m *Monitor) Configure(enabled bool, targets []string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.demo {
+		return
+	}
 	m.enabled = enabled
 	m.targets = append([]string(nil), targets...)
 	if !enabled {
@@ -95,6 +100,27 @@ func (m *Monitor) Configure(enabled bool, targets []string) {
 	} else if m.status.State == StateDisabled {
 		m.status = Status{State: StateUnknown}
 	}
+}
+
+// SeedDemo fills status and history with plausible sample data (demo mode only).
+func (m *Monitor) SeedDemo(now time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.demo = true
+	m.history = m.history[:0]
+	outStart, outEnd := now.Add(-20*time.Hour), now.Add(-20*time.Hour+23*time.Minute)
+	for ts := now.Add(-24 * time.Hour); !ts.After(now); ts = ts.Add(5 * time.Minute) {
+		ms := 12 + int(2.5*math.Sin(float64(ts.Unix())/2700)+1.5*math.Sin(float64(ts.Unix())/700))
+		if h := ts.Hour(); h >= 19 && h <= 22 {
+			ms += 5 // evening streaming peak
+		}
+		if ts.After(outStart) && ts.Before(outEnd) {
+			ms = -1
+		}
+		m.history = append(m.history, Sample{TS: ts.UnixMilli(), MS: ms})
+	}
+	m.status = Status{State: StateOnline, LatencyMS: 13, CheckedAt: now.UnixMilli(), Since: outEnd.UnixMilli(),
+		Gateway: "192.168.178.1", GatewayOK: true}
 }
 
 // Status returns the current status.

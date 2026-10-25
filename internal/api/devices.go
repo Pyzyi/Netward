@@ -40,7 +40,12 @@ type overviewResponse struct {
 
 func (s *Server) scannerStatus() scanner.Status {
 	if s.d.Scanner == nil {
-		return scanner.Status{Mode: "demo"}
+		now := s.now()
+		return scanner.Status{Mode: "demo", LastScanAt: now.Add(-40 * time.Second).UnixMilli(), LastScanDuration: 4200,
+			NextScanAt: now.Add(50 * time.Second).UnixMilli(),
+			Interfaces: []scanner.IfaceStatus{{Name: "eth0", MAC: "00:e0:4c:68:10:14", Addr: "192.168.178.20",
+				Prefix: "192.168.178.0/24", Hosts: 254, Active: true, Default: true}},
+			Gateways: []string{"192.168.178.1"}}
 	}
 	return s.d.Scanner.Status()
 }

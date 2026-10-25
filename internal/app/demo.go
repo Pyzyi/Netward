@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/rand/v2"
+	"sort"
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -59,6 +60,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		return err
 	}
 	rnd := rand.New(rand.NewPCG(7, 11))
+	var events []store.Event
 	now := time.Now()
 	baseline := now.Add(-30 * 24 * time.Hour)
 	if err := st.SetSetting(ctx, "baseline_at", baseline.UnixMilli()); err != nil {
@@ -131,15 +133,15 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		}
 		if dd.newDev {
 			data, _ := json.Marshal(map[string]any{"name": firstNonEmpty(dd.host, dd.vendor, dd.mac), "ip": dd.ip, "vendor": dd.vendor, "deviceType": dd.typ})
-			_ = st.AddEvent(ctx, &store.Event{TS: first.UnixMilli(), Kind: "device_new", DeviceID: d.ID, Data: data})
+			events = append(events, store.Event{TS: first.UnixMilli(), Kind: "device_new", DeviceID: d.ID, Data: data})
 		}
 		if dd.watch && !dd.online {
 			data, _ := json.Marshal(map[string]any{"name": dd.name, "ip": dd.ip, "deviceType": dd.typ})
-			_ = st.AddEvent(ctx, &store.Event{TS: last.UnixMilli(), Kind: "device_offline", DeviceID: d.ID, Data: data})
+			events = append(events, store.Event{TS: last.UnixMilli(), Kind: "device_offline", DeviceID: d.ID, Data: data})
 		}
 		if dd.watch && dd.phone && dd.online {
 			data, _ := json.Marshal(map[string]any{"name": dd.name, "ip": dd.ip, "deviceType": dd.typ})
-			_ = st.AddEvent(ctx, &store.Event{TS: now.Add(-47 * time.Minute).UnixMilli(), Kind: "device_online", DeviceID: d.ID, Data: data})
+			events = append(events, store.Event{TS: now.Add(-47 * time.Minute).UnixMilli(), Kind: "device_online", DeviceID: d.ID, Data: data})
 		}
 		if dd.mac == "24:0a:c4:9e:3b:d1" {
 			fd, _ := json.Marshal(map[string]any{"port": 23, "service": "telnet"})
@@ -155,15 +157,22 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	}
 	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "unknown_devices", Severity: "info", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
 	_ = st.SetSetting(ctx, "security_last_run", now.Add(-3*time.Hour).UnixMilli())
-	out := now.Add(-26 * time.Hour)
+	out := now.Add(-20 * time.Hour)
 	if _, err := st.OpenOutage(ctx, out.UnixMilli()); err == nil {
 		_ = st.CloseOutages(ctx, out.Add(23*time.Minute).UnixMilli())
 	}
 	data, _ := json.Marshal(map[string]any{"durationMs": int64(23 * time.Minute / time.Millisecond)})
-	_ = st.AddEvent(ctx, &store.Event{TS: out.UnixMilli(), Kind: "internet_down", Severity: "warning", Data: json.RawMessage(`{"state":"offline"}`)})
-	_ = st.AddEvent(ctx, &store.Event{TS: out.Add(23 * time.Minute).UnixMilli(), Kind: "internet_up", Data: data})
+	events = append(events, store.Event{TS: out.UnixMilli(), Kind: "internet_down", Severity: "warning", Data: json.RawMessage(`{"state":"offline"}`)})
+	events = append(events, store.Event{TS: out.Add(23 * time.Minute).UnixMilli(), Kind: "internet_up", Data: data})
 	ipc, _ := json.Marshal(map[string]any{"name": "Galaxy-Tab-S9", "from": "192.168.178.44", "to": "192.168.178.47", "deviceType": "tablet"})
-	_ = st.AddEvent(ctx, &store.Event{TS: now.Add(-5 * time.Hour).UnixMilli(), Kind: "ip_changed", Data: ipc})
+	events = append(events, store.Event{TS: now.Add(-5 * time.Hour).UnixMilli(), Kind: "ip_changed", Data: ipc})
+	// Insert in time order so IDs follow time like in real operation.
+	sort.Slice(events, func(i, j int) bool { return events[i].TS < events[j].TS })
+	for i := range events {
+		if err := st.AddEvent(ctx, &events[i]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
