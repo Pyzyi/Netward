@@ -24,7 +24,11 @@ jobs:
         with:
           go-version-file: go.mod
       - name: gofmt
-        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+        run: |
+          go version
+          bad="$(gofmt -l $(git ls-files '*.go'))"
+          for f in $bad; do echo "::error file=$f::not gofmt-formatted ($(go version))"; done
+          test -z "$bad"
       - name: go vet
         run: go vet ./...
       - name: staticcheck
@@ -44,6 +48,7 @@ jobs:
     steps:
       - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
+          go-version-input: ''
           go-version-file: go.mod
           go-package: ./...
 
