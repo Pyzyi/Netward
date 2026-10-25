@@ -48,4 +48,95 @@ Befunde werden nicht gelöscht, sondern mit Entscheidung und Nachweis versehen.
 
 ## Review 2 · Code-, Security- und UX-Review (nach Implementierung)
 
-*(wird nach Abschluss der Implementierung ergänzt)*
+**Ablauf:** Drei unabhängige Reviewer (Security, Code-Korrektheit, UX/Barrierefreiheit) haben den Code und eine laufende
+Demo-Instanz erhalten, aber keine Einschätzung des Entwicklers. Jeder Befund wurde nachvollzogen (Test, Live-Angriff oder
+Codepfad), dann behoben oder begründet abgelehnt. Jede Behebung hat einen Regressionstest, sofern technisch sinnvoll.
+
+### 2.1 Security-Review
+
+| ID | Schwere | Befund | Entscheidung / Behebung | Nachweis |
+|---|---|---|---|---|
+| S1 | mittel | Gespeicherte Geheimnisse (ntfy/Gotify-Token, Webhook-Header, SMTP-, MQTT-, FRITZ!Box-Passwort) ließen sich an ein **geändertes Ziel** umleiten, indem man das Ziel ändert und das maskierte Geheimnis zurückschickt. Live demonstriert. | **Behoben.** Maskierte/leere Geheimnisse werden nur übernommen, wenn Server, Host, Port, TLS und URL unverändert sind; sonst `secret_required`. Kanalwechsel auf eine andere Art erbt nie Geheimnisse. UI erklärt, was neu einzugeben ist. | `TestSecretsDoNotFollowNewDestination`, `TestChannelSecretsAreWriteOnly` (MQTT-Host-Wechsel) |
+| S2 | mittel | Login-Bremse umgehbar: parallele Anfragen passierten alle die Prüfung, IP-Wechsel setzte das Limit zurück; Flut führte zu 503 für den echten Admin. | **Behoben.** Versuche werden vor der Passwortprüfung reserviert; zusätzliches Budget pro Benutzername (max. 60 s Sperre gegen Aussperren); Adressen mit früherem erfolgreichem Login haben Vorrang beim Hashing; `auth_failed` nur beim 1. und jedem 20. Fehlversuch protokolliert. Live nachgemessen: 320 parallele Fehlversuche aus 8 IPs → 10 geprüft, 310 abgewiesen; Admin-Login 200 in 29 ms. | `TestLimiterChargesInFlightAttempts`, `TestLimiterPerUser`, `TestPriorityGetsHashSlot` |
+| S3 | mittel | Ersteinrichtung ohne Token ist 30 min lang aus dem LAN möglich. | **Abgelehnt, dokumentiert** (Restrisiko 8). Ein automatisches Token zwingt jeden Nutzer ins Container-Protokoll und bricht das Ziel „Compose einfügen → Passwort setzen“. Schutz: 30-min-Fenster, nur direkt angeschlossene Netze, optional `NETZWART_SETUP_TOKEN`, Werksreset. | ADR-010, Bedrohungsmodell |
+| S4 | niedrig | SSDP-`LOCATION`-Prüfung beruht auf fälschbarer UDP-Absenderadresse. | **Akzeptiert, Doku korrigiert** (T-07, Restrisiko 7). Ergebnis ist nur ein GET ohne Zugangsdaten an ein LAN-Gerät, den der Angreifer auch selbst senden kann. | Bedrohungsmodell |
+| S5 | niedrig | Egress-Richtlinie sperrt die LAN-IP des eigenen Hosts nicht. | **Abgelehnt, dokumentiert** (Restrisiko 9). Mosquitto, ntfy und Gotify laufen häufig auf demselben ZimaOS; Loopback bleibt gesperrt. | Bedrohungsmodell |
+| S6 | niedrig | OUI-Workflow: Schreibrechte für den ganzen Workflow, Token in `.git/config`, Diff nicht prüfbar. | **Behoben.** Rechte nur im Job, `persist-credentials: false`, PR enthält Paketversion, Integritäts-Hash und lesbaren Diff. | `oui-update.yml`, actionlint |
+| S7 | niedrig | Belegter Hash-Slot zählte beim Passwortwechsel als Fehlversuch. | **Behoben** (Refund statt Fehlversuch, 503). | Codepfad, `TestLimiter*` |
+| S8 | trivial | T-19 nannte 30 s Bündelung, Code nutzt 20 s. | **Behoben** (Doku). | – |
+
+Vom Reviewer als solide bestätigt: Host-/Origin-/CSRF-Prüfung, Sitzungen, SQL-Parametrisierung, Parser und Speichergrenzen,
+Kodierung je Benachrichtigungskanal, Egress-Sperren, FRITZ!Box-TLS-Pinning, Maskierung in API und SSE, Rechteabgabe
+(CapEff = 0), CSP ohne Inline-Skripte, CI-Supply-Chain (gepinnte SHAs/Digests).
+
+### 2.2 Code-Review (Korrektheit)
+
+| ID | Schwere | Befund | Behebung | Nachweis |
+|---|---|---|---|---|
+| C1 | hoch | Watchdog startete den Container endlos neu, wenn keine Schnittstelle gescannt wird (Subnetz > /22 oder falscher Name); ein hängender Scan wurde dagegen nie erkannt. | Watchdog nur aktiv, wenn tatsächlich gescannt wird; zusätzlich Erkennung hängender Scans. | Codepfad, Container-Test |
+| C2 | mittel | Internet-Ausfall blieb offen, wenn die Prüfung währenddessen abgeschaltet wurde; später falsche „Internet wieder da“-Meldung über 48 h. | Abschalten schließt den Ausfall. | `TestDisableClosesOutage` |
+| C3 | mittel | Ausgeblendete Sicherheitsbefunde kamen zurück (mit erneuter Meldung), wenn das Gerät einen Lauf lang offline war. | Bereinigung nur für geprüfte Geräte; ausgeblendete Befunde bleiben 30 Tage; abgebrochene Läufe bereinigen nichts. | `TestEventsAndFindings` |
+| C4 | mittel | MQTT: Nach Broker-Wechsel oder Broker ohne Persistenz fehlten die Home-Assistant-Entitäten; nicht mehr beobachtete Geräte blieben nach Neustart als Entität stehen. | Discovery-Konfiguration pro Broker-Sitzung; zurückbehaltene Konfigurationen werden gelesen und veraltete entfernt. | `TestBridgeResyncsAfterBrokerChange` |
+| C5 | mittel | Abgebrochener Portscan löschte die bekannten offenen Ports. | Scan läuft unabhängig von der Anfrage mit eigener Frist; unvollständige Ergebnisse werden verworfen. | Codepfad |
+| C6 | niedrig | Rückwärts springende Uhr (NTP, Board ohne RTC) hielt Geräte „online“. | `last_seen` wird auf „jetzt“ begrenzt. | `TestClockJumpBack` |
+| C7 | niedrig | Beim Herunterfahren abgebrochene Weck-Proben markierten Geräte als offline. | Abgebrochene Probe ist kein Beweis. | Codepfad |
+| C8 | niedrig | Nach > 3 min Ausfallzeit meldeten alle beobachteten, weiterhin anwesenden Geräte „online“. | Geräte, die vor der Lücke online waren, lösen keine Meldung aus. | `TestGapRecovery` |
+
+Vom Reviewer als solide bestätigt: Sperrreihenfolge ohne Zyklen, `flush`/`persist` per `MAX(last_seen)`,
+keine verschachtelten Transaktionen, Paginierung, Zusammenführen/Löschen, Bündelung und Ratenlimit der Benachrichtigungen.
+
+### 2.3 UX- und Barrierefreiheits-Review
+
+| ID | Schwere | Befund | Behebung |
+|---|---|---|---|
+| U1 | hoch | Geräteliste auf dem Handy unbenutzbar (Namen auf ~20 px gequetscht). | Raster korrigiert; Regressionstest prüft die Namensbreite. |
+| U2 | hoch | Auf dem Handy kein Abmelden. | Abmelden in den Einstellungen und an der aktuellen Sitzung. |
+| U3 | hoch | Neue-Geräte-Meldungen an, aber kein Kanal → Meldungen gehen ins Leere; englische Validierungsfehler; keine Hilfe zu Token/Chat-ID. | Hinweis auf Übersicht und in den Einstellungen; zentrale Fehlerübersetzung; Hilfetext je Dienst; „Speichern & Test senden“. |
+| U4 | hoch | Tastaturfokus im Detailpanel und Menü. | Fokus ins Panel und zurück zur Zeile; unter 1100 px modaler Dialog mit `inert`-Hintergrund; Escape schließt zuerst das Menü; Pfeiltasten; Fokus nach Dialogen zurück. Regressionstest. |
+| U5 | hoch | Kontrast: Sekundärtext 3,9:1, Formularrahmen 1,5:1. | 4,5:1 bzw. 3:1; beide Paare im CI-Kontrastskript. |
+| U6 | mittel | Begriffe „Neu / Unbestätigt / Bekannt / Akzeptieren“ uneinheitlich. | Ein Vokabular: „Unbekannt“, „Als bekannt markieren“, „Ausblenden“; „Neu“ nur für seit der Einrichtung aufgetauchte Geräte. |
+| U7 | mittel | „Alle als bekannt markieren“ ohne Rückfrage. | Bestätigungsdialog (Übersicht und Einstellungen). |
+| U8 | mittel | Umbenennen schwer auffindbar, kein Speicher-Feedback. | Stift-Symbol, „Gespeichert“-Rückmeldung. |
+| U9 | mittel | Deutsch: Plural („1 unbestätigte Geräte“), „2 Warnung“, „TELNET offen“, Modellcodes („iPhone16,1“), „Hersteller: Unbekannt“ trotz Apple-Modell. | Pluralregeln im Übersetzer; verständliche Befund-Titel; Apple-Modellnamen; Hersteller aus Modell abgeleitet. |
+| U10 | mittel | Offline-Status in Listen nur als Zeitangabe. | „Offline“ + Zeitangabe. |
+| U11 | mittel | Zeitleiste mehrdeutig, Ticks springen bei Zeitumstellung. | Legende, Bereich „noch nicht bekannt“, „jetzt“-Marke, Ticks in Wanduhrzeit. |
+| U12 | mittel | Deaktivierte Knöpfe ohne Begründung; Wake-on-LAN auch für Online-Geräte. | Hinweis „Im Demo-Modus nicht verfügbar“; WoL nur für Offline-Geräte, mit Erklärung. |
+| U13 | mittel | Setup: Fehler doppelt, ohne Feldbezug; doppelter Sprachwähler; kein „Passwort anzeigen“. | Feldfehler mit `aria-describedby`, „Passwort anzeigen“, ein Sprachwähler; Wechsel zur Anmeldung, wenn das Setup anderswo abgeschlossen wurde. |
+| U14 | mittel | Doppelte Überschriften in den Einstellungen; aktiver Reiter auf dem Handy außerhalb des Bildes. | Abschnittstitel nur für Screenreader; aktiver Reiter wird eingeblendet. |
+| U15 | niedrig | Übersicht: Gerätetypen nehmen auf dem Handy viel Platz; Anmeldungen überladen „Letzte Aktivität“; Filter scrollen ohne Hinweis. | Typen als kompakte Chips; Anmeldungen nur im Aktivitätsprotokoll; Ausblendung am Rand. |
+
+**Bewusst offen (Roadmap):** Gruppierung nach Personen, Ausfallhistorie als eigene Ansicht, Deep-Link zur FRITZ!Box-Kindersicherung,
+eingeklappte Details bei Sicherheitsbefunden standardmäßig offen, größere `<summary>`-Klickflächen.
+Speedtest bleibt bewusst weg (siehe [01](01-anforderungen.md#bewusst-nicht-übernommen)).
+
+### 2.4 Eigene Befunde während Phase 3
+
+| Befund | Behebung |
+|---|---|
+| `.box` stand in der Liste lokaler Domains, ist aber eine öffentliche TLD → DNS-Rebinding über `evil.box` möglich. | Entfernt, Test ergänzt. |
+| TR-064: UPnP-Fehlercode 401 („Invalid Action“) wurde als Anmeldefehler gewertet, der Fallback für ältere FRITZ!OS lief nie. | Nur 606 gilt als Anmeldefehler; Test mit Fake-FRITZ!Box. |
+| CI: lokales `gofmt` stammte aus einer älteren Go-Version. | CI nutzt das `gofmt` der Toolchain und zeigt den Diff als Annotation. |
+| Test für das Datenverzeichnis war nur als root gültig. | Test prüft das tatsächliche Verhalten (Reparatur eigener Verzeichnisse). |
+| UI-Tests richteten Desktop und Mobil parallel ein. | Serielle Ausführung; Setup-Seite wechselt zur Anmeldung. |
+
+### 2.5 Nachweise zum Qualitätsmodell (ISO/IEC 25010)
+
+Gemessen am 25.10.2026 mit dem Release-Kandidaten (Image `netzwart:local`, amd64).
+
+| Merkmal / Teilmerkmal | Ziel | Gemessen | Status |
+|---|---|---|---|
+| Funktionale Korrektheit | Kernlogik getestet | 22 Pakete, alle Tests grün mit Race-Detector; Fuzzing der Parser (ARP, DHCP, mDNS, SSDP, NetBIOS, Text, TR-064) | erfüllt |
+| Zeitverhalten | /24-Sweep < 10 s | 4,2 s (raw, `192.0.2.0/24`) | erfüllt |
+| Zeitverhalten | API p95 < 50 ms bei 500 Geräten | Geräteliste + JSON bei **1000** Geräten: p50 2,2 ms, p95 5,2 ms; `/api/v1/devices` live p95 0,8 ms | erfüllt |
+| Ressourcennutzung | RAM ≤ 60 MB, Image ≤ 40 MB | 25 MiB nach Scan (Docker), Image 23 MB | erfüllt |
+| Kapazität | ≥ 1000 Geräte | 1000 Geräte laden in 56 ms, 1,4 MiB Heap; Obergrenze 4000 | erfüllt |
+| Kompatibilität | amd64 + arm64 | Cross-Compile im Multi-Arch-Build (CI) | erfüllt |
+| Erlernbarkeit | Einrichtung < 2 min | 2 Schritte, automatisiert in < 1 s durchlaufen; Nutzertest steht aus | teilweise |
+| Bedienbarkeit | Tastatur, Touch, Maus | Fokusführung + `inert`, Regressionstests; Touch-Ziele der Navigation ≥ 44 px | erfüllt |
+| Inklusivität | WCAG 2.2 AA | Kontrastskript (48 Paare, hell/dunkel) in CI; Feldfehler mit `aria-describedby` | erfüllt (automatisiert prüfbarer Teil) |
+| Schutz vor Fehlbedienung | Bestätigung bei Massenaktionen | „Gerät vergessen“, „Alle als bekannt markieren“ mit Dialog | erfüllt |
+| Fehlerfreiheit | 0 offene Defekte hoch/kritisch | alle Befunde aus Review 2 behoben; `staticcheck`, `go vet` sauber | erfüllt |
+| Verfügbarkeit | Neustart nach Hänger | Watchdog (C1 korrigiert) + `restart: unless-stopped`, Healthcheck im Container-Test | erfüllt |
+| Sicherheit | Bedrohungsmodell umgesetzt | 29 Bedrohungen, Container-Test: UID 10001, CapEff/CapPrm 0, NoNewPrivs, DB 0600; Live-Angriffe S1/S2 nach Fix wirkungslos | erfüllt |
+| Testbarkeit | Coverage ≥ 60 % Kernpakete | monitor 63 %, auth 88 %, config 86 %, proto 84 %, egress 83 %, mqtt 72 %, fritzbox 70 %; store 49 %, api 48 %. Hardwarenahe Pakete (`l2`, `scanner`, `privdrop`) werden über den Container-Test abgedeckt | teilweise |
+| Installierbarkeit | ein Compose-Block | Container-Test mit Compose-Flags, 7 Szenarien (Bind-Mount root, fremder Eigentümer, ohne Volume, PUID, ohne NET_RAW, `--user`) | erfüllt |
