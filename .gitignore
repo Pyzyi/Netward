@@ -1,0 +1,14 @@
+/web/node_modules/
+/web/dist/
+/internal/web/dist/*
+!/internal/web/dist/.gitkeep
+/bin/
+/data/
+*.db
+*.db-wal
+*.db-shm
+/coverage.out
+/e2e/node_modules/
+/e2e/test-results/
+/e2e/playwright-report/
+/tools/_*/
