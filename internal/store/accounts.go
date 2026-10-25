@@ -281,3 +281,21 @@ func (s *Store) DeleteChannel(ctx context.Context, id int64) error {
 	}
 	return nil
 }
+
+// FactoryReset removes accounts, sessions, notification channels and
+// settings. Devices, history and the activity log are kept.
+func (s *Store) FactoryReset(ctx context.Context) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, q := range []string{
+			`DELETE FROM sessions`,
+			`DELETE FROM users`,
+			`DELETE FROM channels`,
+			`DELETE FROM settings WHERE key NOT IN ('baseline_at', 'heartbeat', 'security_last_run')`,
+		} {
+			if _, err := tx.ExecContext(ctx, q); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

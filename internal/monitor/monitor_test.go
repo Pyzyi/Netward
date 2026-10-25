@@ -90,7 +90,7 @@ func newEnvWithStore(t *testing.T, st *store.Store) *env {
 }
 
 func mac(last byte) net.HardwareAddr { return net.HardwareAddr{0x3c, 0x22, 0xfb, 0, 0, last} }
-func ip(last byte) netip.Addr          { return netip.AddrFrom4([4]byte{192, 168, 1, last}) }
+func ip(last byte) netip.Addr        { return netip.AddrFrom4([4]byte{192, 168, 1, last}) }
 
 func (e *env) sweep(entries map[byte][]byte) {
 	res := l2.SweepResult{}

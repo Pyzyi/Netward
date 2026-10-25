@@ -1,7 +1,7 @@
 /web/node_modules/
 /web/dist/
-/internal/web/dist/*
-!/internal/web/dist/.gitkeep
+/cmd/netzwart/web/*
+!/cmd/netzwart/web/.gitkeep
 /bin/
 /data/
 *.db

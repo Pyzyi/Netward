@@ -1,0 +1,417 @@
+package mqtt
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"log/slog"
+	"net"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/Pyzyi/netzwart/internal/config"
+	"github.com/Pyzyi/netzwart/internal/egress"
+	"github.com/Pyzyi/netzwart/internal/hub"
+	"github.com/Pyzyi/netzwart/internal/internet"
+	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/store"
+)
+
+// Source provides the data the bridge publishes.
+type Source interface {
+	Devices() []store.Device
+}
+
+// BridgeStatus is shown in the settings page.
+type BridgeStatus struct {
+	State string `json:"state"` // disabled | connecting | connected | error
+	Error string `json:"error,omitempty"`
+	Since int64  `json:"since"`
+}
+
+// Bridge publishes watched devices as Home Assistant device_trackers.
+type Bridge struct {
+	src     Source
+	hub     *hub.Hub
+	policy  *egress.Policy
+	log     *slog.Logger
+	version string
+	inet    func() internet.Status
+	dial    func(ctx context.Context, network, addr string) (net.Conn, error)
+
+	mu        sync.Mutex
+	cfg       config.MQTT
+	lang      string
+	reconnect chan struct{}
+	status    BridgeStatus
+	published map[string]bool // object IDs with a discovery config
+}
+
+// NewBridge creates the bridge; Run must be called to start it.
+func NewBridge(src Source, h *hub.Hub, policy *egress.Policy, inet func() internet.Status, version string, log *slog.Logger) *Bridge {
+	b := &Bridge{src: src, hub: h, policy: policy, inet: inet, version: version, log: log,
+		reconnect: make(chan struct{}, 1), status: BridgeStatus{State: "disabled"}, published: map[string]bool{}}
+	if policy != nil {
+		b.dial = policy.DialContext
+	}
+	return b
+}
+
+// Configure applies new MQTT settings and reconnects.
+func (b *Bridge) Configure(cfg config.MQTT, lang string) {
+	b.mu.Lock()
+	changed := cfg != b.cfg
+	b.cfg, b.lang = cfg, lang
+	b.mu.Unlock()
+	if changed {
+		select {
+		case b.reconnect <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// Status returns the connection state.
+func (b *Bridge) Status() BridgeStatus {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.status
+}
+
+func (b *Bridge) setStatus(state, errMsg string) {
+	b.mu.Lock()
+	if b.status.State != state || b.status.Error != errMsg {
+		b.status = BridgeStatus{State: state, Error: errMsg, Since: time.Now().UnixMilli()}
+	}
+	st := b.status
+	b.mu.Unlock()
+	b.hub.Publish("mqtt", st)
+}
+
+// ObjectID derives a stable, topic-safe ID from a device identity.
+func ObjectID(ident string) string {
+	var sb strings.Builder
+	sb.WriteString("netzwart_")
+	for _, r := range strings.ToLower(ident) {
+		switch {
+		case r >= 'a' && r <= 'f', r >= '0' && r <= '9':
+			sb.WriteRune(r)
+		case r == '/' || r == '.':
+			sb.WriteByte('_')
+		}
+	}
+	return sb.String()
+}
+
+func deviceObjectID(d store.Device) string {
+	if d.Ident != "" {
+		return ObjectID(d.Ident)
+	}
+	return ObjectID(d.MAC)
+}
+
+// Run maintains the connection until ctx ends.
+func (b *Bridge) Run(ctx context.Context) {
+	backoff := 5 * time.Second
+	for {
+		b.mu.Lock()
+		cfg := b.cfg
+		b.mu.Unlock()
+		if !cfg.Enabled {
+			b.setStatus("disabled", "")
+			select {
+			case <-ctx.Done():
+				return
+			case <-b.reconnect:
+				continue
+			}
+		}
+		b.setStatus("connecting", "")
+		err := b.session(ctx, cfg)
+		if ctx.Err() != nil {
+			return
+		}
+		if err != nil {
+			b.setStatus("error", err.Error())
+			b.log.Warn("mqtt connection failed", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-b.reconnect:
+			backoff = 5 * time.Second
+		case <-time.After(backoff):
+			backoff = min(backoff*2, 5*time.Minute)
+		}
+	}
+}
+
+type deviceInfo struct {
+	Identifiers  []string   `json:"identifiers"`
+	Name         string     `json:"name"`
+	Manufacturer string     `json:"manufacturer,omitempty"`
+	Model        string     `json:"model,omitempty"`
+	Connections  [][]string `json:"connections,omitempty"`
+	ViaDevice    string     `json:"via_device,omitempty"`
+	SWVersion    string     `json:"sw_version,omitempty"`
+}
+
+func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
+	rnd := make([]byte, 4)
+	_, _ = rand.Read(rnd)
+	base := cfg.BaseTopic
+	haStatus := cfg.DiscoveryPrefix + "/status"
+	resync := make(chan struct{}, 1)
+	cl, err := Connect(ctx, Options{
+		Addr: net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)), TLS: cfg.TLS,
+		ClientID: "netzwart-" + hex.EncodeToString(rnd), Username: cfg.Username, Password: string(cfg.Password),
+		KeepAlive: 60 * time.Second, WillTopic: base + "/status", WillMsg: "offline",
+		Dial: b.dial,
+		OnMessage: func(topic string, payload []byte) {
+			if topic == haStatus && string(payload) == "online" {
+				select {
+				case resync <- struct{}{}:
+				default:
+				}
+			}
+		},
+	})
+	if err != nil {
+		return err
+	}
+	defer cl.Close()
+	sub := b.hub.Subscribe(256)
+	defer b.hub.Unsubscribe(sub)
+	if err := cl.Publish(ctx, base+"/status", []byte("online"), true); err != nil {
+		return err
+	}
+	if err := cl.Subscribe(ctx, haStatus); err != nil {
+		return err
+	}
+	if err := b.publishAll(ctx, cl, cfg); err != nil {
+		return err
+	}
+	b.setStatus("connected", "")
+	b.log.Info("mqtt connected", "broker", cfg.Host)
+	stats := time.NewTicker(time.Minute)
+	defer stats.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			_ = cl.Publish(context.Background(), base+"/status", []byte("offline"), true)
+			return nil
+		case <-b.reconnect:
+			return nil
+		case <-cl.Done():
+			return cl.Err()
+		case <-resync:
+			if err := b.publishAll(ctx, cl, cfg); err != nil {
+				return err
+			}
+		case <-stats.C:
+			if sub.Dropped() {
+				if err := b.publishAll(ctx, cl, cfg); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := b.publishStats(ctx, cl, cfg); err != nil {
+				return err
+			}
+		case m := <-sub.C:
+			var err error
+			switch m.Type {
+			case "device":
+				if d, ok := m.Data.(store.Device); ok {
+					err = b.publishDevice(ctx, cl, cfg, d)
+				}
+			case "device_removed":
+				if v, ok := m.Data.(map[string]int64); ok {
+					err = b.removeByID(ctx, cl, cfg, v["id"])
+				}
+			case "internet":
+				err = b.publishStats(ctx, cl, cfg)
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (b *Bridge) language() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.lang
+}
+
+func (b *Bridge) publishJSON(ctx context.Context, cl *Client, topic string, v any) error {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	return cl.Publish(ctx, topic, raw, true)
+}
+
+func (b *Bridge) publishAll(ctx context.Context, cl *Client, cfg config.MQTT) error {
+	base, prefix := cfg.BaseTopic, cfg.DiscoveryPrefix
+	hubDev := deviceInfo{Identifiers: []string{"netzwart"}, Name: "Netzwart", Manufacturer: "Netzwart", SWVersion: b.version}
+	lang := b.language()
+	t := func(de, en string) string {
+		if lang == "en" {
+			return en
+		}
+		return de
+	}
+	sensors := []struct {
+		comp, id, name, topic, unit, class string
+	}{
+		{"sensor", "netzwart_devices_online", t("Geräte online", "Devices online"), base + "/stats/online", "", ""},
+		{"sensor", "netzwart_devices_total", t("Geräte gesamt", "Devices total"), base + "/stats/total", "", ""},
+		{"sensor", "netzwart_devices_new", t("Neue Geräte", "New devices"), base + "/stats/new", "", ""},
+		{"sensor", "netzwart_internet_latency", t("Internet-Latenz", "Internet latency"), base + "/internet/latency", "ms", "duration"},
+		{"binary_sensor", "netzwart_internet", "Internet", base + "/internet/state", "", "connectivity"},
+	}
+	for _, s := range sensors {
+		cfgMsg := map[string]any{"name": s.name, "unique_id": s.id, "object_id": s.id, "state_topic": s.topic,
+			"availability_topic": base + "/status", "device": hubDev}
+		if s.unit != "" {
+			cfgMsg["unit_of_measurement"] = s.unit
+		}
+		if s.class != "" {
+			cfgMsg["device_class"] = s.class
+		}
+		if s.comp == "binary_sensor" {
+			cfgMsg["payload_on"], cfgMsg["payload_off"] = "ON", "OFF"
+		} else {
+			cfgMsg["state_class"] = "measurement"
+		}
+		if err := b.publishJSON(ctx, cl, prefix+"/"+s.comp+"/"+s.id+"/config", cfgMsg); err != nil {
+			return err
+		}
+	}
+	for _, d := range b.src.Devices() {
+		if err := b.publishDevice(ctx, cl, cfg, d); err != nil {
+			return err
+		}
+	}
+	return b.publishStats(ctx, cl, cfg)
+}
+
+func (b *Bridge) publishStats(ctx context.Context, cl *Client, cfg config.MQTT) error {
+	online, total, fresh := 0, 0, 0
+	for _, d := range b.src.Devices() {
+		total++
+		if d.Online {
+			online++
+		}
+		if d.New {
+			fresh++
+		}
+	}
+	base := cfg.BaseTopic
+	for topic, v := range map[string]int{"/stats/online": online, "/stats/total": total, "/stats/new": fresh} {
+		if err := cl.Publish(ctx, base+topic, []byte(strconv.Itoa(v)), true); err != nil {
+			return err
+		}
+	}
+	if b.inet != nil {
+		st := b.inet()
+		state := "OFF"
+		if st.State == internet.StateOnline || st.State == internet.StateDegraded {
+			state = "ON"
+		}
+		if st.State != internet.StateDisabled && st.State != internet.StateUnknown {
+			if err := cl.Publish(ctx, base+"/internet/state", []byte(state), true); err != nil {
+				return err
+			}
+			if st.LatencyMS >= 0 {
+				if err := cl.Publish(ctx, base+"/internet/latency", []byte(strconv.Itoa(st.LatencyMS)), true); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (b *Bridge) publishDevice(ctx context.Context, cl *Client, cfg config.MQTT, d store.Device) error {
+	id := deviceObjectID(d)
+	cfgTopic := cfg.DiscoveryPrefix + "/device_tracker/" + id + "/config"
+	b.mu.Lock()
+	known := b.published[id]
+	b.mu.Unlock()
+	if !d.Watch {
+		if known {
+			return b.remove(ctx, cl, cfg, id)
+		}
+		return nil
+	}
+	stateTopic := cfg.BaseTopic + "/device/" + id + "/state"
+	attrTopic := cfg.BaseTopic + "/device/" + id + "/attributes"
+	name := notify.DeviceName(&d, b.language())
+	msg := map[string]any{
+		"name": nil, "unique_id": id, "object_id": id, "state_topic": stateTopic, "json_attributes_topic": attrTopic,
+		"payload_home": "home", "payload_not_home": "not_home", "source_type": "router",
+		"availability_topic": cfg.BaseTopic + "/status",
+		"device": deviceInfo{Identifiers: []string{id}, Name: name, Manufacturer: d.Vendor, Model: d.Model,
+			Connections: [][]string{{"mac", d.MAC}}, ViaDevice: "netzwart"},
+	}
+	if !known {
+		if err := b.publishJSON(ctx, cl, cfgTopic, msg); err != nil {
+			return err
+		}
+		b.mu.Lock()
+		b.published[id] = true
+		b.mu.Unlock()
+	}
+	state := "not_home"
+	if d.Online {
+		state = "home"
+	}
+	if err := cl.Publish(ctx, stateTopic, []byte(state), true); err != nil {
+		return err
+	}
+	return b.publishJSON(ctx, cl, attrTopic, map[string]any{"ip": d.IP, "mac": d.MAC, "host_name": d.Hostname,
+		"vendor": d.Vendor, "type": d.Type, "last_seen": time.UnixMilli(d.LastSeen).UTC().Format(time.RFC3339)})
+}
+
+func (b *Bridge) remove(ctx context.Context, cl *Client, cfg config.MQTT, id string) error {
+	// An empty retained config removes the entity in Home Assistant.
+	if err := cl.Publish(ctx, cfg.DiscoveryPrefix+"/device_tracker/"+id+"/config", nil, true); err != nil {
+		return err
+	}
+	_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/state", nil, true)
+	_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/attributes", nil, true)
+	b.mu.Lock()
+	delete(b.published, id)
+	b.mu.Unlock()
+	return nil
+}
+
+func (b *Bridge) removeByID(ctx context.Context, cl *Client, cfg config.MQTT, deviceID int64) error {
+	// The device is gone from the monitor; remove every entity that no longer matches a watched device.
+	current := map[string]bool{}
+	for _, d := range b.src.Devices() {
+		if d.Watch {
+			current[deviceObjectID(d)] = true
+		}
+	}
+	b.mu.Lock()
+	var stale []string
+	for id := range b.published {
+		if !current[id] {
+			stale = append(stale, id)
+		}
+	}
+	b.mu.Unlock()
+	for _, id := range stale {
+		if err := b.remove(ctx, cl, cfg, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
