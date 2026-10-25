@@ -12,7 +12,9 @@ set -euo pipefail
 
 IMAGE="${1:-netzwart:local}"
 NET="nwtest-$$"
-SUBNET="172.31.$((RANDOM % 200 + 20)).0/24"
+OCTET=$((RANDOM % 200 + 20))
+SUBNET="172.31.$OCTET.0/24"
+GW="172.31.$OCTET.1"
 WORK="$(mktemp -d)"
 PASS="Sonnenblume-im-Garten7"
 FAILED=0
@@ -31,8 +33,8 @@ fi
 ok()   { echo "  ok   $*"; }
 fail() { echo "  FAIL $*"; [ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=container-test::$*"; FAILED=$((FAILED + 1)); }
 
-docker network create --subnet "$SUBNET" "$NET" >/dev/null
-GW="$(docker network inspect -f '{{(index .IPAM.Config 0).Gateway}}' "$NET")"
+# Explicit gateway: newer Docker versions do not report an implicit one.
+docker network create --subnet "$SUBNET" --gateway "$GW" "$NET" >/dev/null
 for i in 1 2 3; do
   c="nwdev-$$-$i"
   docker run -d --rm --network "$NET" --name "$c" alpine:3.22 sleep 3600 >/dev/null
