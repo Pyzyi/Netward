@@ -24,12 +24,16 @@ func TestCheckDataDir(t *testing.T) {
 	if err := CheckDataDir(file); err == nil {
 		t.Fatal("file accepted as directory")
 	}
+	// A directory the process owns but cannot write is repaired (0700).
+	ro := filepath.Join(dir, "ro")
+	_ = os.Mkdir(ro, 0o500)
+	if err := CheckDataDir(ro); err != nil {
+		t.Fatalf("own read-only directory not repaired: %v", err)
+	}
+	// A directory owned by someone else cannot be repaired; the error explains the fix.
 	if os.Geteuid() != 0 {
-		ro := filepath.Join(dir, "ro")
-		_ = os.Mkdir(ro, 0o500)
-		err := CheckDataDir(ro)
-		if err == nil || !strings.Contains(err.Error(), "chown") {
-			t.Fatalf("read-only directory: %v", err)
+		if err := CheckDataDir("/"); err == nil || !strings.Contains(err.Error(), "chown") {
+			t.Fatalf("foreign directory: %v", err)
 		}
 	}
 }
