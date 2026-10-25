@@ -1,6 +1,7 @@
 <script lang="ts">
   import { errorText } from '../../lib/errors';
   import Dialog from '../../lib/components/Dialog.svelte';
+  import Toggle from '../../lib/components/Toggle.svelte';
   import { api } from '../../lib/api';
   import { toast } from '../../lib/components/toast.svelte';
   import { t } from '../../lib/i18n.svelte';
@@ -166,7 +167,7 @@
         {/each}
       </div>
     </fieldset>
-    <label class="check"><input type="checkbox" bind:checked={enabled} /> {t('settings.channelEnabled')}</label>
+    <Toggle bind:checked={enabled} label={t('settings.channelEnabled')} />
     {#if error}<p class="error-text" role="alert">{error}</p>{/if}
   </form>
   {#snippet footer()}

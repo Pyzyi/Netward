@@ -45,6 +45,11 @@
     void loadSessions();
   }
 
+  async function revokeOthers() {
+    for (const s of sessions.filter((x) => !x.current)) await api.revokeSession(s.id);
+    void loadSessions();
+  }
+
   function agent(ua: string): string {
     const browser = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
     const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
@@ -69,11 +74,16 @@
       <input id="rep" class="input" type="password" bind:value={repeat} autocomplete="new-password" required />
     </div>
     {#if error}<p class="error-text" role="alert">{error}</p>{/if}
-    <div><button class="btn primary" type="submit" disabled={busy || !current || next.length < 10}>{t('settings.password')}</button></div>
+    <div><button class="btn primary" type="submit" disabled={busy}>{t('settings.password')}</button></div>
   </form>
 </SettingsCard>
 
 <SettingsCard title={t('settings.sessions')}>
+  {#snippet extra()}
+    {#if sessions.filter((x) => !x.current).length > 0}
+      <button class="btn small" type="button" onclick={revokeOthers}>{t('settings.sessionsRevokeOthers')}</button>
+    {/if}
+  {/snippet}
   <ul class="sessions">
     {#each sessions as s (s.id)}
       <li>
@@ -105,7 +115,6 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    max-width: 760px;
   }
   .sessions li {
     display: flex;

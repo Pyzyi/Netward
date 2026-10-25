@@ -91,10 +91,12 @@
     border-left: 3px solid var(--text);
     padding-left: 12px;
   }
+  /* Every settings page uses one measure: fields, rules, notices, buttons. */
   .content {
     display: grid;
     gap: 36px;
     min-width: 0;
+    max-width: 680px;
   }
   /* The page rule above already separates the first section. */
   .content > :global(.block:first-of-type) {

@@ -670,6 +670,14 @@
     margin-top: 10px;
   }
 
+  @media (max-width: 1100px) {
+    .fresh-main {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .fresh-main .seen {
+      display: none;
+    }
+  }
   @media (max-width: 1180px) {
     .stage-ring {
       width: 400px;

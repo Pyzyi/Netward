@@ -6,10 +6,27 @@
 
   let { children }: { children: Snippet } = $props();
 
-  // A still Netzring as the identity of the sign-in screen (decorative).
-  const dots = Array.from({ length: 26 }, (_, i) => {
-    const a = (i / 26) * 2 * Math.PI - Math.PI / 2;
-    return { x: 160 + 118 * Math.cos(a), y: 160 + 118 * Math.sin(a), state: i === 7 ? 'new' : i % 6 === 4 ? 'off' : 'on' };
+  // A still Netzring as the identity of the sign-in screen (decorative):
+  // the same grouping, gaps and arcs as on the overview.
+  const groups = [3, 6, 5, 7, 4];
+  const gap = 2.6;
+  const total = groups.reduce((a, b) => a + b, 0) + gap * groups.length;
+  const ang = (k: number) => (k / total) * 2 * Math.PI - Math.PI / 2;
+  const pt = (a: number, r: number) => `${(160 + r * Math.cos(a)).toFixed(1)},${(160 + r * Math.sin(a)).toFixed(1)}`;
+  const dots: { x: number; y: number; state: string }[] = [];
+  const arcs: string[] = [];
+  let slot = 0;
+  groups.forEach((n) => {
+    const start = slot;
+    for (let i = 0; i < n; i++, slot++) {
+      const a = ang(slot);
+      const idx = dots.length;
+      dots.push({ x: 160 + 118 * Math.cos(a), y: 160 + 118 * Math.sin(a), state: idx === 9 ? 'new' : idx % 7 === 5 ? 'off' : 'on' });
+    }
+    const a0 = ang(start - 0.35);
+    const a1 = ang(slot - 1 + 0.35);
+    arcs.push(`M${pt(a0, 131)}A131,131 0 0 1 ${pt(a1, 131)}`);
+    slot += gap;
   });
 </script>
 
@@ -19,6 +36,7 @@
     <div class="ring-wrap" aria-hidden="true">
     <svg class="ring" viewBox="0 0 320 320">
       <circle cx="160" cy="160" r="118" class="orbit" />
+      {#each arcs as d, i (i)}<path {d} class="arc" />{/each}
       {#each dots as d, i (i)}
         {#if d.state !== 'off'}<line x1={160 + (d.x - 160) * 0.42} y1={160 + (d.y - 160) * 0.42} x2={d.x} y2={d.y} class="spoke" />{/if}
       {/each}
@@ -78,6 +96,13 @@
   .orbit {
     fill: none;
     stroke: var(--ink-line);
+  }
+  .arc {
+    fill: none;
+    stroke: var(--on-ink-2);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    opacity: 0.55;
   }
   .spoke {
     stroke: var(--on-ink-2);

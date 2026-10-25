@@ -181,17 +181,32 @@ h3 {
   letter-spacing: -0.005em;
 }
 
-/* Links are ink with a quiet underline; no accent blue. */
+/* Links are ink, no accent blue. Only links inside running text are
+   underlined at rest; everything else shows the underline on hover. */
 a {
   color: var(--link);
-  text-decoration: underline;
-  text-decoration-color: var(--border-strong);
-  text-decoration-thickness: 1px;
+  text-decoration: none;
   text-underline-offset: 3px;
 }
 
 a:hover {
+  text-decoration: underline;
+}
+
+p a,
+.hint a {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+}
+
+p a:hover,
+.hint a:hover {
   text-decoration-color: currentColor;
+}
+
+.btn,
+.btn:hover {
+  text-decoration: none;
 }
 
 button,
@@ -293,11 +308,11 @@ textarea {
   border-color: var(--accent-hover);
 }
 
-/* Unavailable primary action: an outline, not a grey slab */
+/* Unavailable primary action: quiet outline; the reason is shown next to it */
 .btn.primary:disabled {
-  opacity: 1;
+  opacity: 0.6;
   background: transparent;
-  border: 1px dashed var(--control-border);
+  border: 1px solid var(--control-border);
   color: var(--text-2);
 }
 
@@ -546,9 +561,12 @@ details[open] > summary:not(.custom)::before {
   left: 0;
 }
 
-/* Tab bars scroll horizontally; keep the focus ring inside the button */
+/* Tab bars scroll horizontally (an outline would be clipped): focus is a
+   tinted tab with a heavy underline, which never covers the label. */
 .seg button:focus-visible {
-  outline-offset: -2px;
+  outline: none;
+  background: var(--surface-2);
+  box-shadow: inset 0 -3px 0 var(--focus);
 }
 
 .seg button[aria-pressed='true'] {
@@ -693,6 +711,16 @@ details[open] > summary:not(.custom)::before {
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 480px) {
+  .dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .dl dd + dt {
+    margin-top: 10px;
+  }
+}
+
 .divider {
   height: 1px;
   background: var(--border);
@@ -736,7 +764,22 @@ details[open] > summary:not(.custom)::before {
 .page-head .lead {
   margin-top: 6px;
   color: var(--text-2);
-  max-width: 60ch;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+dialog::backdrop {
+  background: rgb(10 14 20 / 0.5);
+}
+
+:root[data-theme='dark'] dialog::backdrop {
+  background: rgb(0 0 0 / 0.66);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) dialog::backdrop {
+    background: rgb(0 0 0 / 0.66);
+  }
 }
 
 @media (max-width: 640px) {

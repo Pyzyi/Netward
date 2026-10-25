@@ -87,11 +87,13 @@
       <p class="lead">{t('security.lead')}</p>
     </div>
     <div class="run">
-      <button class="btn primary" type="button" onclick={run} disabled={running || store.overview?.scanner.mode === 'demo'} title={store.overview?.scanner.mode === 'demo' ? t('err.demo_mode') : undefined}>
+      <button class="btn primary" type="button" onclick={run} disabled={running || store.overview?.scanner.mode === 'demo'}>
         <span class:spin={running} class="ico"><Icon name="arrows-clockwise" size={16} /></span>
         {running ? t('security.running') : t('security.run')}
       </button>
-      <span class="faint small">{status.lastRunAt ? t('security.last', { t: relTime(status.lastRunAt, clock.now) }) : ''}</span>
+      <span class="faint small">
+        {store.overview?.scanner.mode === 'demo' ? t('err.demo_mode') : status.lastRunAt ? t('security.last', { t: relTime(status.lastRunAt, clock.now) }) : ''}
+      </span>
     </div>
   </header>
 
@@ -337,6 +339,7 @@
     }
     .accept {
       justify-self: start;
+      padding-left: 0;
     }
     .tally div {
       padding-right: 18px;

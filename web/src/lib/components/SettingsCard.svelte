@@ -30,9 +30,12 @@
   <div class="body">{@render children()}</div>
   {#if onsave}
     <footer>
+      {#if dirty || busy}
+        <button class="btn primary" type="button" disabled={busy} onclick={onsave}>{t('common.save')}</button>
+      {:else}
+        <span class="unchanged">{t('common.noChanges')}</span>
+      {/if}
       {#if error}<p class="error-text" role="alert">{error}</p>{/if}
-      <span class="spacer"></span>
-      <button class="btn primary" type="button" disabled={!dirty || busy} onclick={onsave}>{t('common.save')}</button>
     </footer>
   {/if}
 </section>
@@ -63,17 +66,15 @@
     gap: 18px;
     padding: 14px 0 4px;
   }
-  /* A full-width text field reads as unfinished; forms keep a measure. */
-  .body > :global(.field),
-  .body > :global(.toggle-row),
-  .body > :global(.two),
-  .body > :global(.grid) {
-    max-width: 640px;
-  }
   footer {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    min-height: 50px;
     padding: 16px 0 0;
+  }
+  .unchanged {
+    font-size: 13px;
+    color: var(--text-2);
   }
 </style>

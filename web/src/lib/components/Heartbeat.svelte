@@ -24,6 +24,9 @@
     return out.filter((r) => r.kind !== '-');
   });
   const hours = $derived([...cells].filter((c) => c === '1').length / 2);
+  const always = $derived(runs.length === 1 && runs[0].kind === '1' && runs[0].start === 0);
+  const label = $derived(always ? t('device.heartbeatAlways') : t('device.heartbeat', { h: hours }));
+  const bar = $derived(Math.round(height * 0.66));
   const span = (r: Run) => {
     if (!store.stripFrom) return '';
     const a = store.stripFrom + r.start * slotMs;
@@ -32,15 +35,18 @@
   };
 </script>
 
-<svg class="beat" {width} {height} viewBox="0 0 {width} {height}" role="img" aria-label={t('device.heartbeat', { h: hours })}>
+<svg class="beat" {width} {height} viewBox="0 0 {width} {height}" role="img" aria-label={label}>
+  {#each [12, 24, 36] as q (q)}
+    <rect class="tick" x={q * step - 0.5} y="0" width="1" {height} />
+  {/each}
   {#each runs as r (r.start)}
     {#if r.kind === '1'}
-      <rect class="on" x={r.start * step} y="0" width={Math.max(2, (r.end - r.start) * step - 1)} {height} rx="1.5">
-        <title>{span(r)} · {t('device.status.online')}</title>
+      <rect class="on" x={r.start * step} y={(height - bar) / 2} width={Math.max(2, (r.end - r.start) * step - 1)} height={bar} rx="1.5">
+        <title>{always ? t('device.heartbeatAlways') : `${span(r)} ${t('device.status.online').toLowerCase()}`}</title>
       </rect>
     {:else}
       <rect class="off" x={r.start * step} y={height / 2 - 0.75} width={Math.max(2, (r.end - r.start) * step - 1)} height="1.5">
-        <title>{span(r)} · {t('common.offline')}</title>
+        <title>{span(r)} {t('common.offline').toLowerCase()}</title>
       </rect>
     {/if}
   {/each}
@@ -55,6 +61,10 @@
   }
   .on {
     fill: var(--signal);
+    opacity: 0.85;
+  }
+  .tick {
+    fill: var(--border);
   }
   .off {
     fill: var(--control-border);

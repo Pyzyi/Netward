@@ -28,27 +28,43 @@
   }
 </script>
 
-<button class="btn primary" class:on-ink={onInk} type="button" onclick={scan} disabled={scanning || demo} title={demo ? t('err.demo_mode') : undefined}>
-  <span class:spin={scanning} class="ico"><Icon name="arrows-clockwise" size={16} /></span>
-  {scanning ? t('overview.scanning') : t('overview.scanNow')}
-</button>
+<span class="scan" class:on-ink={onInk}>
+  <button class="btn primary" type="button" onclick={scan} disabled={scanning || demo}>
+    <span class:spin={scanning} class="ico"><Icon name="arrows-clockwise" size={16} /></span>
+    {scanning ? t('overview.scanning') : t('overview.scanNow')}
+  </button>
+  {#if demo}<span class="why">{t('err.demo_mode')}</span>{/if}
+</span>
 
 <style>
   .ico {
     display: inline-grid;
   }
-  .on-ink {
+  .scan {
+    display: inline-grid;
+    justify-items: start;
+    gap: 5px;
+  }
+  .why {
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .on-ink .btn {
     background: var(--on-ink);
     border-color: var(--on-ink);
     color: var(--ink);
   }
-  .on-ink:hover:not(:disabled) {
+  .on-ink .btn:hover:not(:disabled) {
     background: #fff;
     border-color: #fff;
   }
-  .on-ink:disabled {
+  .on-ink .btn:disabled {
+    opacity: 0.55;
     background: transparent;
-    border: 1px dashed var(--on-ink-2);
+    border: 1px solid var(--on-ink-2);
+    color: var(--on-ink-2);
+  }
+  .on-ink .why {
     color: var(--on-ink-2);
   }
 </style>

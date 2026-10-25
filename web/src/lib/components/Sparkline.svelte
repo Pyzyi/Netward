@@ -26,7 +26,7 @@
 
 <svg viewBox="0 0 {W} {height}" preserveAspectRatio="none" width="100%" {height} aria-hidden="true">
   {#each path.fails as fx, i (i)}
-    <rect x={fx - 1} y="0" width="2" {height} fill="#ff7b6e" opacity="0.7" />
+    <rect x={fx - 1} y={height - 3} width="2" height="3" fill="#ff7b6e" />
   {/each}
   <path d={path.line} fill="none" stroke={color} stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />
 </svg>
