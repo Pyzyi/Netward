@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import Dialog from '../../lib/components/Dialog.svelte';
-  import { api, ApiError } from '../../lib/api';
+  import { api } from '../../lib/api';
   import { t } from '../../lib/i18n.svelte';
   import type { Channel, ChannelConfig, ChannelKind } from '../../lib/types';
 
@@ -83,7 +84,7 @@
       onsaved(saved);
       open = false;
     } catch (e) {
-      error = e instanceof ApiError ? (e.detail || t(`err.${e.code}`)) : t('err.network');
+      error = errorText(e);
     } finally {
       busy = false;
     }

@@ -173,13 +173,29 @@ func (s Settings) Public() Settings {
 	return s
 }
 
-// MergeSecrets keeps the current secret where the update leaves it empty or masked.
-func (s *Settings) MergeSecrets(current Settings) {
-	keep := func(v *Secret, old Secret) {
-		if *v == "" || *v == Mask {
-			*v = old
+// ErrSecretRequired is returned when a stored secret would be sent to a
+// destination it was not entered for.
+var ErrSecretRequired = errors.New("secret_required")
+
+// MergeSecrets keeps the current secret where the update leaves it empty or
+// masked, but only while the secret's destination is unchanged. Otherwise a
+// session without the password could point MQTT or the FRITZ!Box integration
+// at its own server and receive the stored credentials.
+func (s *Settings) MergeSecrets(current Settings) error {
+	keep := func(v *Secret, old Secret, sameDest bool, field string) error {
+		if *v != "" && *v != Mask {
+			return nil
 		}
+		if old != "" && !sameDest {
+			return fmt.Errorf("%w: %s", ErrSecretRequired, field)
+		}
+		*v = old
+		return nil
 	}
-	keep(&s.MQTT.Password, current.MQTT.Password)
-	keep(&s.FritzBox.Password, current.FritzBox.Password)
+	m, cm := s.MQTT, current.MQTT
+	if err := keep(&s.MQTT.Password, cm.Password, m.Host == cm.Host && m.Port == cm.Port && m.TLS == cm.TLS && m.Username == cm.Username, "mqtt.password"); err != nil {
+		return err
+	}
+	f, cf := s.FritzBox, current.FritzBox
+	return keep(&s.FritzBox.Password, cf.Password, f.Host == cf.Host && f.Username == cf.Username, "fritzbox.password")
 }

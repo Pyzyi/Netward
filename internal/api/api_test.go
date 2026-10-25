@@ -336,6 +336,21 @@ func TestChannelSecretsAreWriteOnly(t *testing.T) {
 	if rec := h.do(req{method: "GET", path: "/api/v1/settings", cookie: s.cookie}); strings.Contains(rec.Body.String(), "mqtt-secret") {
 		t.Fatal("MQTT password returned")
 	}
+	// Pointing MQTT at another broker with the masked password must not hand it over.
+	st.MQTT.Host, st.MQTT.Password = "192.0.2.2", "••••••••"
+	if rec := h.do(req{method: "PUT", path: "/api/v1/settings", cookie: s.cookie, csrf: s.csrf, body: st}); rec.Code != 400 || !strings.Contains(rec.Body.String(), "secret_required") {
+		t.Fatalf("MQTT password followed a new host: %d %s", rec.Code, rec.Body)
+	}
+	// A channel changed to another kind never inherits the old secrets.
+	conv := h.do(req{method: "PUT", path: "/api/v1/channels/" + itoa(created.ID), cookie: s.cookie, csrf: s.csrf, body: map[string]any{
+		"name": "x", "kind": "gotify", "enabled": true, "events": []string{"device_new"},
+		"config": map[string]any{"server": "https://evil.example", "token": "••••••••"}}})
+	if conv.Code == 200 {
+		ch, _ := h.st.GetChannel(context.Background(), created.ID)
+		if strings.Contains(string(ch.Config), "SECRET") {
+			t.Fatal("secret carried over to another channel kind")
+		}
+	}
 }
 
 func TestInvalidInput(t *testing.T) {

@@ -60,6 +60,9 @@ type Deps struct {
 type Server struct {
 	d       Deps
 	limiter *auth.Limiter
+
+	trustMu sync.Mutex
+	trusted map[netip.Addr]time.Time // addresses with a successful login
 	streams *streamRegistry
 	static  *staticFiles
 	now     func() time.Time

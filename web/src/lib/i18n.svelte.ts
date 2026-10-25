@@ -95,6 +95,8 @@ const de = {
   'err.not_found': 'Nicht gefunden.',
   'err.origin_mismatch': 'Die Anfrage wurde aus Sicherheitsgründen abgelehnt (fremder Ursprung).',
   'err.network': 'Netzwart ist nicht erreichbar.',
+  'err.internal': 'Etwas ist schiefgegangen. Bitte versuche es erneut.',
+  'err.secret_required': 'Das Ziel hat sich geändert. Bitte gib aus Sicherheitsgründen {field} erneut ein.',
 
   'overview.lastScan': 'Letzter Scan {t}',
   'overview.scanning': 'Scan läuft …',
@@ -591,6 +593,8 @@ const en: Record<Key, string> = {
   'err.not_found': 'Not found.',
   'err.origin_mismatch': 'The request was rejected for security reasons (foreign origin).',
   'err.network': 'Netzwart cannot be reached.',
+  'err.internal': 'Something went wrong. Please try again.',
+  'err.secret_required': 'The destination changed. For security, please enter {field} again.',
 
   'overview.lastScan': 'Last scan {t}',
   'overview.scanning': 'Scanning …',

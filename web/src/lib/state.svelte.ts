@@ -1,5 +1,6 @@
 // Global application state, kept live through the server-sent event stream.
 import { SvelteMap } from 'svelte/reactivity';
+import { errorText } from './errors';
 import { api, ApiError, setCsrf, setUnauthorizedHandler } from './api';
 import { setLang } from './i18n.svelte';
 import type { AuthState, Device, EventItem, InternetStatus, Overview, ScannerStatus, Settings } from './types';
@@ -201,7 +202,6 @@ export async function updateSettings(fn: (s: Settings) => void): Promise<string>
     if (store.overview) store.overview.networkName = store.settings.networkName;
     return '';
   } catch (e) {
-    if (e instanceof ApiError) return e.detail || e.code;
-    return 'network';
+    return errorText(e);
   }
 }

@@ -178,18 +178,20 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &req) {
 		return
 	}
-	key := "setup/" + remoteIP(r).String()
-	if ok, wait := s.limiter.Allow(key); !ok {
+	end, wait, ok := s.limiter.Begin(auth.IPKey("setup", remoteIP(r).String()))
+	if !ok {
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "")
 		return
 	}
+	outcome := auth.Refund
+	defer func() { end(outcome) }()
 	if ok, reason := s.setupCheck(r); !ok {
 		writeError(w, http.StatusForbidden, "setup_"+reason, "")
 		return
 	}
 	if s.d.Env.SetupToken != "" && subtle.ConstantTimeCompare([]byte(req.Token), []byte(s.d.Env.SetupToken)) != 1 {
-		s.limiter.Fail(key)
+		outcome = auth.Failure
 		writeError(w, http.StatusForbidden, "setup_token", "")
 		return
 	}
@@ -257,35 +259,52 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := s.clientIP(r)
-	key := "login/" + ip.String()
-	if ok, wait := s.limiter.Allow(key); !ok {
+	// Addresses the owner signed in from before skip the per-account budget
+	// and get priority for the hashing slot, so a guessing flood from other
+	// addresses cannot lock the owner out.
+	ctx := r.Context()
+	keys := []auth.Key{auth.IPKey("login", ip.String())}
+	if s.trustedIP(ctx, ip) {
+		ctx = auth.WithPriority(ctx)
+	} else {
+		keys = append(keys, auth.UserKey("login", req.Username))
+	}
+	end, wait, ok := s.limiter.Begin(keys...)
+	if !ok {
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "")
 		return
 	}
 	if len(req.Username) > 64 || len(req.Password) > 512 {
+		end(auth.Failure)
 		writeError(w, http.StatusBadRequest, "invalid_credentials", "")
 		return
 	}
-	u, err := s.d.Store.GetUserByName(r.Context(), req.Username)
+	u, err := s.d.Store.GetUserByName(ctx, req.Username)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		end(auth.Refund)
 		s.fail(w, r, err)
 		return
 	}
-	ok, verr := auth.VerifyPassword(r.Context(), u.PasswordHash, req.Password) // dummy hash if user unknown
-	if errors.Is(verr, auth.ErrBusy) {
+	valid, verr := auth.VerifyPassword(ctx, u.PasswordHash, req.Password) // dummy hash if user unknown
+	if verr != nil {
+		end(auth.Refund)
 		w.Header().Set("Retry-After", "3")
 		writeError(w, http.StatusServiceUnavailable, "busy", "")
 		return
 	}
-	if !ok || u.ID == 0 {
-		s.limiter.Fail(key)
-		s.d.Monitor.AddEvent(r.Context(), "auth_failed", "warning", 0, map[string]any{"ip": ip.String(),
-			"user": textutil.Clean(req.Username, 64)})
+	if !valid || u.ID == 0 {
+		// Log the first failure and then every 20th per address, so a flood
+		// cannot fill the activity log.
+		if n := end(auth.Failure); n == 1 || n%20 == 0 {
+			s.d.Monitor.AddEvent(r.Context(), "auth_failed", "warning", 0, map[string]any{"ip": ip.String(),
+				"user": textutil.Clean(req.Username, 64), "attempts": n})
+		}
 		writeError(w, http.StatusUnauthorized, "invalid_credentials", "")
 		return
 	}
-	s.limiter.Succeed(key)
+	end(auth.Success)
+	s.rememberIP(ip)
 	se, err := s.createSession(r.Context(), w, r, u, req.Remember)
 	if err != nil {
 		s.fail(w, r, err)
@@ -314,18 +333,25 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request, si *sess
 	if !readJSON(w, r, &req) {
 		return
 	}
-	key := "password/" + strconv.FormatInt(si.user.ID, 10)
-	if ok, wait := s.limiter.Allow(key); !ok {
+	end, wait, ok := s.limiter.Begin(auth.Key{Name: "password/" + strconv.FormatInt(si.user.ID, 10), Free: 5, Max: 15 * time.Minute})
+	if !ok {
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "")
 		return
 	}
-	ok, err := auth.VerifyPassword(r.Context(), si.user.PasswordHash, req.Current)
-	if err != nil || !ok {
-		s.limiter.Fail(key)
+	valid, err := auth.VerifyPassword(auth.WithPriority(r.Context()), si.user.PasswordHash, req.Current)
+	if err != nil {
+		end(auth.Refund)
+		w.Header().Set("Retry-After", "3")
+		writeError(w, http.StatusServiceUnavailable, "busy", "")
+		return
+	}
+	if !valid {
+		end(auth.Failure)
 		writeError(w, http.StatusForbidden, "wrong_password", "")
 		return
 	}
+	end(auth.Success)
 	if err := auth.CheckPassword(si.user.Username, req.New); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error(), "")
 		return
@@ -339,7 +365,6 @@ func (s *Server) handlePassword(w http.ResponseWriter, r *http.Request, si *sess
 		s.fail(w, r, err)
 		return
 	}
-	s.limiter.Succeed(key)
 	s.streams.closeAllExcept(si.session.ID)
 	s.d.Monitor.AddEvent(r.Context(), "auth_password", "info", 0, map[string]any{"ip": s.clientIP(r).String()})
 	w.WriteHeader(http.StatusNoContent)
@@ -396,4 +421,25 @@ func LocalPrefixes() []netip.Prefix {
 		}
 	}
 	return out
+}
+
+// trustedIP reports whether the owner signed in from ip before: in this
+// process run, or with a session that is still valid.
+func (s *Server) trustedIP(ctx context.Context, ip netip.Addr) bool {
+	s.trustMu.Lock()
+	t, ok := s.trusted[ip]
+	s.trustMu.Unlock()
+	if ok && time.Since(t) < 30*24*time.Hour {
+		return true
+	}
+	return s.d.Store.HasSessionFromIP(ctx, ip.String(), time.Now().UnixMilli())
+}
+
+func (s *Server) rememberIP(ip netip.Addr) {
+	s.trustMu.Lock()
+	defer s.trustMu.Unlock()
+	if s.trusted == nil || len(s.trusted) > 1000 {
+		s.trusted = map[netip.Addr]time.Time{}
+	}
+	s.trusted[ip] = time.Now()
 }

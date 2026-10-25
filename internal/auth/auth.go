@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -35,16 +36,45 @@ var ErrBusy = errors.New("authentication busy, try again")
 // make concurrent guessing pointless.
 var hashSlot = make(chan struct{}, 1)
 
+// priorityWaiting counts trusted callers waiting for the slot; others yield
+// to them, so a flood of guesses cannot keep the owner from logging in.
+var priorityWaiting atomic.Int32
+
+type priorityKey struct{}
+
+// WithPriority marks ctx as coming from a trusted client (e.g. an address the
+// owner logged in from before).
+func WithPriority(ctx context.Context) context.Context {
+	return context.WithValue(ctx, priorityKey{}, true)
+}
+
 func acquire(ctx context.Context) error {
-	t := time.NewTimer(3 * time.Second)
-	defer t.Stop()
-	select {
-	case hashSlot <- struct{}{}:
-		return nil
-	case <-t.C:
-		return ErrBusy
-	case <-ctx.Done():
-		return ctx.Err()
+	prio, _ := ctx.Value(priorityKey{}).(bool)
+	timeout := 3 * time.Second
+	if prio {
+		timeout = 15 * time.Second
+		priorityWaiting.Add(1)
+		defer priorityWaiting.Add(-1)
+	}
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+	tick := time.NewTicker(5 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if prio || priorityWaiting.Load() == 0 {
+			select {
+			case hashSlot <- struct{}{}:
+				return nil
+			default:
+			}
+		}
+		select {
+		case <-tick.C:
+		case <-deadline.C:
+			return ErrBusy
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
@@ -174,7 +204,7 @@ func HashToken(t string) []byte {
 	return h[:]
 }
 
-// Limiter throttles failed logins per client with exponential backoff.
+// Limiter throttles failed logins with exponential backoff per key.
 type Limiter struct {
 	mu    sync.Mutex
 	state map[string]*attempts
@@ -190,27 +220,48 @@ type attempts struct {
 // NewLimiter returns an empty limiter.
 func NewLimiter() *Limiter { return &Limiter{state: map[string]*attempts{}, now: time.Now} }
 
-const freeAttempts = 5
-
-// Allow reports whether key may try to log in, and if not, for how long it must wait.
-func (l *Limiter) Allow(key string) (bool, time.Duration) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	a := l.state[key]
-	if a == nil {
-		return true, 0
-	}
-	if wait := a.until.Sub(l.now()); wait > 0 {
-		return false, wait
-	}
-	return true, 0
+// Key is one budget an attempt is charged against.
+type Key struct {
+	Name string
+	Free int           // failures before backoff starts
+	Max  time.Duration // longest backoff
 }
 
-// Fail records a failed attempt.
-func (l *Limiter) Fail(key string) {
+// IPKey limits one client address: 5 free attempts, then up to 15 minutes.
+func IPKey(prefix, ip string) Key { return Key{Name: prefix + "/ip/" + ip, Free: 5, Max: 15 * time.Minute} }
+
+// UserKey limits guesses against one account from many addresses. Its backoff
+// is short so an attacker cannot lock the owner out for long.
+func UserKey(prefix, user string) Key {
+	return Key{Name: prefix + "/user/" + strings.ToLower(user), Free: 10, Max: time.Minute}
+}
+
+// Outcome of an attempt.
+type Outcome int
+
+// Outcomes passed to the function returned by Begin.
+const (
+	Failure Outcome = iota // wrong credentials: the charge stays
+	Success                // correct credentials: the keys are cleared
+	Refund                 // not decided (e.g. server busy): the charge is returned
+)
+
+// Begin charges an attempt against every key before the password is
+// checked, so parallel requests cannot exceed the budget. It returns false
+// and the remaining wait if any key is blocked. Otherwise the caller must
+// call end exactly once; end returns the failure count of the first key.
+func (l *Limiter) Begin(keys ...Key) (end func(Outcome) int, wait time.Duration, ok bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()
+	for _, k := range keys {
+		if a := l.state[k.Name]; a != nil {
+			wait = max(wait, a.until.Sub(now))
+		}
+	}
+	if wait > 0 {
+		return nil, wait, false
+	}
 	if len(l.state) > 10000 {
 		for k, a := range l.state {
 			if now.Sub(a.last) > time.Hour {
@@ -218,23 +269,43 @@ func (l *Limiter) Fail(key string) {
 			}
 		}
 	}
-	a := l.state[key]
-	if a == nil || now.Sub(a.last) > 24*time.Hour {
-		a = &attempts{}
-		l.state[key] = a
+	for _, k := range keys {
+		a := l.state[k.Name]
+		if a == nil || now.Sub(a.last) > 24*time.Hour {
+			a = &attempts{}
+			l.state[k.Name] = a
+		}
+		a.failures++
+		a.last = now
+		if a.failures >= k.Free {
+			shift := min(a.failures-k.Free, 5)
+			a.until = now.Add(min(30*time.Second<<shift, k.Max))
+		}
 	}
-	a.failures++
-	a.last = now
-	if a.failures >= freeAttempts {
-		shift := min(a.failures-freeAttempts, 5)
-		d := min(30*time.Second<<shift, 15*time.Minute)
-		a.until = now.Add(d)
-	}
-}
-
-// Succeed clears the failures of key.
-func (l *Limiter) Succeed(key string) {
-	l.mu.Lock()
-	delete(l.state, key)
-	l.mu.Unlock()
+	var once sync.Once
+	return func(o Outcome) int {
+		n := 0
+		once.Do(func() {
+			l.mu.Lock()
+			defer l.mu.Unlock()
+			for i, k := range keys {
+				a := l.state[k.Name]
+				if a == nil {
+					continue
+				}
+				switch o {
+				case Success:
+					delete(l.state, k.Name)
+				case Refund:
+					if a.failures--; a.failures < k.Free {
+						a.until = time.Time{}
+					}
+				}
+				if i == 0 && o == Failure {
+					n = a.failures
+				}
+			}
+		})
+		return n
+	}, 0, true
 }

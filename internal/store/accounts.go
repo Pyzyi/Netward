@@ -166,6 +166,13 @@ func (s *Store) TouchSession(ctx context.Context, id, now, expires int64, ip str
 	return err
 }
 
+// HasSessionFromIP reports whether an unexpired session was last used from ip.
+func (s *Store) HasSessionFromIP(ctx context.Context, ip string, now int64) bool {
+	var one int
+	err := s.db.QueryRowContext(ctx, `SELECT 1 FROM sessions WHERE ip = ? AND expires_at > ? LIMIT 1`, ip, now).Scan(&one)
+	return err == nil
+}
+
 // ListSessions returns the active sessions of a user.
 func (s *Store) ListSessions(ctx context.Context, userID int64) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, created_at, last_seen_at, expires_at, remember, user_agent, ip

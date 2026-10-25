@@ -35,7 +35,7 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 | T-04 | T | CSRF auf zustandsändernde Endpunkte | `SameSite=Strict` + `X-CSRF-Token` (pro Sitzung, konstante Vergleichszeit) + Pflicht-`Origin` aus Allowlist + `http.CrossOriginProtection`. Auch Setup und Login sind geschützt | API-Test |
 | T-05 | T | **Stored XSS über Gerätenamen** (DHCP-Hostname, mDNS, SSDP friendlyName) | Normalisierung beim Einlesen (Steuerzeichen raus, Länge ≤ 128); Svelte escapt standardmäßig, `{@html}` ist verboten (CI-Grep); CSP: `default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'` | Unit-Test + CI-Grep + E2E-CSP-Test |
 | T-06 | T | Manipulierte Netzwerkpakete bringen Parser zum Absturz (DoS) oder lesen über Speichergrenzen | Go ist speichersicher; alle Parser prüfen Längen und laufen durch **Fuzz-Tests**; `recover` pro Paket im Listener | Fuzzing in CI |
-| T-07 | T/I | **SSRF über SSDP `LOCATION`** (Antworten sind spoofbar) | Host muss IP-Literal = Absender-IP im Subnetz sein, nie eine eigene Host-IP; nur `http` + GET ohne Cookies/Auth; keine Redirects; 64 KiB; 3 s; max. 1 Abruf/Gerät/6 h; Egress-Dialer (T-25) | Unit-Test |
+| T-07 | T/I | **SSRF über SSDP `LOCATION`** (Antworten sind spoofbar) | Host muss IP-Literal = Absender-IP im Subnetz sein, nie eine eigene Host-IP (die Absender-IP ist per UDP fälschbar: ein LAN-Angreifer kann damit einen GET an einen beliebigen Port eines LAN-Geräts auslösen; akzeptiert, siehe Restrisiko 7); nur `http` + GET ohne Cookies/Auth; keine Redirects; 64 KiB; 3 s; max. 1 Abruf/Gerät/6 h; Egress-Dialer (T-25) | Unit-Test |
 | T-08 | T | XXE / XML-Bomben in UPnP-Beschreibung | Go `encoding/xml` löst keine externen Entities auf; Größenlimit 64 KiB | Unit-Test |
 | T-09 | T | CSV-Formel-Injektion beim Export (`=HYPERLINK(...)` als Hostname) | Felder, die mit `= + - @ \t \r` beginnen, werden mit `'` präfixiert | Unit-Test |
 | T-10 | T | Log-Injektion über Hostnamen | Strukturiertes Logging (`slog`), Steuerzeichen werden entfernt | Code-Review |
@@ -47,7 +47,7 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 | T-16 | D | Scan-Flut stört das Netz | ARP ≤ 500 pps; Portscan max. 32 parallele Verbindungen, 0,8 s Timeout, nur TCP-Connect ohne Nutzdaten; Subnetze > /22 nur nach expliziter Freigabe; Fallback-Sweep max. /24 (Nachbartabelle des Hosts) | Unit-Test |
 | T-17 | D | Paketflut auf passivem Listener | Getrennte Sockets, Kernel-BPF-Filter (ARP; UDP 67/68/5353), `PACKET_IGNORE_OUTGOING`, begrenzte Queue mit Verwerfen, Ratenlimit pro MAC | Unit-Test |
 | T-18 | D | Große/viele API-Requests | Body-Limit 1 MiB, `ReadHeaderTimeout`, `ReadTimeout`, `IdleTimeout`; begrenzte SSE-Clients (32) | Code-Review |
-| T-19 | D | Benachrichtigungs-Spam (z. B. viele neue Geräte) | Lernphase beim ersten Scan; Bündelung innerhalb 30 s; Ratenlimit pro Kanal | Unit-Test |
+| T-19 | D | Benachrichtigungs-Spam (z. B. viele neue Geräte) | Lernphase beim ersten Scan; Bündelung innerhalb 20 s (ab 4 Geräten eine Sammelmeldung); Ratenlimit 30 Meldungen / 10 min pro Kanal | Unit-Test |
 | T-20 | E | Container-Ausbruch / Rechteausweitung | Nicht-root (UID 10001), zur Laufzeit **CapEff = 0** (Sockets vor dem Drop geöffnet), `no-new-privileges` (zusätzlich vom Binary selbst gesetzt), read-only Root-FS, `scratch`-Image ohne Shell und Paketmanager | CI-Test prüft `/proc/1/status` |
 | T-21 | E | Verwundbare Abhängigkeiten | 4 direkte Go-Abhängigkeiten; `govulncheck`, `npm audit`, Trivy-Scan, Dependabot | CI |
 | T-22 | E | Manipuliertes Image (Supply Chain) | Build ausschließlich in GitHub Actions, SBOM + Provenance-Attestierung, gepinnte Actions (Commit-SHA) | CI |
@@ -72,6 +72,14 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 6. **Trust on first use bei der FRITZ!Box** (T-29): Wer beim allerersten Verbindungsaufbau bereits erfolgreich
    die FRITZ!Box imitiert, erhält den Digest-Hash. Die FRITZ!Box bietet kein CA-signiertes Zertifikat im LAN;
    empfohlen wird daher ein eigener FRITZ!Box-Benutzer mit eigenem Passwort.
+7. **SSDP-Antworten mit gefälschtem Absender** (T-07): Ein Gerät im LAN kann Netzwart zu einem einfachen GET ohne
+   Cookies/Zugangsdaten an ein anderes LAN-Gerät veranlassen. Das kann derselbe Angreifer auch direkt; die Antwort
+   wird nur als Gerätebeschreibung (max. 64 KiB, bereinigt) gespeichert.
+8. **Ersteinrichtung ohne Token** (T-01): Bewusst kein automatisch erzeugtes Setup-Token, weil der Einrichtungsweg
+   „Compose einfügen → Passwort setzen“ sonst den Blick ins Container-Protokoll erfordert. Wer das Risiko nicht
+   tragen will, setzt `NETZWART_SETUP_TOKEN`.
+9. **Eigene Host-Adressen sind als Ziel erlaubt**: Benachrichtigungen, MQTT und Webhooks dürfen die LAN-IP des Hosts
+   erreichen, weil Mosquitto, ntfy oder Gotify häufig auf demselben ZimaOS laufen. Gesperrt bleibt Loopback.
 
 ## 5. Sicherheitsrelevante Standards
 

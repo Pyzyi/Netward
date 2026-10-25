@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import X from '@lucide/svelte/icons/x';
   import Check from '@lucide/svelte/icons/check';
   import Star from '@lucide/svelte/icons/star';
@@ -101,7 +102,7 @@
       store.devices.set(upd.id, upd);
       if (okText) toast(okText);
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
   }
 
@@ -116,7 +117,7 @@
       const r = await api.ping(id);
       toast(r.ok ? t('device.actions.pingOk', { ms: r.rttMs.toFixed(1) }) : t('device.actions.pingFail'), r.ok ? 'ok' : 'info');
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     } finally {
       pinging = false;
     }
@@ -127,7 +128,7 @@
       await api.wake(id);
       toast(t('device.actions.wakeSent'));
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
   }
 
@@ -137,7 +138,7 @@
       const r = await api.portScan(id);
       if (detail) detail.ports = r.ports;
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     } finally {
       store.portScans = { ...store.portScans, [id]: false };
     }
@@ -150,7 +151,7 @@
       forgetOpen = false;
       onclose();
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
   }
 
@@ -163,7 +164,7 @@
       mergeOpen = false;
       navigate(`/devices/${into.id}`);
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
   }
 

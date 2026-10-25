@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorText } from '../lib/errors';
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import ShieldAlert from '@lucide/svelte/icons/shield-alert';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
@@ -7,7 +8,7 @@
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
   import { toast } from '../lib/components/toast.svelte';
-  import { api, ApiError } from '../lib/api';
+  import { api } from '../lib/api';
   import { auth, clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
@@ -40,7 +41,7 @@
       await api.runSecurity();
       status = { ...status, running: true };
     } catch (e) {
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
   }
 

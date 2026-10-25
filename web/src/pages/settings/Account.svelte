@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { errorText } from '../../lib/errors';
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
   import PasswordStrength from '../../lib/components/PasswordStrength.svelte';
   import { toast } from '../../lib/components/toast.svelte';
-  import { api, ApiError } from '../../lib/api';
+  import { api } from '../../lib/api';
   import { clock, store, updateSettings } from '../../lib/state.svelte';
   import { relTime, t } from '../../lib/i18n.svelte';
   import type { Session } from '../../lib/types';
@@ -33,7 +34,7 @@
       toast(t('settings.passwordChanged'));
       void loadSessions();
     } catch (err) {
-      error = t(`err.${err instanceof ApiError ? err.code : 'network'}`, { s: err instanceof ApiError ? err.retryAfter : 0 });
+      error = errorText(err);
     } finally {
       busy = false;
     }

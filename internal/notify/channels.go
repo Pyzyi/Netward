@@ -104,7 +104,14 @@ func Masked(kind string, raw json.RawMessage) json.RawMessage {
 	return out
 }
 
-// MergeConfig keeps old secrets where the update sends an empty or masked value.
+// ErrSecretRequired is returned when a stored secret would be sent to a
+// destination it was not entered for.
+var ErrSecretRequired = errors.New("secret_required")
+
+// MergeConfig keeps old secrets where the update sends an empty or masked
+// value. Stored secrets are only reused while the destination (server, host,
+// port, transport security, URL) stays the same; otherwise a session without
+// the secrets could redirect them to itself.
 func MergeConfig(kind string, update, old json.RawMessage) (json.RawMessage, error) {
 	var u, o Config
 	dec := json.NewDecoder(bytes.NewReader(update))
@@ -115,9 +122,18 @@ func MergeConfig(kind string, update, old json.RawMessage) (json.RawMessage, err
 	if len(old) > 0 {
 		_ = json.Unmarshal(old, &o)
 	}
+	sameDest := u.Server == o.Server && u.Host == o.Host && u.Port == o.Port && u.Security == o.Security
+	for _, f := range secretFields[kind] {
+		if p := u.secretPtr(f); *p != "" && *p != mask && *p != *o.secretPtr(f) && f == "url" {
+			sameDest = false // a new webhook URL is a new destination for its header secret
+		}
+	}
 	for _, f := range secretFields[kind] {
 		p, q := u.secretPtr(f), o.secretPtr(f)
 		if *p == "" || *p == mask {
+			if *q != "" && !sameDest {
+				return nil, fmt.Errorf("%w: %s", ErrSecretRequired, f)
+			}
 			*p = *q
 		}
 	}

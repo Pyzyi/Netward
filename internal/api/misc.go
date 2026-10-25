@@ -30,7 +30,10 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request, _ *se
 		return
 	}
 	current := s.d.Settings()
-	st.MergeSecrets(current)
+	if err := st.MergeSecrets(current); err != nil {
+		writeError(w, http.StatusBadRequest, "secret_required", strings.TrimPrefix(err.Error(), "secret_required: "))
+		return
+	}
 	st.NetworkName = textutil.Clean(st.NetworkName, 64)
 	if st.InternetTargets == nil {
 		st.InternetTargets = current.InternetTargets
@@ -93,13 +96,17 @@ func (s *Server) buildChannel(w http.ResponseWriter, req channelRequest, old *st
 		}
 	}
 	var oldCfg json.RawMessage
-	if old != nil {
+	if old != nil && old.Kind == req.Kind {
 		oldCfg = old.Config
 	}
 	if len(req.Config) == 0 {
 		req.Config = json.RawMessage("{}")
 	}
 	cfg, err := notify.MergeConfig(req.Kind, req.Config, oldCfg)
+	if errors.Is(err, notify.ErrSecretRequired) {
+		writeError(w, http.StatusBadRequest, "secret_required", strings.TrimPrefix(err.Error(), "secret_required: "))
+		return store.Channel{}, false
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_config", err.Error())
 		return store.Channel{}, false

@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -61,35 +63,109 @@ func TestLimiterBackoff(t *testing.T) {
 	l := NewLimiter()
 	now := time.Now()
 	l.now = func() time.Time { return now }
-	for i := 0; i < 4; i++ {
-		l.Fail("1.2.3.4")
-		if ok, _ := l.Allow("1.2.3.4"); !ok {
-			t.Fatalf("blocked after %d failures", i+1)
+	ip := IPKey("login", "1.2.3.4")
+	fail := func(k Key) {
+		end, _, ok := l.Begin(k)
+		if !ok {
+			t.Fatal("unexpectedly blocked")
 		}
+		end(Failure)
 	}
-	l.Fail("1.2.3.4")
-	ok, wait := l.Allow("1.2.3.4")
-	if ok || wait != 30*time.Second {
+	for i := 0; i < 4; i++ {
+		fail(ip)
+	}
+	fail(ip) // 5th failure starts the backoff
+	if _, wait, ok := l.Begin(ip); ok || wait != 30*time.Second {
 		t.Fatalf("after 5 failures: ok=%v wait=%v", ok, wait)
 	}
-	if ok, _ := l.Allow("5.6.7.8"); !ok {
+	if end, _, ok := l.Begin(IPKey("login", "5.6.7.8")); !ok {
 		t.Fatal("other clients must not be affected")
+	} else {
+		end(Refund)
 	}
 	for i := 0; i < 20; i++ {
-		l.Fail("1.2.3.4")
+		now = now.Add(16 * time.Minute)
+		fail(ip)
 	}
-	_, wait = l.Allow("1.2.3.4")
-	if wait != 15*time.Minute {
+	if _, wait, _ := l.Begin(ip); wait != 15*time.Minute {
 		t.Fatalf("backoff cap: %v", wait)
 	}
 	now = now.Add(16 * time.Minute)
-	if ok, _ := l.Allow("1.2.3.4"); !ok {
+	end, _, ok := l.Begin(ip)
+	if !ok {
 		t.Fatal("still blocked after backoff")
 	}
-	l.Succeed("1.2.3.4")
-	l.Fail("1.2.3.4")
-	if ok, _ := l.Allow("1.2.3.4"); !ok {
+	end(Success)
+	fail(ip)
+	if end, _, ok := l.Begin(ip); !ok {
 		t.Fatal("success must reset the counter")
+	} else {
+		end(Refund)
+	}
+}
+
+// Parallel attempts are charged before the password check, so a burst
+// cannot exceed the free budget (review 2, security M2).
+func TestLimiterChargesInFlightAttempts(t *testing.T) {
+	l := NewLimiter()
+	ip := IPKey("login", "10.0.0.9")
+	var ends []func(Outcome) int
+	admitted := 0
+	for i := 0; i < 60; i++ {
+		if end, _, ok := l.Begin(ip); ok {
+			admitted++
+			ends = append(ends, end)
+		}
+	}
+	if admitted != 5 {
+		t.Fatalf("%d parallel attempts admitted, want 5", admitted)
+	}
+	for _, end := range ends {
+		end(Refund)
+	}
+	if end, _, ok := l.Begin(ip); !ok {
+		t.Fatal("refunded attempts must not block")
+	} else {
+		end(Refund)
+	}
+}
+
+// Rotating source addresses does not help against one account.
+func TestLimiterPerUser(t *testing.T) {
+	l := NewLimiter()
+	user := UserKey("login", "Admin")
+	blocked := false
+	for i := 0; i < 30; i++ {
+		end, _, ok := l.Begin(IPKey("login", fmt.Sprintf("10.0.0.%d", i)), user)
+		if !ok {
+			blocked = true
+			break
+		}
+		end(Failure)
+	}
+	if !blocked {
+		t.Fatal("guessing one account from many addresses was not limited")
+	}
+	if _, wait, _ := l.Begin(UserKey("login", "admin")); wait > time.Minute {
+		t.Fatalf("account lockout too long: %v", wait)
+	}
+}
+
+func TestPriorityGetsHashSlot(t *testing.T) {
+	hashSlot <- struct{}{} // occupied by a flood
+	done := make(chan error, 1)
+	go func() {
+		_, err := VerifyPassword(WithPriority(context.Background()), "", "x")
+		done <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	// While a trusted caller waits, ordinary callers yield.
+	if err := acquire(context.Background()); !errors.Is(err, ErrBusy) {
+		t.Fatalf("ordinary caller took the slot ahead of a trusted one: %v", err)
+	}
+	<-hashSlot
+	if err := <-done; err != nil {
+		t.Fatalf("trusted caller: %v", err)
 	}
 }
 

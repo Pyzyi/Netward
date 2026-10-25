@@ -173,6 +173,30 @@ func TestMaskAndMerge(t *testing.T) {
 	}
 }
 
+// Stored secrets must not follow a changed destination (review 2, security M1).
+func TestSecretsDoNotFollowNewDestination(t *testing.T) {
+	cases := []struct {
+		kind, old, upd string
+	}{
+		{ChanNtfy, `{"server":"https://ntfy.sh","topic":"a","token":"tk_SECRET"}`, `{"server":"http://192.0.2.2:18999","topic":"a","token":"••••••••"}`},
+		{ChanGotify, `{"server":"https://gotify.lan","token":"SECRET"}`, `{"server":"https://evil.example","token":""}`},
+		{ChanWebhook, `{"url":"https://hook.lan/x","headerName":"Authorization","headerValue":"Bearer SECRET"}`, `{"url":"https://evil.example/","headerName":"Authorization","headerValue":"••••••••"}`},
+		{ChanEmail, `{"host":"smtp.lan","port":587,"security":"starttls","username":"u","password":"SECRET","from":"a@b.de","to":"c@d.de"}`, `{"host":"smtp.evil.example","port":587,"security":"starttls","username":"u","password":"••••••••","from":"a@b.de","to":"c@d.de"}`},
+		{ChanEmail, `{"host":"smtp.lan","port":587,"security":"starttls","username":"u","password":"SECRET","from":"a@b.de","to":"c@d.de"}`, `{"host":"smtp.lan","port":25,"security":"none","username":"u","password":"••••••••","from":"a@b.de","to":"c@d.de"}`},
+	}
+	for _, c := range cases {
+		if _, err := MergeConfig(c.kind, json.RawMessage(c.upd), json.RawMessage(c.old)); !errors.Is(err, ErrSecretRequired) {
+			t.Errorf("%s: secret followed the new destination (err=%v)", c.kind, err)
+		}
+	}
+	// Same destination, other fields changed: the secret is kept.
+	merged, err := MergeConfig(ChanNtfy, json.RawMessage(`{"server":"https://ntfy.sh","topic":"b","token":"••••••••"}`),
+		json.RawMessage(`{"server":"https://ntfy.sh","topic":"a","token":"tk_SECRET"}`))
+	if err != nil || !strings.Contains(string(merged), "tk_SECRET") {
+		t.Fatalf("secret lost on harmless change: %v", err)
+	}
+}
+
 func TestSMTP(t *testing.T) {
 	ln, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {

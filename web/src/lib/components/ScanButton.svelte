@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { errorText } from '../errors';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-  import { api, ApiError } from '../api';
+  import { api } from '../api';
   import { store } from '../state.svelte';
   import { t } from '../i18n.svelte';
   import { toast } from './toast.svelte';
@@ -19,7 +20,7 @@
       await api.scan();
     } catch (e) {
       requested = false;
-      toast(t(`err.${e instanceof ApiError ? e.code : 'network'}`), 'error');
+      toast(errorText(e), 'error');
     }
     setTimeout(() => (requested = false), 8000);
   }
