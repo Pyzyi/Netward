@@ -127,7 +127,7 @@
               <a class="dev" href="/devices/{dev.id}" use:link><DeviceIcon type={dev.type} size={24} /> {displayName(dev)} <span class="mono faint">{dev.ip}</span></a>
             {/if}
             <details open={f.severity === 'critical'}>
-              <summary>{t('security.why')} <Icon name="caret-down" size={14} /></summary>
+              <summary class="custom">{t('security.why')} <Icon name="caret-down" size={14} /></summary>
               <p>{why(f)}</p>
               <h3>{t('security.todo')}</h3>
               <p>{todo(f)}</p>
@@ -172,11 +172,7 @@
 </div>
 
 <style>
-  .findings,
-  .tally,
-  .hints,
-  .hidden-findings,
-  .all-good {
+  .wrap > :global(*) {
     max-width: 1000px;
   }
   .run {
@@ -188,7 +184,7 @@
     display: inline-grid;
   }
   .small {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .tally {
     display: flex;
@@ -233,7 +229,7 @@
     padding: 22px 0;
     color: var(--ok);
     font-size: 16px;
-    font-weight: 650;
+    font-weight: 600;
   }
   .findings {
     list-style: none;
@@ -274,7 +270,7 @@
     min-width: 0;
   }
   .f-body h2 {
-    font-size: 17px;
+    font-size: 16px;
   }
   .dev {
     display: inline-flex;
@@ -332,6 +328,9 @@
     border-bottom: 1px solid var(--border);
   }
   @media (max-width: 640px) {
+    .run {
+      justify-items: start;
+    }
     .finding {
       grid-template-columns: minmax(0, 1fr);
       gap: 10px;

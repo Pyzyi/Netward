@@ -54,14 +54,21 @@
     max-width: 64ch;
   }
   .block-title {
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     letter-spacing: -0.015em;
   }
   .body {
     display: grid;
     gap: 18px;
     padding: 14px 0 4px;
+  }
+  /* A full-width text field reads as unfinished; forms keep a measure. */
+  .body > :global(.field),
+  .body > :global(.toggle-row),
+  .body > :global(.two),
+  .body > :global(.grid) {
+    max-width: 640px;
   }
   footer {
     display: flex;

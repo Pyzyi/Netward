@@ -96,6 +96,13 @@
     gap: 36px;
     min-width: 0;
   }
+  /* The page rule above already separates the first section. */
+  .content > :global(.block:first-of-type) {
+    border-top: 0;
+  }
+  .content > :global(.block:first-of-type .block-head) {
+    padding-top: 0;
+  }
   .account-mobile {
     display: none;
     align-items: center;

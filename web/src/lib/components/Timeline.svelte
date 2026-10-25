@@ -23,7 +23,7 @@
       at.setMinutes(0, 0, 0);
       at.setHours(at.getHours() + 1);
       while (at.getHours() % 6 !== 0) at.setHours(at.getHours() + 1);
-      for (; at.getTime() < data.to - 2 * hour; at.setHours(at.getHours() + 6)) out.push({ at: at.getTime(), label: time(at.getTime()) });
+      for (; at.getTime() < data.to - 3 * hour; at.setHours(at.getHours() + 6)) out.push({ at: at.getTime(), label: time(at.getTime()) });
     } else {
       const fmt = new Intl.DateTimeFormat(undefined, span > 8 * day ? { day: 'numeric', month: 'short' } : { weekday: 'short' });
       const step = span > 8 * day ? 6 * day : day;
@@ -100,7 +100,7 @@
     margin: 4px 0 0;
     padding: 0;
     list-style: none;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-2);
   }
   .legend li {
@@ -127,7 +127,7 @@
   .ticks {
     position: relative;
     height: 16px;
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--text-3);
   }
   .ticks span {

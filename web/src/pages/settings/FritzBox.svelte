@@ -96,12 +96,12 @@
   .howto {
     border-top: 1px solid var(--border);
     padding-top: 12px;
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--text-2);
   }
   .howto summary {
     cursor: pointer;
-    font-weight: 550;
+    font-weight: 600;
     color: var(--text-1);
   }
   .howto ol {

@@ -12,6 +12,11 @@
   let offlineAfterMobile = $state(s.offlineAfterMobile);
   let allowLarge = $state(s.allowLargeSubnets);
   let resolveNames = $state(s.resolveNames);
+  let schedule = $state(store.settings!.securityScanDays);
+  async function saveSchedule() {
+    const err = await updateSettings((x) => (x.securityScanDays = Number(schedule)));
+    toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
+  }
   let busy = $state(false);
   let error = $state('');
 
@@ -89,7 +94,20 @@
   <p class="muted">{t('settings.mode')}: <strong>{t(`settings.mode.${mode}`)}</strong></p>
 </SettingsCard>
 
+<SettingsCard title={t('settings.securitySchedule')}>
+  <div class="field narrow">
+    <select class="select" bind:value={schedule} onchange={saveSchedule} aria-label={t('settings.securitySchedule')}>
+      <option value={0}>{t('settings.schedule.off')}</option>
+      <option value={1}>{t('settings.schedule.daily')}</option>
+      <option value={7}>{t('settings.schedule.weekly')}</option>
+    </select>
+  </div>
+</SettingsCard>
+
 <style>
+  .narrow {
+    max-width: 280px;
+  }
   .ifaces {
     display: grid;
     gap: 10px;

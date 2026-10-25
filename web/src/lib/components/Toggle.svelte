@@ -52,14 +52,18 @@
     width: 40px;
     height: 22px;
     margin-top: 1px;
-    border: 0;
+    border: 1.5px solid var(--control-border);
     border-radius: 4px;
-    background: var(--control-border);
+    background: transparent;
     cursor: pointer;
     transition: background 150ms var(--ease);
   }
   .switch[aria-checked='true'] {
     background: var(--accent);
+    border-color: var(--accent);
+  }
+  .switch[aria-checked='true'] .knob {
+    background: var(--accent-text);
   }
   .switch:disabled {
     opacity: 0.5;
@@ -67,12 +71,13 @@
   }
   .knob {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 16px;
-    height: 16px;
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
     border-radius: 2px;
-    background: var(--surface);
+    background: var(--control-border);
+    transition: transform 150ms var(--ease), background 150ms var(--ease);
     transition: transform 150ms var(--ease);
   }
   .switch[aria-checked='true'] .knob {

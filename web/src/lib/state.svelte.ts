@@ -18,6 +18,7 @@ export const store = $state<{
   eventTick: number;
   /** 24 h heartbeat per device: 48 half-hour slots ('1' online, '0' offline, '-' unknown). */
   strips: Record<number, string>;
+  stripFrom: number;
 }>({
   devices: new SvelteMap(),
   overview: null,
@@ -28,6 +29,7 @@ export const store = $state<{
   portScans: {},
   eventTick: 0,
   strips: {},
+  stripFrom: 0,
 });
 
 let stripTimer: ReturnType<typeof setInterval> | undefined;
@@ -37,6 +39,7 @@ export async function loadStrips() {
     const next: Record<number, string> = {};
     for (const [id, st] of Object.entries(r.strips)) next[Number(id)] = st;
     store.strips = next;
+    store.stripFrom = r.from;
   } catch {
     /* not critical */
   }

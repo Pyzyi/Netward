@@ -1,35 +1,66 @@
 <script lang="ts">
-  import { t } from '../i18n.svelte';
+  import { store } from '../state.svelte';
+  import { t, time } from '../i18n.svelte';
 
-  // The last 24 hours of a device as 48 half-hour beats: a full bar when it
-  // was online, a low tick when Netzwart saw it offline, nothing when unknown.
-  let { strip = '', width = 144, height = 18 }: { strip?: string; width?: number; height?: number } = $props();
+  // The last 24 hours of a device in 48 half-hour slots, drawn as runs:
+  // a solid bar while it was online, a thin baseline while Netzwart saw it
+  // offline, nothing where it was not observed. Each run has a tooltip.
+  let { strip = '', width = 192, height = 12 }: { strip?: string; width?: number; height?: number } = $props();
 
   const slots = 48;
+  const slotMs = 30 * 60 * 1000;
   const step = $derived(width / slots);
-  const bars = $derived([...strip.padStart(slots, '-').slice(-slots)]);
-  const hours = $derived(bars.filter((b) => b === '1').length / 2);
+  const cells = $derived(strip.padStart(slots, '-').slice(-slots));
+
+  type Run = { kind: string; start: number; end: number };
+  const runs = $derived.by(() => {
+    const out: Run[] = [];
+    for (let i = 0; i < slots; i++) {
+      const k = cells[i];
+      const last = out.at(-1);
+      if (last && last.kind === k) last.end = i + 1;
+      else out.push({ kind: k, start: i, end: i + 1 });
+    }
+    return out.filter((r) => r.kind !== '-');
+  });
+  const hours = $derived([...cells].filter((c) => c === '1').length / 2);
+  const span = (r: Run) => {
+    if (!store.stripFrom) return '';
+    const a = store.stripFrom + r.start * slotMs;
+    const b = Math.min(Date.now(), store.stripFrom + r.end * slotMs);
+    return `${time(a)}–${time(b)}`;
+  };
 </script>
 
 <svg class="beat" {width} {height} viewBox="0 0 {width} {height}" role="img" aria-label={t('device.heartbeat', { h: hours })}>
-  {#each bars as b, i (i)}
-    {#if b === '1'}
-      <rect class="on" x={i * step} y="0" width={Math.max(1, step - 1)} {height} rx="0.5" />
-    {:else if b === '0'}
-      <rect class="off" x={i * step} y={height - 2} width={Math.max(1, step - 1)} height="2" />
+  {#each runs as r (r.start)}
+    {#if r.kind === '1'}
+      <rect class="on" x={r.start * step} y="0" width={Math.max(2, (r.end - r.start) * step - 1)} {height} rx="1.5">
+        <title>{span(r)} · {t('device.status.online')}</title>
+      </rect>
+    {:else}
+      <rect class="off" x={r.start * step} y={height / 2 - 0.75} width={Math.max(2, (r.end - r.start) * step - 1)} height="1.5">
+        <title>{span(r)} · {t('common.offline')}</title>
+      </rect>
     {/if}
   {/each}
+  <rect class="now" x={width - 1} y="0" width="1" {height} />
 </svg>
 
 <style>
   .beat {
     display: block;
     flex: none;
+    overflow: visible;
   }
   .on {
     fill: var(--signal);
   }
   .off {
-    fill: var(--off);
+    fill: var(--control-border);
+  }
+  .now {
+    fill: var(--text-2);
+    opacity: 0.35;
   }
 </style>

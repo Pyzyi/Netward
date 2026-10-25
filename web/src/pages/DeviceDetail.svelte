@@ -4,7 +4,6 @@
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
   import CopyButton from '../lib/components/CopyButton.svelte';
   import Timeline from '../lib/components/Timeline.svelte';
-  import Heartbeat from '../lib/components/Heartbeat.svelte';
   import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api, ApiError } from '../lib/api';
@@ -329,10 +328,6 @@
           {#if d.macKind === 'virtual'}<span class="badge">{t('devices.virtual')}</span>{/if}
         </div>
       </div>
-      <div class="hero-beat">
-        <span class="eyebrow">{t('devices.col.beat')}</span>
-        <Heartbeat strip={store.strips[d.id] ?? ''} width={396} height={22} />
-      </div>
     </header>
 
     <div class="actions pad">
@@ -416,7 +411,7 @@
         <dt>{t('device.field.firstSeen')}</dt>
         <dd>{dateTime(d.firstSeen)}</dd>
         <dt>{t('device.field.lastSeen')}</dt>
-        <dd>{d.online ? t('device.status.online') : dateTime(d.lastSeen)}</dd>
+        <dd>{d.online ? t('device.presence.now') : dateTime(d.lastSeen)}</dd>
         {#if otherAddresses.length}
           <dt>{t('device.field.previousIps')}</dt>
           <dd class="mono">{otherAddresses.map((a) => a.ip).join(', ')}</dd>
@@ -543,7 +538,10 @@
     padding: 18px 22px;
   }
   .hero {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--surface);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     gap: 16px;
@@ -572,8 +570,8 @@
     border: 1px solid transparent;
     border-radius: 4px;
     background: transparent;
-    font-size: 22px;
-    font-weight: 760;
+    font-size: 20px;
+    font-weight: 800;
     letter-spacing: -0.025em;
   }
   .name-input:hover {
@@ -597,7 +595,7 @@
     display: none;
   }
   .sub {
-    font-size: 13.5px;
+    font-size: 14px;
   }
   .status-row {
     display: flex;
@@ -610,23 +608,12 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ok);
     min-height: 1em;
   }
   .saved:empty {
     display: none;
-  }
-  .hero-beat {
-    grid-column: 1 / -1;
-    display: grid;
-    gap: 6px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-  .hero-beat :global(.beat) {
-    width: 100%;
-    height: auto;
   }
   .actions {
     display: flex;
@@ -683,6 +670,17 @@
   .section.last {
     border-bottom: 0;
   }
+  /* Content fades out at the bottom edge instead of being cut. */
+  .detail::after {
+    content: '';
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 28px;
+    margin-top: -28px;
+    background: linear-gradient(transparent, var(--surface));
+    pointer-events: none;
+  }
   .section h3 {
     font-family: var(--mono);
     font-size: 11px;
@@ -702,10 +700,10 @@
   }
   .sec-head .seg button {
     height: 26px;
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .small {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .copy {
     display: flex;
@@ -750,7 +748,7 @@
     gap: 12px;
     padding: 7px 0;
     border-bottom: 1px solid var(--border);
-    font-size: 13.5px;
+    font-size: 14px;
   }
   .history time {
     white-space: nowrap;

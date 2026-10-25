@@ -16,7 +16,7 @@
   const gateway = $derived(devices.find((d) => d.isGateway));
 
   type Point = { d: Device; x: number; y: number; r: number };
-  type Label = { text: string; x: number; y: number; anchor: string };
+  type Label = { text: string; x: number; y: number; anchor: string; arc: string };
 
   const layout = $derived.by(() => {
     const others = devices
@@ -27,7 +27,7 @@
     const spacing = others.length > 120 ? 9 : 15;
     const capacity = radii.map((r) => Math.floor((2 * Math.PI * r) / spacing));
     const groups = order.map((cat) => others.filter((d) => category(d.type) === cat)).filter((g) => g.length);
-    const gap = groups.length > 1 ? 1.4 : 0; // empty slots between categories
+    const gap = groups.length > 1 ? 2.6 : 0; // empty slots between categories
     const total = others.length + gap * groups.length;
     const points: Point[] = [];
     const labels: Label[] = [];
@@ -42,15 +42,20 @@
         points.push({ d, x: c + r * Math.cos(a), y: c + r * Math.sin(a), r });
         slot += 1;
       }
-      const mid = ((startSlot + slot - 1) / 2 / total) * 2 * Math.PI - Math.PI / 2;
-      const lr = radii[radii.length - 1] + 26;
-      const lx = c + lr * Math.cos(mid);
-      const ly = c + lr * Math.sin(mid);
+      const ang = (k: number) => (k / total) * 2 * Math.PI - Math.PI / 2;
+      const a0 = ang(startSlot - 0.35);
+      const a1 = ang(slot - 1 + 0.35);
+      const mid = (a0 + a1) / 2;
+      const ar = radii[radii.length - 1] + 13; // arc just outside the points
+      const pt = (a: number, r: number) => `${(c + r * Math.cos(a)).toFixed(1)},${(c + r * Math.sin(a)).toFixed(1)}`;
+      const arc = `M${pt(a0, ar)}A${ar},${ar} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${pt(a1, ar)}`;
+      const lr = ar + 14;
       labels.push({
         text: `${t(`category.${category(g[0].type)}`)} ${g.length}`,
-        x: lx,
-        y: ly + 4,
+        x: c + lr * Math.cos(mid),
+        y: c + lr * Math.sin(mid) + 4,
         anchor: Math.abs(Math.cos(mid)) < 0.3 ? 'middle' : Math.cos(mid) > 0 ? 'start' : 'end',
+        arc,
       });
       slot += gap;
     }
@@ -75,11 +80,13 @@
     {/each}
     {#each layout.points as p (p.d.id)}
       {#if p.d.online}
-        <line class="spoke" class:hot={hover?.id === p.d.id} x1={c + ((p.x - c) * inner) / p.r} y1={c + ((p.y - c) * inner) / p.r} x2={p.x} y2={p.y} />
+        <line class="spoke" class:hot={hover?.id === p.d.id} x1={c + ((p.x - c) * inner) / p.r} y1={c + ((p.y - c) * inner) / p.r}
+          x2={c + ((p.x - c) * (p.r - 8)) / p.r} y2={c + ((p.y - c) * (p.r - 8)) / p.r} />
       {/if}
     {/each}
-    {#each labels ? layout.labels : [] as l (l.text)}
-      <text class="cat" x={l.x} y={l.y} text-anchor={l.anchor}>{l.text}</text>
+    {#each layout.labels as l (l.text)}
+      <path class="arc" d={l.arc} />
+      {#if labels}<text class="cat" x={l.x} y={l.y} text-anchor={l.anchor}>{l.text}</text>{/if}
     {/each}
     {#each layout.points as p (p.d.id)}
       <g
@@ -130,9 +137,16 @@
     opacity: 0.9;
     stroke: var(--signal);
   }
+  .arc {
+    fill: none;
+    stroke: var(--on-ink-2);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    opacity: 0.55;
+  }
   .cat {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     fill: var(--on-ink-2);
@@ -199,7 +213,7 @@
   }
   .core-name {
     max-width: 100%;
-    font-weight: 650;
+    font-weight: 600;
     color: var(--on-ink);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -207,7 +221,7 @@
   }
   .core-ip {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--on-ink-2);
   }
 </style>

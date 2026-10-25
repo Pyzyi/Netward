@@ -17,12 +17,23 @@ function block(selector) {
 
 function tokens(text) {
   const out = {};
-  for (const m of text.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\b/g)) out[m[1]] = m[2];
+  for (const m of text.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6}|var\(--[\w-]+\))/g)) out[m[1]] = m[2];
   return out;
 }
 
-const light = tokens(block(':root {'));
-const dark = { ...light, ...tokens(block(":root[data-theme='dark']")) };
+// Resolves aliases such as --link: var(--text) within a theme.
+function resolve(theme) {
+  for (const [k, v] of Object.entries(theme)) {
+    let val = v;
+    for (let i = 0; i < 5 && val.startsWith('var('); i++) val = theme[val.slice(6, -1)];
+    if (!val) throw new Error(`unresolved token --${k}`);
+    theme[k] = val;
+  }
+  return theme;
+}
+
+const light = resolve(tokens(block(':root {')));
+const dark = resolve({ ...tokens(block(':root {')), ...tokens(block(":root[data-theme='dark']")) });
 
 function lum(hex) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);

@@ -61,8 +61,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-weight: 760;
-    font-size: 18px;
+    font-weight: 800;
+    font-size: 20px;
     letter-spacing: -0.02em;
   }
   .ring-wrap {
@@ -115,7 +115,7 @@
     display: grid;
     gap: 8px;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--on-ink-2);
   }
   .facts li::before {

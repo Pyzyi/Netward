@@ -31,3 +31,28 @@ export const groupKinds: Record<EventGroup, string[]> = {
   security: ['security_finding', 'ip_conflict', 'device_flood', 'auth_failed'],
   system: ['auth_setup', 'auth_login', 'auth_password', 'config_settings', 'config_channel'],
 };
+
+/** Kinds worth showing on the overview: everything except routine sign-ins and settings changes. */
+export const overviewKinds = [
+  ...groupKinds.devices,
+  ...groupKinds.presence,
+  ...groupKinds.internet,
+  ...groupKinds.security,
+];
+
+export type EventRun = { e: EventItem; count: number; firstTs: number };
+
+/** Collapses consecutive repeats (same kind, same device, same text) into one row. */
+export function collapse(items: EventItem[], text: (e: EventItem) => string): EventRun[] {
+  const out: EventRun[] = [];
+  for (const e of items) {
+    const last = out.at(-1);
+    if (last && last.e.kind === e.kind && last.e.deviceId === e.deviceId && text(last.e) === text(e)) {
+      last.count++;
+      last.firstTs = e.ts;
+    } else {
+      out.push({ e, count: 1, firstTs: e.ts });
+    }
+  }
+  return out;
+}

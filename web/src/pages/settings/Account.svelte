@@ -4,7 +4,7 @@
   import PasswordStrength from '../../lib/components/PasswordStrength.svelte';
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
-  import { clock, logout, store, updateSettings } from '../../lib/state.svelte';
+  import { clock, logout } from '../../lib/state.svelte';
   import { relTime, t } from '../../lib/i18n.svelte';
   import type { Session } from '../../lib/types';
 
@@ -51,11 +51,6 @@
     return [browser, os].filter(Boolean).join(' · ') || ua.slice(0, 40) || '–';
   }
 
-  let schedule = $state(store.settings!.securityScanDays);
-  async function saveSchedule() {
-    const err = await updateSettings((x) => (x.securityScanDays = Number(schedule)));
-    toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
-  }
 </script>
 
 <SettingsCard title={t('settings.password')}>
@@ -99,15 +94,6 @@
   </ul>
 </SettingsCard>
 
-<SettingsCard title={t('settings.securitySchedule')}>
-  <div class="field narrow">
-    <select class="select" bind:value={schedule} onchange={saveSchedule} aria-label={t('settings.securitySchedule')}>
-      <option value={0}>{t('settings.schedule.off')}</option>
-      <option value={1}>{t('settings.schedule.daily')}</option>
-      <option value={7}>{t('settings.schedule.weekly')}</option>
-    </select>
-  </div>
-</SettingsCard>
 
 <style>
   .s-current {
@@ -119,26 +105,21 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    display: grid;
-    gap: 8px;
+    max-width: 760px;
   }
   .sessions li {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
   }
   .s-text {
     display: grid;
     gap: 2px;
   }
   .small {
-    font-size: 12.5px;
-  }
-  .narrow {
-    max-width: 280px;
+    font-size: 13px;
   }
 </style>

@@ -4,7 +4,7 @@
   import { api } from '../lib/api';
   import { clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
-  import { eventGroup, eventText, groupKinds, type EventGroup } from '../lib/events';
+  import { collapse, eventGroup, eventText, groupKinds, type EventGroup, type EventRun } from '../lib/events';
   import { dayLabel, time, t } from '../lib/i18n.svelte';
   import { displayName } from '../lib/devices';
   import type { EventItem } from '../lib/types';
@@ -45,14 +45,19 @@
     }
   });
 
+  const textOf = (e: EventItem) => {
+    const dev = e.deviceId ? store.devices.get(e.deviceId) : undefined;
+    return eventText(e, dev ? displayName(dev) : undefined);
+  };
+  // Per day, with consecutive repeats ("Anmeldung von 127.0.0.1" ×12) folded into one row.
   const grouped = $derived.by(() => {
-    const out: { day: string; items: EventItem[] }[] = [];
+    const days: { day: string; items: EventItem[] }[] = [];
     for (const e of items) {
       const day = dayLabel(e.ts, clock.now);
-      if (out.at(-1)?.day !== day) out.push({ day, items: [] });
-      out.at(-1)!.items.push(e);
+      if (days.at(-1)?.day !== day) days.push({ day, items: [] });
+      days.at(-1)!.items.push(e);
     }
-    return out;
+    return days.map((d) => ({ day: d.day, count: d.items.length, runs: collapse(d.items, textOf) as EventRun[] }));
   });
 
   const icons: Record<string, string> = {
@@ -81,16 +86,19 @@
   {:else}
     {#each grouped as g, gi (`${g.day}-${gi}`)}
       <section class="day">
-        <h2 class="eyebrow day-label">{g.day} <span>{g.items.length}</span></h2>
+        <h2 class="eyebrow day-label">{g.day} <span>{g.count}</span></h2>
         <ol>
-          {#each g.items as e (e.id)}
+          {#each g.runs as run (run.e.id)}
+            {@const e = run.e}
             {@const dev = e.deviceId ? store.devices.get(e.deviceId) : undefined}
             <li class={e.severity}>
               <time class="mono" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
               <span class="ev-icon"><Icon name={icons[e.kind] ?? 'gear-six'} size={16} /></span>
               <span class="text">
-                {#if dev}<a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>{:else}{eventText(e)}{/if}
-                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono"> {e.data.from} → {e.data.to}</span>{/if}
+                {#if run.count > 1}<span class="times mono">{run.count}×</span>{/if}
+                {#if dev}<a href="/devices/{dev.id}" use:link>{textOf(e)}</a>{:else}{textOf(e)}{/if}
+                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono"> ({t('activity.before')} {e.data.from})</span>{/if}
+                {#if run.count > 1}<span class="faint mono span">{time(run.firstTs)}–{time(e.ts)}</span>{/if}
               </span>
             </li>
           {/each}
@@ -104,8 +112,7 @@
 </div>
 
 <style>
-  .day,
-  .more {
+  .wrap > :global(*) {
     max-width: 1000px;
   }
   .filters {
@@ -166,7 +173,20 @@
   }
   .text a {
     color: var(--text);
-    font-weight: 600;
+    text-decoration: none;
+  }
+  .text a:hover {
+    text-decoration: underline;
+  }
+  .times {
+    margin-right: 6px;
+    padding: 0 5px;
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    color: var(--text-2);
+  }
+  .span {
+    margin-left: 8px;
   }
   .more {
     display: flex;

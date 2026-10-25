@@ -145,7 +145,7 @@
             type={f.secret ? 'password' : f.type ?? 'text'}
             autocomplete="off"
             bind:value={cfg[f.key] as string}
-            placeholder={f.secret && isSecretSet(f.key) ? t('settings.secretKept') : f.placeholder ?? ''}
+            placeholder={f.secret && isSecretSet(f.key) ? t('settings.secretKept') : f.placeholder ? `${t('common.eg')} ${f.placeholder}` : ''}
           />
         {/if}
       </div>
@@ -178,12 +178,12 @@
 
 <style>
   .help {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--text-2);
   }
   .help summary {
     cursor: pointer;
-    font-weight: 550;
+    font-weight: 600;
     color: var(--text);
     padding: 4px 0;
   }

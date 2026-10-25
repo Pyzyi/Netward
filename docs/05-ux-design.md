@@ -60,43 +60,11 @@ ausschließlich Zustand. Aktionen sind tintenschwarz, nicht blau.
 
 ## 2. Design-Tokens
 
-### Farben
-
-| Token | Hell | Dunkel | Verwendung |
-|---|---|---|---|
-| `--bg` | `#F4F5F7` | `#0D1015` | App-Hintergrund |
-| `--surface` | `#FFFFFF` | `#151920` | Karten, Listen |
-| `--surface-2` | `#F0F2F5` | `#1B2029` | Hover, Eingabefelder |
-| `--border` | `#E2E5EA` | `#262C37` | Trennlinien |
-| `--text` | `#121519` | `#E7EAEE` | Primärtext |
-| `--text-2` | `#5B6370` | `#98A1AE` | Sekundärtext |
-| `--accent` | `#1662D8` | `#5A93F0` | Aktionen, Links, Auswahl |
-| `--ok` | `#0F7A41` | `#3CC27A` | Online |
-| `--warn` | `#8F5600` | `#E6A23C` | Neu/unbekannt, Hinweise |
-| `--danger` | `#C8312F` | `#F06B68` | Kritische Befunde, Löschen |
-| `--off` | `#9AA1AC` | `#5C6573` | Offline-**Punkte** (Grafik); Offline-Text nutzt `--text-2` |
-
-Text-/Hintergrund-Kombinationen erreichen ≥ 4,5:1, Statusgrafiken ≥ 3:1 neben ihrem Textlabel.
-Im Dunkelmodus tragen Akzent-Buttons dunklen Text (`#0D1015` auf `#5A93F0` ≈ 6,2:1).
-Ein Skript in CI prüft alle Token-Paare.
-
-### Typografie
-
-- **IBM Plex Sans** (Variable, lokal eingebunden) für UI. **IBM Plex Mono** für IP/MAC/Ports.
-- Skala: 12 / 13 / 14 (Basis) / 16 / 20 / 28 px; Zeilenhöhe 1,45; `font-variant-numeric: tabular-nums` für Zahlen.
-
-### Raster und Formen
-
-- 4-px-Raster; Abstände 4/8/12/16/24/32/48.
-- Radien: 6 px (Steuerelemente), 10 px (Karten), rund (Geräte-Icons, Status-Punkte).
-- Schatten nur für schwebende Elemente (Panels, Menüs). Karten haben Rahmen statt Schatten.
-- Bewegung: 120–180 ms, `cubic-bezier(.2,.8,.2,1)`; bei `prefers-reduced-motion` deaktiviert.
-
-### Geräte-Icons
-
-Kreis 36–40 px mit leicht getönter Fläche je Kategorie (Netzwerk, Computer, Mobil, Medien,
-Smart Home, Peripherie, Unbekannt) und Lucide-Linien-Icon in der Kategoriefarbe. Der Status-Punkt
-sitzt unten rechts am Icon, wie in Fing, mit Rahmen in Flächenfarbe.
+Die verbindlichen Tokens stehen in [`web/src/app.css`](../web/src/app.css) und folgen Abschnitt 0
+(Papier, Tinte, Signalgrün, Bernstein, Ziegelrot; Schibsted Grotesk und JetBrains Mono; Radien 4/8/10 px).
+Typografie-Skala: 11 (Mono-Rubriken), 13, 14 (Basis), 16, 20, 30 px sowie Displaygrößen für Kennzahlen;
+Gewichte 400/500 (Mono)/600/800. Alle Text- und Steuerelement-Kontraste prüft `npm run contrast` in CI
+(hell und dunkel, ≥ 4,5:1 für Text, ≥ 3:1 für Steuerelemente).
 
 ## 3. Informationsarchitektur
 
@@ -106,10 +74,11 @@ sitzt unten rechts am Icon, wie in Fing, mit Rahmen in Flächenfarbe.
                 └─ Gerätedetail (Seitenpanel Desktop / Vollbild Mobil)
 ```
 
-- **Desktop (≥ 1024 px):** Linke Navigationsleiste (220 px), oben Netzname und Scan-Status.
-  Das Gerätedetail öffnet als rechtes Panel (440 px), die Liste bleibt sichtbar.
-- **Tablet (640–1023 px):** Eingeklappte Icon-Navigation.
-- **Mobil (< 640 px):** Untere Tab-Leiste (wie Fing-App), Detail als Vollbild mit Zurück-Geste/Knopf.
+- **Desktop (> 860 px):** Tintenkopf mit Logo, Netzname, Textreitern, Scan-Puls und Abmelden; die Navigation
+  steht auf jeder Seite an derselben Stelle. Das Gerätedetail öffnet als Blatt rechts (470 px), die Liste bleibt sichtbar;
+  unter 1100 px als modales Blatt.
+- **Mobil (≤ 860 px):** Untere Tab-Leiste, Detail als Vollbild. Auf der Übersicht steht die Antwort zuerst
+  (Kennzahlen, „Braucht Aufmerksamkeit“); der Netzring erscheint erst, wenn genug Platz für ihn ist.
 
 ## 4. Screens
 

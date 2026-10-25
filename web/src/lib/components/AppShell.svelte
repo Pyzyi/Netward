@@ -36,7 +36,7 @@
         <Logo size={26} tile={false} />
         <span class="brand-name">Netzwart</span>
       </a>
-      {#if store.overview && router.route.name !== 'overview'}
+      {#if store.overview}
         <span class="net" title={iface ? `${iface.name} · ${iface.prefix}` : undefined}>
           <span class="net-name">{store.overview.networkName}</span>
           {#if iface}<span class="net-prefix">{iface.prefix}</span>{/if}
@@ -142,7 +142,7 @@
     text-decoration: none;
   }
   .brand-name {
-    font-weight: 760;
+    font-weight: 800;
     font-size: 16px;
     letter-spacing: -0.02em;
   }
@@ -163,7 +163,7 @@
   }
   .net-prefix {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--on-ink-2);
   }
   .tabs {
@@ -226,7 +226,7 @@
     align-items: center;
     gap: 8px;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--on-ink-2);
     white-space: nowrap;
   }
@@ -371,8 +371,8 @@
       background: var(--amber);
       color: #1a1204;
       font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 800;
       display: grid;
       place-items: center;
     }

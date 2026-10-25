@@ -10,7 +10,8 @@
   import { auth, clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
   import { category, deviceTypes, displayName, subtitle, typeLabel, type Category } from '../lib/devices';
-  import { eventText } from '../lib/events';
+  import { eventText, overviewKinds } from '../lib/events';
+  import type { EventItem } from '../lib/types';
   import { number, relTime, t, time } from '../lib/i18n.svelte';
   import type { DeviceType } from '../lib/types';
 
@@ -73,16 +74,28 @@
     api.channels().then((r) => (noChannel = !r.channels.some((c) => c.enabled)), () => {});
   });
 
-  // Sign-ins are recorded in the activity log but are noise on the overview.
-  const feed = $derived(store.recent.filter((e) => e.kind !== 'auth_login').slice(0, 8));
+  // The overview shows what happened on the network; sign-ins and settings
+  // changes stay in the activity log. Reloaded whenever a new event arrives.
+  let feed = $state<EventItem[]>([]);
+  let feedLoaded = $state(false);
+  $effect(() => {
+    void store.eventTick;
+    api.events({ kinds: overviewKinds, limit: 8 }).then(
+      (r) => {
+        feed = r;
+        feedLoaded = true;
+      },
+      () => (feedLoaded = true),
+    );
+  });
 
   const inetState = $derived(ov?.internet.state ?? 'unknown');
   const inetOk = $derived(inetState === 'online' || inetState === 'degraded');
   const deviceName = (id?: number) => (id ? store.devices.get(id) : undefined);
   // The ring is drawn for the space it gets (labels need ~60 px on each side).
   let ringBox = $state(0);
-  const ringLabels = $derived(ringBox >= 440);
-  const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 130 : 30)));
+  const ringLabels = $derived(ringBox >= 380);
+  const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 120 : 30)));
   const sameDay = (ts: number) => new Date(ts).toDateString() === new Date(clock.now).toDateString();
 </script>
 
@@ -97,11 +110,12 @@
 <section class="stage" aria-labelledby="net-title">
   <div class="stage-inner">
     <div class="stage-text">
+      <!-- Network name and subnet are in the band above; the stage leads with the count. -->
+      <h1 id="net-title" class="sr-only">{ov?.networkName || store.settings?.networkName || t('overview.unnamed')}</h1>
       <p class="eyebrow on-ink">
-        {#each active as i (i.name)}<span>{i.prefix}</span><span>{i.name}</span>{/each}
+        {#each active as i (i.name)}<span>{i.name}</span>{/each}
         {#if scanner?.gateways?.length}<span>{t('overview.gateway')} {scanner.gateways[0]}</span>{/if}
       </p>
-      <h1 id="net-title">{ov?.networkName || store.settings?.networkName || t('overview.unnamed')}</h1>
 
       <a class="headline" href="/devices?filter=online" use:link>
         <span class="big num">{store.loading ? '–' : number(online)}</span>
@@ -246,7 +260,7 @@
               </span>
             </li>
           {:else}
-            <li class="empty">{t('overview.activityEmpty')}</li>
+            {#if feedLoaded}<li class="feed-empty">{t('overview.activityEmpty')}</li>{/if}
           {/each}
         </ol>
       </section>
@@ -303,12 +317,6 @@
     flex-wrap: wrap;
     gap: 6px 14px;
   }
-  h1 {
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.015em;
-    margin-top: -6px;
-  }
   .headline {
     display: flex;
     align-items: flex-end;
@@ -329,14 +337,14 @@
   .big-of {
     display: grid;
     padding-bottom: 6px;
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.25;
     color: var(--on-ink-2);
   }
   .big-of strong {
     color: var(--on-ink);
-    font-weight: 650;
-    font-size: 22px;
+    font-weight: 600;
+    font-size: 20px;
     letter-spacing: -0.015em;
   }
   .metrics {
@@ -376,7 +384,7 @@
   .metric dd {
     margin: 0;
     font-size: 30px;
-    font-weight: 760;
+    font-weight: 800;
     letter-spacing: -0.03em;
     display: flex;
     align-items: baseline;
@@ -386,8 +394,8 @@
     color: var(--amber);
   }
   .inet-state {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 800;
     line-height: 1.35;
   }
   .inet-state.ok {
@@ -450,9 +458,10 @@
     display: flex;
     align-items: baseline;
     gap: 10px;
+    white-space: nowrap;
   }
   .small {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .empty {
     display: flex;
@@ -497,7 +506,7 @@
     min-width: 0;
   }
   .fresh-name {
-    font-weight: 650;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -559,7 +568,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 650;
+    font-weight: 600;
   }
   .key {
     width: 10px;
@@ -592,7 +601,7 @@
     gap: 12px;
     padding: 8px 0 8px 12px;
     border-left: 2px solid var(--border-strong);
-    font-size: 13.5px;
+    font-size: 14px;
   }
   .feed li.warning {
     border-left-color: var(--amber);
@@ -607,6 +616,14 @@
   }
   .feed-text a {
     color: var(--text);
+    text-decoration: none;
+  }
+  .feed-text a:hover {
+    text-decoration: underline;
+  }
+  .feed li.feed-empty {
+    display: block;
+    color: var(--text-2);
   }
 
   /* Security */
@@ -627,7 +644,7 @@
   }
   .sec-figures strong {
     font-size: 30px;
-    font-weight: 780;
+    font-weight: 800;
     letter-spacing: -0.03em;
     margin-right: 4px;
   }
@@ -644,7 +661,7 @@
     align-items: center;
     gap: 8px;
     color: var(--ok);
-    font-weight: 650;
+    font-weight: 600;
   }
   .sec > :global(:last-child) {
     margin-left: auto;
@@ -653,13 +670,21 @@
     margin-top: 10px;
   }
 
-  @media (max-width: 1080px) {
+  @media (max-width: 1180px) {
+    .stage-ring {
+      width: 400px;
+    }
+    .big {
+      font-size: 96px;
+    }
+  }
+  @media (max-width: 900px) {
     .stage-inner {
       grid-template-columns: minmax(0, 1fr);
     }
     .stage-ring {
       width: 100%;
-      padding: 20px 0 6px;
+      padding: 10px 0 0;
     }
     .grid {
       grid-template-columns: minmax(0, 1fr);
@@ -674,15 +699,28 @@
       font-size: 88px;
     }
     .metrics {
-      grid-template-columns: auto auto;
+      grid-template-columns: auto auto minmax(0, 1fr);
     }
-    .metric:nth-child(2) {
-      border-right: 0;
+    .metric {
+      padding-right: 16px;
+      margin-right: 16px;
     }
-    .metric.inet {
-      grid-column: 1 / -1;
-      border-top: 1px solid var(--ink-line);
-      margin-top: 14px;
+    .metric dd {
+      font-size: 30px;
+    }
+    .inet-state {
+      font-size: 16px;
+    }
+    .spark,
+    .lat {
+      display: none;
+    }
+    /* Phones: the answer first; the ring needs room to be useful. */
+    .stage-ring {
+      display: none;
+    }
+    .section-head {
+      flex-wrap: wrap;
     }
     .wrap {
       padding: 20px 16px 40px;

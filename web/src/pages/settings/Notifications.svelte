@@ -67,7 +67,6 @@
 {#if loaded && notifyNew && !channels.some((c) => c.enabled)}
   <div class="notice warn missing" role="status">
     <span>{t('settings.channelsMissing')}</span>
-    <button class="btn small" type="button" onclick={() => { editing = null; editorOpen = true; }}>{t('settings.channelsSetup')}</button>
   </div>
 {/if}
 
@@ -150,7 +149,7 @@
     min-width: 0;
   }
   .small {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   .ch-actions {
     display: flex;

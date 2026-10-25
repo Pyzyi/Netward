@@ -47,6 +47,8 @@
     border-color: #fff;
   }
   .on-ink:disabled {
-    opacity: 0.45;
+    background: transparent;
+    border: 1px dashed var(--on-ink-2);
+    color: var(--on-ink-2);
   }
 </style>

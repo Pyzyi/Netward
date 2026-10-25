@@ -45,7 +45,7 @@
     </div>
     <label class="check"><input type="checkbox" bind:checked={remember} /> {t('login.remember')}</label>
     {#if error}<p class="error-text" role="alert">{error}</p>{/if}
-    <button class="btn primary" type="submit" disabled={busy || !username || !password}>{t('login.submit')}</button>
+    <button class="btn primary" type="submit" disabled={busy}>{t('login.submit')}</button>
     <button class="linkish" type="button" onclick={() => (showHelp = !showHelp)} aria-expanded={showHelp}>{t('login.forgot')}</button>
     {#if showHelp}<p class="hint">{t('login.forgotHelp')}</p>{/if}
   </form>

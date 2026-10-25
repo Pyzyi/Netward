@@ -15,7 +15,7 @@
   /* text */
   --text: #15191f;
   --text-2: #50565f;
-  --text-3: #5f656e;
+  --text-3: #50565f; /* one secondary grey (review: text-2/text-3 were indistinguishable) */
 
   /* ink: header band and primary actions */
   --ink: #101c2e;
@@ -29,13 +29,13 @@
   --accent-hover: #24344d;
   --accent-soft: #e3e3e0;
   --accent-text: #ffffff;
-  --link: #1d3f73;
+  --link: var(--text);
 
   /* state */
   --ok: #0a7350; /* online text */
   --ok-soft: #dcefe5;
   --signal: #12a877; /* online marks */
-  --warn: #8a5200; /* new / attention text */
+  --warn: #93570a; /* new / attention text */
   --warn-soft: #f5e8cf;
   --amber: #e09a12; /* new marks */
   --danger: #ad3127;
@@ -68,7 +68,7 @@
     --control-border: #6b7686;
     --text: #e8ecf1;
     --text-2: #a1abb8;
-    --text-3: #8f99a7;
+    --text-3: #a1abb8;
     --ink: #070b11;
     --ink-2: #111824;
     --ink-line: #1e2836;
@@ -78,7 +78,7 @@
     --accent-hover: #ffffff;
     --accent-soft: #222c39;
     --accent-text: #0b1018;
-    --link: #9cc0f5;
+    --link: var(--text);
     --ok: #3dd6a5;
     --ok-soft: #10291f;
     --signal: #3dd6a5;
@@ -106,7 +106,7 @@
   --control-border: #6b7686;
   --text: #e8ecf1;
   --text-2: #a1abb8;
-  --text-3: #8f99a7;
+  --text-3: #a1abb8;
   --ink: #070b11;
   --ink-2: #111824;
   --ink-line: #1e2836;
@@ -116,7 +116,7 @@
   --accent-hover: #ffffff;
   --accent-soft: #222c39;
   --accent-text: #0b1018;
-  --link: #9cc0f5;
+  --link: var(--text);
   --ok: #3dd6a5;
   --ok-soft: #10291f;
   --signal: #3dd6a5;
@@ -165,30 +165,33 @@ p {
 h1 {
   font-size: 30px;
   line-height: 1.1;
-  font-weight: 760;
+  font-weight: 800;
   letter-spacing: -0.025em;
 }
 
 h2 {
-  font-size: 17px;
-  font-weight: 680;
+  font-size: 16px;
+  font-weight: 600;
   letter-spacing: -0.012em;
 }
 
 h3 {
-  font-size: 14.5px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: -0.005em;
 }
 
+/* Links are ink with a quiet underline; no accent blue. */
 a {
   color: var(--link);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-color: currentColor;
 }
 
 button,
@@ -210,7 +213,7 @@ textarea {
 
 .mono {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -262,7 +265,7 @@ textarea {
   background: transparent;
   color: var(--text);
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 120ms var(--ease), border-color 120ms var(--ease), color 120ms var(--ease);
@@ -275,8 +278,8 @@ textarea {
 }
 
 .btn:disabled {
-  opacity: 0.5;
-  cursor: default;
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn.primary {
@@ -288,6 +291,14 @@ textarea {
 .btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+/* Unavailable primary action: an outline, not a grey slab */
+.btn.primary:disabled {
+  opacity: 1;
+  background: transparent;
+  border: 1px dashed var(--control-border);
+  color: var(--text-2);
 }
 
 .btn.ghost {
@@ -313,7 +324,7 @@ textarea {
 .btn.small {
   height: 28px;
   padding: 0 9px;
-  font-size: 12.5px;
+  font-size: 13px;
   gap: 5px;
 }
 
@@ -326,10 +337,11 @@ textarea {
   width: 28px;
 }
 
+/* A toggle that is on: ink outline, not a filled primary button */
 .btn.pressed {
-  background: var(--text);
   border-color: var(--text);
-  color: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--text);
+  color: var(--text);
 }
 
 /* Sheets: only for floating or grouped forms */
@@ -369,6 +381,7 @@ textarea {
 .field {
   display: grid;
   gap: 6px;
+  align-content: start; /* fields with and without hints line up */
 }
 
 .field > label,
@@ -379,7 +392,7 @@ textarea {
 }
 
 .hint {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-2);
 }
 
@@ -447,10 +460,58 @@ textarea {
 }
 
 .check input {
-  margin: 2px 0 0;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--text);
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-content: center;
+  margin: 1px 0 0;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--control-border);
+  border-radius: 3px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.check input:checked {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.check input:checked::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border: solid var(--bg);
+  border-width: 0 0 2px 2px;
+  transform: rotate(-45deg);
+}
+
+/* Disclosure: our own chevron instead of the native triangle */
+summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary:not(.custom)::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 10px 2px 2px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+  transition: transform 120ms var(--ease);
+}
+
+details[open] > summary:not(.custom)::before {
+  transform: rotate(45deg);
 }
 
 /* Text tabs (filters, ranges): underline marks the active one */
@@ -468,13 +529,26 @@ textarea {
   background: transparent;
   color: var(--text-2);
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .seg button:hover {
   color: var(--text);
+}
+
+.seg button:first-child {
+  padding-left: 0;
+}
+
+.seg button:first-child[aria-pressed='true']::after {
+  left: 0;
+}
+
+/* Tab bars scroll horizontally; keep the focus ring inside the button */
+.seg button:focus-visible {
+  outline-offset: -2px;
 }
 
 .seg button[aria-pressed='true'] {
@@ -494,7 +568,7 @@ textarea {
 .seg .count {
   margin-left: 5px;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -506,7 +580,7 @@ textarea {
   gap: 5px;
   height: 18px;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -547,7 +621,7 @@ textarea {
   padding: 11px 14px;
   border-left: 3px solid var(--text-2);
   background: var(--surface);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .notice.warn {
@@ -670,6 +744,6 @@ textarea {
     padding: 18px 16px 40px;
   }
   h1 {
-    font-size: 26px;
+    font-size: 30px;
   }
 }

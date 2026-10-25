@@ -55,7 +55,15 @@
     box-shadow: var(--shadow-pop);
   }
   dialog::backdrop {
-    background: rgb(10 14 20 / 0.45);
+    background: rgb(10 14 20 / 0.5);
+  }
+  :global(:root[data-theme='dark']) dialog::backdrop {
+    background: rgb(0 0 0 / 0.66);
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) dialog::backdrop {
+      background: rgb(0 0 0 / 0.66);
+    }
   }
   .inner {
     display: grid;

@@ -42,7 +42,8 @@
     <span class="beat"><Heartbeat strip={store.strips[d.id] ?? ''} /></span>
     <span class="seen" class:on={d.online}>
       {#if d.online}
-        {t('devices.onlineNow')}
+        <!-- The green mark on the tile and the heartbeat already say it. -->
+        <span class="on-text">{t('devices.onlineNow')}</span>
       {:else}
         <span class="state">{t('common.offline')}</span>
         <span class="ago">{relTime(d.lastSeen, clock.now)}</span>
@@ -70,7 +71,7 @@
     flex: 1;
     min-width: 0;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) 128px 150px 92px;
+    grid-template-columns: auto minmax(0, 1fr) 140px 192px 104px;
     align-items: center;
     gap: 16px;
     padding: 8px 12px;
@@ -81,7 +82,7 @@
     text-decoration: none;
   }
   .narrow .main {
-    grid-template-columns: auto minmax(0, 1fr) 120px 92px;
+    grid-template-columns: auto minmax(0, 1fr) 120px 104px;
   }
   .narrow .beat {
     display: none;
@@ -104,7 +105,7 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
-    font-weight: 650;
+    font-weight: 600;
   }
   .text {
     overflow: hidden;
@@ -135,7 +136,21 @@
   }
   .seen.on {
     color: var(--ok);
-    font-weight: 650;
+    font-weight: 600;
+  }
+  /* With the heartbeat visible, the word "Online" is redundant; without it, it is not. */
+  .on-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .narrow .on-text {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
   }
   .seen .state,
   .seen .ago {
@@ -145,7 +160,7 @@
     font-weight: 600;
   }
   .seen .ago {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-3);
   }
   .actions {
@@ -153,12 +168,18 @@
     gap: 6px;
     padding-right: 8px;
   }
-  @media (max-width: 1180px) {
+  @media (max-width: 900px) {
     .main {
-      grid-template-columns: auto minmax(0, 1fr) 120px 92px;
+      grid-template-columns: auto minmax(0, 1fr) 120px 104px;
     }
     .beat {
       display: none;
+    }
+    .on-text {
+      position: static;
+      width: auto;
+      height: auto;
+      clip: auto;
     }
   }
   @media (max-width: 639px) {
