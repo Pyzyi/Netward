@@ -168,7 +168,7 @@ Angriff auf das eigene Netz. Sperren gehört in den Router (FRITZ!Box: Kindersic
 
 **Warum taucht mein iPhone mehrfach auf?** iOS und Android verwenden pro WLAN eine private, gelegentlich wechselnde
 MAC-Adresse. Netzwart kennzeichnet solche Adressen; in der Detailansicht lassen sich Einträge zusammenführen.
-Nicht bestätigte private Adressen verschwinden nach 14 Tagen offline von selbst.
+Unbekannte Geräte mit privater Adresse verschwinden nach 14 Tagen offline von selbst.
 
 **Werden Daten nach außen gesendet?** Nein. Keine Telemetrie, keine Cloud. Netzwart verbindet sich nur mit Zielen,
 die du selbst einträgst (Benachrichtigungen, MQTT, FRITZ!Box), und für den Internet-Monitor mit `1.1.1.1:443`,
