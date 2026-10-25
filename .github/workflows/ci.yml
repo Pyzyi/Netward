@@ -98,7 +98,7 @@ jobs:
       - name: Image size
         run: docker image ls netzwart:ci
       - name: Integration tests (privileges, ownership, discovery, API)
-        run: e2e/container-test.sh netzwart:ci
+        run: sudo --preserve-env=GITHUB_ACTIONS e2e/container-test.sh netzwart:ci
       - name: Start demo instance
         run: |
           docker run -d --name netzwart-demo --network host \

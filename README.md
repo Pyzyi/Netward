@@ -189,7 +189,7 @@ make demo       # mit Beispieldaten auf http://localhost:8840
 ```
 
 Für die Oberfläche mit Hot-Reload: `make demo` mit `NETZWART_PORT=18840` starten und in `web/` `npm run dev` ausführen.
-Container- und UI-Tests liegen in [`e2e/`](e2e).
+Container- und UI-Tests liegen in [`e2e/`](e2e) (`sudo e2e/container-test.sh`, `cd e2e && npx playwright test`).
 
 ## Projektunterlagen
 

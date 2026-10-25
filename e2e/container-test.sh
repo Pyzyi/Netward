@@ -3,8 +3,12 @@
 # docker-compose.yml on an isolated bridge network next to a few "devices",
 # then checks privilege drop, file ownership, discovery and the API.
 #
-#   e2e/container-test.sh [image]
+#   sudo e2e/container-test.sh [image]
+#
+# Needs root on the host to inspect the data directories, which the
+# container correctly makes private to UID 10001.
 set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "run as root (sudo), the data directories are private to UID 10001" >&2; exit 2; }
 
 IMAGE="${1:-netzwart:local}"
 NET="nwtest-$$"
@@ -88,12 +92,18 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 [ "$found" -ge 5 ] && ok "discovered $found devices (3 test containers, gateway, itself)" || fail "only $found devices discovered"
-api "$IP" GET /devices | python3 -c "
+for _ in $(seq 1 15); do
+  cls="$(api "$IP" GET /devices | python3 -c "
 import json,sys
 ds=json.load(sys.stdin)
-assert any(d['isGateway'] and d['ip']=='$GW' for d in ds), 'gateway not flagged'
-assert any(d['isSelf'] for d in ds), 'self not flagged'
-" && ok "gateway and self recognised" || fail "gateway/self classification"
+gw=any(d['isGateway'] and d['ip']=='$GW' for d in ds)
+me=any(d['isSelf'] for d in ds)
+print('ok' if gw and me else 'gateway=%s self=%s devices=%s' % (gw, me, [(d['ip'], d['isGateway'], d['isSelf']) for d in ds]))
+")"
+  [ "$cls" = ok ] && break
+  sleep 2
+done
+[ "$cls" = ok ] && ok "gateway and self recognised" || fail "gateway/self classification (expected gateway $GW): $cls"
 
 echo "== 2. docker exec reset-password while running"
 out="$(docker exec nw1-$$ /netzwart reset-password)"
