@@ -20,9 +20,12 @@ cleanup() {
   rm -rf "$WORK" 2>/dev/null || sudo rm -rf "$WORK" 2>/dev/null || true
 }
 trap cleanup EXIT
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  trap 'echo "::error title=container-test::line $LINENO: $BASH_COMMAND"' ERR
+fi
 
 ok()   { echo "  ok   $*"; }
-fail() { echo "  FAIL $*"; FAILED=$((FAILED + 1)); }
+fail() { echo "  FAIL $*"; [ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=container-test::$*"; FAILED=$((FAILED + 1)); }
 
 docker network create --subnet "$SUBNET" "$NET" >/dev/null
 GW="$(docker network inspect -f '{{(index .IPAM.Config 0).Gateway}}' "$NET")"
