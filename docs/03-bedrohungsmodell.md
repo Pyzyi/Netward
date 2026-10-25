@@ -57,6 +57,7 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 | T-26 | D | Geräteflut durch zufällige MACs (macof) oder rotierende private MACs | Geräte nur aus ARP-Sichtungen im Subnetz; Aufnahme-Budget 20/min, Obergrenze 4 000, ein `device_flood`-Ereignis; unbestätigte private MACs verfallen nach 14 Tagen offline | Unit-Test |
 | T-27 | T | Injektion über Gerätenamen in Benachrichtigungen (Telegram-Markup, `@everyone`, E-Mail-Header, MQTT-Topics) | Encoder je Kanal: Klartext, `allowed_mentions: {parse: []}`, Slack-Escaping, ntfy-JSON, RFC 2047, MQTT-IDs nur aus MAC | Unit-Test je Kanal |
 | T-28 | I | Datenabfluss über vom Angreifer angelegte Kanäle bleibt nach Passwort-Reset bestehen | `factory-reset`; Kanaländerungen im Ereignisprotokoll | Code-Review |
+| T-29 | S/I | **FRITZ!Box-Zugangsdaten** werden von einem Gerät im LAN abgegriffen, das sich als FRITZ!Box ausgibt (ARP-/DNS-Spoofing) | Authentifizierte TR-064-Aufrufe nur über HTTPS; Zertifikat wird beim ersten erfolgreichen Login gepinnt (SHA-256), Abweichung bricht vor dem Senden von Zugangsdaten ab; Digest-Auth statt Klartext; über HTTP läuft nur die unauthentifizierte Port-Abfrage; Host-Listen-Pfad muss relativ sein (kein SSRF); Egress-Dialer; eigener FRITZ!Box-Benutzer empfohlen | Unit-Test (Fake-FRITZ!Box mit TLS) |
 
 ## 4. Restrisiken (akzeptiert)
 
@@ -68,6 +69,9 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 4. **Host-Netzwerk** ist für Layer-2-Scans technisch zwingend. Fing Agent und NetAlertX haben dieselbe Anforderung.
 5. **MAC-Spoofing**: Ein Angreifer kann die MAC eines bekannten Geräts annehmen. Netzwart erkennt das nur
    indirekt (IP-Konflikt, Hersteller- oder Namenswechsel). Kein Layer-2-Tool kann das vollständig verhindern.
+6. **Trust on first use bei der FRITZ!Box** (T-29): Wer beim allerersten Verbindungsaufbau bereits erfolgreich
+   die FRITZ!Box imitiert, erhält den Digest-Hash. Die FRITZ!Box bietet kein CA-signiertes Zertifikat im LAN;
+   empfohlen wird daher ein eigener FRITZ!Box-Benutzer mit eigenem Passwort.
 
 ## 5. Sicherheitsrelevante Standards
 

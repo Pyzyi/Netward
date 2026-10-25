@@ -19,6 +19,7 @@ import (
 
 	"github.com/Pyzyi/netzwart/internal/auth"
 	"github.com/Pyzyi/netzwart/internal/config"
+	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/internet"
 	"github.com/Pyzyi/netzwart/internal/monitor"
@@ -41,6 +42,7 @@ type Deps struct {
 	Security  *security.Checker
 	Notify    *notify.Dispatcher
 	MQTT      *mqtt.Bridge
+	FritzBox  *fritzbox.Poller
 	Hub       *hub.Hub
 	Env       config.Env
 	Log       *slog.Logger
@@ -217,8 +219,9 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 
 // localSuffixes are domains that cannot be registered publicly, so an
 // attacker cannot point them at the victim's network via DNS rebinding.
+// (".box" itself is a public TLD; only AVM controls fritz.box.)
 var localSuffixes = []string{".local", ".lan", ".home", ".home.arpa", ".internal", ".intranet", ".localdomain",
-	".fritz.box", ".box", ".speedport.ip", ".router", ".localhost"}
+	".fritz.box", ".speedport.ip", ".router", ".localhost"}
 
 // HostAllowed reports whether a Host header value is acceptable.
 func HostAllowed(hostport string, extra []string) bool {

@@ -26,6 +26,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/auth"
 	"github.com/Pyzyi/netzwart/internal/config"
 	"github.com/Pyzyi/netzwart/internal/egress"
+	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/internet"
 	"github.com/Pyzyi/netzwart/internal/monitor"
@@ -138,6 +139,16 @@ func Run(ctx context.Context, o Options) error {
 	sec := security.New(st, mon, h, disp, log)
 	bridge := mqtt.NewBridge(mon, h, policy, inet.Status, o.Version, log)
 	bridge.Configure(settings.MQTT, settings.Language)
+	fritz := fritzbox.NewPoller(st, h, policy.DialContext, func(ctx context.Context, hosts []fritzbox.Host, at time.Time) {
+		rh := make([]monitor.RouterHost, 0, len(hosts))
+		for _, x := range hosts {
+			rh = append(rh, monitor.RouterHost{MAC: x.MAC.String(), IP: x.IP, Name: x.Name, Active: x.Active, WLAN: x.WLAN})
+		}
+		mon.ApplyRouterHosts(ctx, rh, at.UnixMilli())
+	}, log)
+	if !env.Demo {
+		fritz.Configure(ctx, settings.FritzBox)
+	}
 
 	var smu sync.Mutex
 	current := settings
@@ -163,12 +174,15 @@ func Run(ctx context.Context, o Options) error {
 		disp.SetLocale(s.Language, s.Timezone)
 		inet.Configure(s.InternetCheck && !env.Demo, s.InternetTargets)
 		bridge.Configure(s.MQTT, s.Language)
+		if !env.Demo {
+			fritz.Configure(ctx, s.FritzBox)
+		}
 		h.Publish("settings", s.Public())
 		return nil
 	}
 
 	srv := api.New(api.Deps{
-		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, Hub: h,
+		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, FritzBox: fritz, Hub: h,
 		Env: env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
 		Settings: getSettings, ApplySettings: apply, LocalPrefixes: api.LocalPrefixes, RawSockets: len(o.Priv.Links) > 0,
 	})
@@ -212,6 +226,7 @@ func Run(ctx context.Context, o Options) error {
 		return nil
 	})
 	start("mqtt", func(ctx context.Context) error { bridge.Run(ctx); return nil })
+	start("fritzbox", func(ctx context.Context) error { fritz.Run(ctx); return nil })
 	start("maintenance", func(ctx context.Context) error { maintenance(ctx, env, st, mon, log); return nil })
 
 	scheme := "http"

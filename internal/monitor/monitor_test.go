@@ -383,7 +383,7 @@ func TestPatchValidationAndMerge(t *testing.T) {
 	if _, err := e.m.PatchDevice(e.ctx, a.ID, store.DevicePatch{TypeOverride: &bad}); err != ErrInvalid {
 		t.Fatalf("invalid type accepted: %v", err)
 	}
-	name := "  Küche‮  "
+	name := "  Küche\u202e  "
 	got, err := e.m.PatchDevice(e.ctx, a.ID, store.DevicePatch{Name: &name})
 	if err != nil || got.Name != "Küche" {
 		t.Fatalf("name not cleaned: %q %v", got.Name, err)
@@ -394,5 +394,51 @@ func TestPatchValidationAndMerge(t *testing.T) {
 	}
 	if _, ok := e.m.Device(a.ID); ok {
 		t.Fatal("merged source still present")
+	}
+}
+
+func TestGatewayFlagAppliedLater(t *testing.T) {
+	e := newEnv(t)
+	e.m.SetNetwork(nil, nil)
+	// The router is first seen passively, before the routing table was read.
+	e.m.Observe(e.ctx, l2.Sighting{MAC: mac(1), IP: ip(1), Iface: "eth0", Source: "arp", ARP: true, At: e.clk.Now()})
+	if d, _ := e.m.DeviceByIP(ip(1)); d.IsGateway {
+		t.Fatal("gateway flag set without routing information")
+	}
+	e.m.SetNetwork([]netip.Addr{ip(1)}, nil)
+	d, _ := e.m.DeviceByIP(ip(1))
+	if !d.IsGateway || d.Type != "router" {
+		t.Fatalf("gateway not updated: %+v", d)
+	}
+}
+
+func TestRouterHostsNameAndWLANPresence(t *testing.T) {
+	e := newEnv(t)
+	e.sweep(map[byte][]byte{10: {10}, 11: {11}})
+	phone, _ := e.m.DeviceByIP(ip(10))
+	pc, _ := e.m.DeviceByIP(ip(11))
+	e.clk.Add(20 * time.Minute)
+	e.m.SweepOffline(e.ctx)
+	if d, _ := e.m.Device(phone.ID); d.Online {
+		t.Fatal("precondition: device should be offline")
+	}
+	now := e.clk.Now().UnixMilli()
+	n := e.m.ApplyRouterHosts(e.ctx, []RouterHost{
+		{MAC: mac(10).String(), IP: ip(10), Name: "Annas iPhone", Active: true, WLAN: true},
+		{MAC: mac(11).String(), IP: ip(11), Name: "", Active: true, WLAN: false}, // wired: no presence evidence
+		{MAC: mac(99).String(), IP: ip(99), Name: "Altgerät", Active: true, WLAN: true},
+	}, now)
+	if n != 2 {
+		t.Fatalf("matched %d, want 2", n)
+	}
+	d, _ := e.m.Device(phone.ID)
+	if !d.Online || d.Hostname != "Annas iPhone" || d.LastSeen != now {
+		t.Fatalf("phone not updated: online=%v host=%q", d.Online, d.Hostname)
+	}
+	if d, _ := e.m.Device(pc.ID); d.Online {
+		t.Fatal("wired host marked online from the router table")
+	}
+	if _, ok := e.m.DeviceByIP(ip(99)); ok {
+		t.Fatal("device created from the router table")
 	}
 }

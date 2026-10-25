@@ -28,7 +28,6 @@ type captured struct {
 	path    string
 	header  http.Header
 	body    []byte
-	form    map[string][]string
 	content string
 }
 

@@ -296,3 +296,50 @@ func (m *Monitor) DeviceDetails(id int64) (Details, bool) {
 	}
 	return d, true
 }
+
+// RouterHost is a device as the router's own host table reports it.
+type RouterHost struct {
+	MAC    string
+	IP     netip.Addr
+	Name   string // "" when the router only knows a generated name
+	Active bool
+	WLAN   bool
+}
+
+// ApplyRouterHosts takes names from the router and treats an active Wi-Fi
+// association as presence: sleeping phones stay associated while they no
+// longer answer ARP. Devices are never created from the router's table,
+// which also lists hosts that left long ago.
+func (m *Monitor) ApplyRouterHosts(ctx context.Context, hosts []RouterHost, at int64) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	matched := 0
+	for _, h := range hosts {
+		e := m.lookup(h.MAC, h.IP)
+		if e == nil {
+			continue
+		}
+		matched++
+		changed := false
+		if name := textutil.Clean(h.Name, 64); name != "" && e.names["fritzbox"] != name {
+			e.names["fritzbox"] = name
+			changed = true
+		}
+		if h.Active && h.WLAN && !e.d.IsSelf {
+			if at > e.d.LastSeen {
+				e.d.LastSeen = at
+				m.dirty[e.d.ID] = at
+			}
+			if !e.d.Online {
+				m.setOnline(ctx, e, at)
+				changed = true
+			}
+		}
+		if changed {
+			m.reclassify(e)
+			m.persist(ctx, e)
+			m.publish(e)
+		}
+	}
+	return matched
+}

@@ -180,7 +180,7 @@ func TestSecurityHeaders(t *testing.T) {
 
 func TestDNSRebindingBlocked(t *testing.T) {
 	h := newHarness(t)
-	for _, host := range []string{"evil.example:8840", "attacker.com", "rebind.it."} {
+	for _, host := range []string{"evil.example:8840", "attacker.com", "rebind.it.", "evil.box", "nas.box:8840"} {
 		rec := h.do(req{method: "GET", path: "/api/v1/auth/state", host: host})
 		if rec.Code != http.StatusMisdirectedRequest {
 			t.Errorf("Host %q: got %d, want 421", host, rec.Code)

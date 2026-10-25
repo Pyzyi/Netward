@@ -47,7 +47,7 @@
 | `internal/monitor` | Orchestrierung: Scan-Zyklen, Anreicherung, Presence-Zustandsautomat, Ereignisse |
 | `internal/notify` | Kanäle, Vorlagen (DE/EN), Bündelung, Wiederholung |
 | `internal/mqtt` | MQTT-3.1.1-Client (QoS 1, LWT, retained, Subscribe, TLS) + Home-Assistant-Discovery |
-| `internal/fritzbox` | Optionale FRITZ!Box-Anbindung (TR-064 Host-Liste: Namen und WLAN-Anmeldung) |
+| `internal/fritzbox` | Optionale FRITZ!Box-Anbindung (TR-064 Host-Liste: Namen und WLAN-Anmeldung, HTTPS mit Zertifikats-Pinning, ADR-014) |
 | `internal/internet` | Konnektivitäts- und Latenzmessung, Ausfallerkennung |
 | `internal/security` | Sicherheitscheck (riskante Ports, UPnP, IP-Konflikte, unbekannte Geräte) |
 | `internal/auth` | Argon2id, Sitzungen, Login-Drosselung |
@@ -261,6 +261,17 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 - **Entscheidung:** Ein interner Watchdog beendet den Prozess mit Exit-Code ≠ 0, wenn der Scanner länger als
   3 Intervalle keinen Zyklus abgeschlossen hat oder Datenbank-Schreibzugriffe dauerhaft scheitern.
   Die Restart-Policy `unless-stopped` startet dann neu.
+
+### ADR-014 · FRITZ!Box über TR-064 mit Zertifikats-Pinning
+
+- **Kontext:** Die FRITZ!Box kennt die vom Nutzer vergebenen Gerätenamen und weiß, welche Handys im WLAN angemeldet sind,
+  auch wenn sie im Tiefschlaf kein ARP beantworten. TR-064 ist die offizielle Schnittstelle dafür.
+- **Entscheidung:** Ein Poller liest jede Minute die Host-Liste (`X_AVM-DE_GetHostListPath`, Fallback `GetGenericHostEntry`).
+  Authentifizierte Aufrufe nur per HTTPS (Port aus `GetSecurityPort`), Zertifikat per SHA-256 gepinnt (TOFU), HTTP-Digest.
+  Namen fließen als Quelle `fritzbox` in die Namens-Priorität; eine aktive WLAN-Anmeldung zählt als Anwesenheitsbeweis.
+  Geräte werden **nie** aus der Router-Liste angelegt (sie enthält auch längst verschwundene Geräte).
+- **Konsequenz:** Optional und standardmäßig aus. Ein getauschter Router erfordert einmal Aus-/Einschalten der Anbindung.
+  Bedrohung T-29.
 
 ## 6. Konfiguration (Bootstrap per Umgebung)
 

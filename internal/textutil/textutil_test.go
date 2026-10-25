@@ -10,7 +10,7 @@ func TestClean(t *testing.T) {
 	cases := map[string]string{
 		"  Anna's  iPhone ":            "Anna's iPhone",
 		"evil\x00name\x1b[31m":         "evilname[31m",
-		"rtl‮gnp.exe":                  "rtlgnp.exe",
+		"rtl\u202egnp.exe":             "rtlgnp.exe",
 		"tab\tand\nnewline":            "tab and newline",
 		"<script>alert(1)</script>":    "<script>alert(1)</script>", // escaping is the renderer's job
 		string([]byte{0xff, 'o', 'k'}): "ok",
@@ -47,7 +47,7 @@ func TestHostname(t *testing.T) {
 
 func FuzzClean(f *testing.F) {
 	f.Add("hello world", 10)
-	f.Add("‮\x00x", 3)
+	f.Add("\u202e\x00x", 3)
 	f.Fuzz(func(t *testing.T, s string, max int) {
 		if max > 1000 || max < -10 {
 			return

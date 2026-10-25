@@ -4,6 +4,7 @@
   import Notifications from './settings/Notifications.svelte';
   import HomeAssistant from './settings/HomeAssistant.svelte';
   import Internet from './settings/Internet.svelte';
+  import FritzBox from './settings/FritzBox.svelte';
   import Account from './settings/Account.svelte';
   import Data from './settings/Data.svelte';
   import About from './settings/About.svelte';
@@ -17,6 +18,7 @@
     { id: 'notifications', label: 'settings.notifications', comp: Notifications },
     { id: 'homeassistant', label: 'settings.homeassistant', comp: HomeAssistant },
     { id: 'internet', label: 'settings.internet', comp: Internet },
+    { id: 'fritzbox', label: 'settings.fritzbox', comp: FritzBox },
     { id: 'account', label: 'settings.account', comp: Account },
     { id: 'data', label: 'settings.data', comp: Data },
     { id: 'about', label: 'settings.about', comp: About },

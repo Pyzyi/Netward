@@ -155,7 +155,8 @@ func (m *Monitor) UpdateSettings(s config.Settings) {
 	m.mu.Unlock()
 }
 
-// SetNetwork tells the monitor which addresses are gateways and which MACs are our own.
+// SetNetwork tells the monitor which addresses are gateways and which MACs
+// are our own, and updates devices that were seen before this was known.
 func (m *Monitor) SetNetwork(gateways []netip.Addr, selfMACs []net.HardwareAddr) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -166,6 +167,18 @@ func (m *Monitor) SetNetwork(gateways []netip.Addr, selfMACs []net.HardwareAddr)
 	m.selfMACs = map[string]bool{}
 	for _, s := range selfMACs {
 		m.selfMACs[s.String()] = true
+	}
+	ctx := context.Background()
+	for _, e := range m.byID {
+		ip, _ := netip.ParseAddr(e.d.IP)
+		gw := m.gateways[ip]
+		self := e.d.IsSelf || m.selfMACs[e.d.MAC]
+		if gw != e.d.IsGateway || self != e.d.IsSelf {
+			e.d.IsGateway, e.d.IsSelf = gw, self
+			m.reclassify(e)
+			m.persist(ctx, e)
+			m.publish(e)
+		}
 	}
 }
 

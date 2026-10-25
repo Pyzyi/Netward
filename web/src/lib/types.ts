@@ -163,7 +163,7 @@ export interface Settings {
   internetTargets: string[];
   securityScanDays: number;
   mqtt: MQTTSettings;
-  fritzbox: { enabled: boolean; host: string; username: string; password: string };
+  fritzbox: FritzBoxSettings;
 }
 
 export type ChannelKind = 'ntfy' | 'gotify' | 'pushover' | 'telegram' | 'discord' | 'slack' | 'webhook' | 'email';
@@ -222,6 +222,13 @@ export interface AuthState {
   https: boolean;
 }
 
+export interface FritzBoxSettings {
+  enabled: boolean;
+  host: string;
+  username: string;
+  password: string;
+}
+
 export interface SystemInfo {
   version: string;
   startedAt: number;
@@ -232,6 +239,7 @@ export interface SystemInfo {
   dbSize: number;
   memory: number;
   mqtt: { state: string; error?: string; since: number } | null;
+  fritzbox: { state: string; error?: string; hosts: number; lastSync: number } | null;
   https: boolean;
   streams: number;
 }

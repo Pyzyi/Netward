@@ -222,6 +222,7 @@
   }
   .finding {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     padding: 16px 18px;
     border-left: 3px solid var(--border-strong);
@@ -266,11 +267,13 @@
     display: grid;
     gap: 5px;
     justify-items: start;
+    min-width: 0;
   }
   .dev {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 4px 8px;
     color: var(--text);
     font-size: 13.5px;
   }
@@ -312,6 +315,13 @@
   @media (max-width: 639px) {
     .run {
       justify-items: start;
+    }
+    .f-head {
+      padding-right: 0;
+      padding-top: 26px;
+    }
+    .accept {
+      top: -10px;
     }
     details,
     .f-actions {

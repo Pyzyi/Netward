@@ -266,10 +266,14 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request, _ *session
 	if s.d.MQTT != nil {
 		mqttStatus = s.d.MQTT.Status()
 	}
+	var fritzStatus any
+	if s.d.FritzBox != nil {
+		fritzStatus = s.d.FritzBox.Status()
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"version": s.d.Version, "startedAt": s.d.StartedAt.UnixMilli(), "goVersion": runtime.Version(),
 		"uid": os.Getuid(), "rawSockets": s.d.RawSockets, "mode": s.scannerStatus().Mode,
-		"dbSize": s.d.Store.Size(), "memory": ms.Sys, "mqtt": mqttStatus, "https": s.isHTTPS(r),
+		"dbSize": s.d.Store.Size(), "memory": ms.Sys, "mqtt": mqttStatus, "fritzbox": fritzStatus, "https": s.isHTTPS(r),
 		"streams": s.streams.count(),
 	})
 }

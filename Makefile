@@ -1,3 +1,4 @@
+FUZZTIME ?= 30s
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
@@ -17,9 +18,9 @@ test:
 	go test -race ./...
 
 fuzz:
-	@for pkg in ./internal/proto ./internal/textutil ./internal/l2; do \
+	@for pkg in ./internal/proto ./internal/textutil ./internal/l2 ./internal/fritzbox; do \
 	  for f in $$(go test $$pkg -list '^Fuzz' | grep ^Fuzz); do \
-	    go test $$pkg -run '^$$' -fuzz "^$$f$$" -fuzztime 30s || exit 1; \
+	    go test $$pkg -run '^$$' -fuzz "^$$f$$" -fuzztime $(FUZZTIME) || exit 1; \
 	  done; \
 	done
 

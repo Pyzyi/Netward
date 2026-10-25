@@ -183,8 +183,10 @@ func (m *Monitor) Check(ctx context.Context) {
 	}
 	now := time.Now()
 
+	// Check the first default gateway so a LAN problem is not reported as an internet outage.
 	gwOK, gw := true, ""
-	for _, g := range m.gateways() {
+	if gws := m.gateways(); len(gws) > 0 {
+		g := gws[0]
 		gw = g.String()
 		gwOK = m.pinger != nil && func() bool { _, ok := m.pinger.Ping(ctx, g, 2*time.Second); return ok }()
 		if !gwOK {
@@ -197,7 +199,6 @@ func (m *Monitor) Check(ctx context.Context) {
 				}
 			}
 		}
-		break
 	}
 
 	best := time.Duration(-1)

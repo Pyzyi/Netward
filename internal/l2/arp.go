@@ -67,12 +67,11 @@ type ARP struct {
 	out  chan<- Sighting
 	log  *slog.Logger
 
-	mu        sync.Mutex
-	sweep     *collector
-	sweepMu   sync.Mutex // one sweep at a time per link
-	probes    map[netip.Addr][]chan net.HardwareAddr
-	lastSeen  map[[6]byte]time.Time
-	writeFail int
+	mu       sync.Mutex
+	sweep    *collector
+	sweepMu  sync.Mutex // one sweep at a time per link
+	probes   map[netip.Addr][]chan net.HardwareAddr
+	lastSeen map[[6]byte]time.Time
 }
 
 // NewARP returns the ARP driver for link. Sightings are dropped if out is full.
