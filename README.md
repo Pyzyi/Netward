@@ -27,6 +27,8 @@ aber auf jedem Linux-Host mit Docker.
   Neue Geräte erscheinen nach Sekunden, nicht erst beim nächsten Scan.
 - **Verständliche Namen und Gerätetypen.** Hersteller (IEEE-Register, wöchentlich aktualisiert), DHCP-Fingerprint,
   mDNS/Bonjour, UPnP, NetBIOS, Reverse-DNS und offene Ports ergeben Namen wie „Annas iPhone“ und 22 Gerätetypen.
+- **Netzring und Herzschlag.** Die Übersicht zeigt dein Netz als Ring um den Router, jedes Gerät ein Punkt.
+  In der Geräteliste zeigt ein Streifen pro Gerät die letzten 24 Stunden: wer immer da ist, wer abends kommt, wer fehlt.
 - **Anwesenheit.** Zeitleiste pro Gerät (24 h, 7 und 30 Tage). Schlafende Handys werden gezielt geweckt, bevor
   Netzwart sie als offline meldet. Optional hilft die FRITZ!Box mit ihrer WLAN-Anmeldeliste.
 - **Benachrichtigungen** über ntfy, Gotify, Pushover, Telegram, Discord, Slack/Mattermost, Webhook und E-Mail:
