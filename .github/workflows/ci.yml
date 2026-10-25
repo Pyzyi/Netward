@@ -25,9 +25,13 @@ jobs:
           go-version-file: go.mod
       - name: gofmt
         run: |
-          go version
-          bad="$(gofmt -l $(git ls-files '*.go'))"
-          for f in $bad; do echo "::error file=$f::not gofmt-formatted ($(go version))"; done
+          GOFMT="$(go env GOROOT)/bin/gofmt"
+          bad="$("$GOFMT" -l $(git ls-files '*.go'))"
+          for f in $bad; do
+            diff="$("$GOFMT" -d "$f" | head -c 3000)"
+            diff="${diff//'%'/'%25'}"; diff="${diff//$'\n'/'%0A'}"
+            echo "::error file=$f::not gofmt-formatted%0A$diff"
+          done
           test -z "$bad"
       - name: go vet
         run: go vet ./...
