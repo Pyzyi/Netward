@@ -1,14 +1,12 @@
 <script lang="ts">
-  import CircleCheck from '@lucide/svelte/icons/circle-check';
-  import CircleAlert from '@lucide/svelte/icons/circle-alert';
-  import Info from '@lucide/svelte/icons/info';
+  import Icon from './Icon.svelte';
   import { toasts } from './toast.svelte';
 </script>
 
 <div class="toaster" role="status" aria-live="polite">
   {#each toasts.list as item (item.id)}
     <div class="toast {item.kind}">
-      {#if item.kind === 'ok'}<CircleCheck size={17} />{:else if item.kind === 'error'}<CircleAlert size={17} />{:else}<Info size={17} />{/if}
+      {#if item.kind === 'ok'}<Icon name="check-circle" size={17} />{:else if item.kind === 'error'}<Icon name="warning-circle" size={17} />{:else}<Icon name="info" size={17} />{/if}
       <span>{item.text}</span>
     </div>
   {/each}
@@ -37,7 +35,7 @@
     align-items: center;
     gap: 9px;
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: 4px;
     background: var(--text);
     color: var(--bg);
     box-shadow: var(--shadow-pop);

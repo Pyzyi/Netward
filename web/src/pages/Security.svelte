@@ -1,11 +1,6 @@
 <script lang="ts">
+  import Icon from '../lib/components/Icon.svelte';
   import { errorText } from '../lib/errors';
-  import ShieldCheck from '@lucide/svelte/icons/shield-check';
-  import ShieldAlert from '@lucide/svelte/icons/shield-alert';
-  import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-  import Info from '@lucide/svelte/icons/info';
-  import RefreshCw from '@lucide/svelte/icons/refresh-cw';
-  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api } from '../lib/api';
@@ -85,15 +80,15 @@
   }
 </script>
 
-<div class="page">
-  <header class="head">
-    <div class="title">
+<div class="wrap">
+  <header class="page-head">
+    <div>
       <h1>{t('security.title')}</h1>
-      <p class="muted lead">{t('security.lead')}</p>
+      <p class="lead">{t('security.lead')}</p>
     </div>
     <div class="run">
       <button class="btn primary" type="button" onclick={run} disabled={running || store.overview?.scanner.mode === 'demo'} title={store.overview?.scanner.mode === 'demo' ? t('err.demo_mode') : undefined}>
-        <span class:spin={running} class="ico"><RefreshCw size={16} /></span>
+        <span class:spin={running} class="ico"><Icon name="arrows-clockwise" size={16} /></span>
         {running ? t('security.running') : t('security.run')}
       </button>
       <span class="faint small">{status.lastRunAt ? t('security.last', { t: relTime(status.lastRunAt, clock.now) }) : ''}</span>
@@ -101,61 +96,65 @@
   </header>
 
   {#if !loading && !status.lastRunAt && !running}
-    <div class="notice info"><Info size={17} /> {t('security.never')}</div>
+    <div class="notice info"><Icon name="info" size={17} /> {t('security.never')}</div>
+  {/if}
+
+  {#if !loading && open.length}
+    <dl class="tally">
+      {#each ['critical', 'warning', 'info'] as sev (sev)}
+        {@const n = open.filter((f) => f.severity === sev).length}
+        <div class={sev} class:zero={n === 0}><dt>{t(`security.${sev}`)}</dt><dd class="num">{n}</dd></div>
+      {/each}
+    </dl>
   {/if}
 
   {#if loading}
     <div class="skeleton" style:height="120px"></div>
   {:else if open.length === 0 && status.lastRunAt}
-    <div class="card all-good">
-      <span class="good-icon"><ShieldCheck size={26} /></span>
+    <div class="all-good">
+      <Icon name="shield-check" size={28} />
       <p>{t('security.allGood')}</p>
     </div>
   {:else}
-    <ul class="findings">
+    <ol class="findings">
       {#each [...open].sort((a, b) => order[a.severity] - order[b.severity]) as f (f.id)}
         {@const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined}
-        <li class="card finding {f.severity}">
-          <div class="f-head">
-            <button class="btn small ghost accept" type="button" title={t('security.acceptHint')} onclick={() => dismiss(f, true)}>{t('security.accept')}</button>
-            <span class="sev {f.severity}">
-              {#if f.severity === 'critical'}<ShieldAlert size={18} />{:else if f.severity === 'warning'}<TriangleAlert size={18} />{:else}<Info size={18} />{/if}
-            </span>
-            <div class="f-title">
-              <span class="badge {f.severity === 'critical' ? 'danger' : f.severity === 'warning' ? 'warn' : ''}">{t(`security.${f.severity}`)}</span>
-              <h2>{title(f)}</h2>
-              {#if dev}
-                <a class="dev" href="/devices/{dev.id}" use:link><DeviceIcon type={dev.type} size={22} /> {displayName(dev)} <span class="mono faint">{dev.ip}</span></a>
-              {/if}
-            </div>
-          </div>
-          <details>
-            <summary>{t('security.why')} <ChevronDown size={15} /></summary>
-            <p>{why(f)}</p>
-            <h3>{t('security.todo')}</h3>
-            <p>{todo(f)}</p>
-          </details>
-          {#if f.check === 'unknown_devices'}
-            <div class="f-actions">
+        <li class="finding {f.severity}">
+          <span class="sev">{t(`security.${f.severity}`)}</span>
+          <div class="f-body">
+            <h2>{title(f)}</h2>
+            {#if dev}
+              <a class="dev" href="/devices/{dev.id}" use:link><DeviceIcon type={dev.type} size={24} /> {displayName(dev)} <span class="mono faint">{dev.ip}</span></a>
+            {/if}
+            <details open={f.severity === 'critical'}>
+              <summary>{t('security.why')} <Icon name="caret-down" size={14} /></summary>
+              <p>{why(f)}</p>
+              <h3>{t('security.todo')}</h3>
+              <p>{todo(f)}</p>
+            </details>
+            {#if f.check === 'unknown_devices'}
               <a class="btn small" href="/devices?filter=unreviewed" use:link>{t('security.unknown.open')}</a>
-            </div>
-          {/if}
+            {/if}
+          </div>
+          <button class="btn small ghost accept" type="button" title={t('security.acceptHint')} onclick={() => dismiss(f, true)}>
+            <Icon name="eye-slash" size={14} /> {t('security.accept')}
+          </button>
         </li>
       {/each}
-    </ul>
+    </ol>
   {/if}
 
   {#if auth.state && !auth.state.https}
-    <section class="card hints">
-      <div class="card-head"><h2>{t('security.hints')}</h2></div>
-      <div class="card-body"><p class="muted">{t('overview.http')}</p></div>
+    <section class="hints">
+      <h2 class="eyebrow">{t('security.hints')}</h2>
+      <p class="muted">{t('overview.http')}</p>
     </section>
   {/if}
 
   {#if accepted.length}
-    <section>
+    <section class="hidden-findings">
       <button class="btn ghost small" type="button" onclick={() => (showAccepted = !showAccepted)} aria-expanded={showAccepted}>
-        {t('security.acceptedTitle')} ({accepted.length}) <ChevronDown size={15} />
+        {t('security.acceptedTitle')} ({accepted.length}) <Icon name="caret-down" size={14} />
       </button>
       {#if showAccepted}
         <ul class="accepted">
@@ -173,23 +172,12 @@
 </div>
 
 <style>
-  .page {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    max-width: 920px;
-  }
-  .head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .title {
-    display: grid;
-    gap: 6px;
-    max-width: 60ch;
+  .findings,
+  .tally,
+  .hints,
+  .hidden-findings,
+  .all-good {
+    max-width: 1000px;
   }
   .run {
     display: grid;
@@ -202,134 +190,161 @@
   .small {
     font-size: 12.5px;
   }
+  .tally {
+    display: flex;
+    gap: 0;
+    margin: 0 0 22px;
+  }
+  .tally div {
+    padding: 0 32px 0 0;
+    margin-right: 32px;
+    border-right: 1px solid var(--border);
+  }
+  .tally div:last-child {
+    border-right: 0;
+  }
+  .tally dt {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .tally dd {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+  .tally .critical dd {
+    color: var(--danger);
+  }
+  .tally .warning dd {
+    color: var(--warn);
+  }
+  .tally .zero dd {
+    color: var(--text-3);
+  }
   .all-good {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 18px 20px;
-  }
-  .good-icon {
-    display: grid;
-    place-items: center;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: var(--ok-soft);
+    gap: 12px;
+    padding: 22px 0;
     color: var(--ok);
+    font-size: 16px;
+    font-weight: 650;
   }
   .findings {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    gap: 10px;
+    border-top: 1px solid var(--text);
   }
   .finding {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-    padding: 16px 18px;
-    border-left: 3px solid var(--border-strong);
-  }
-  .finding.critical {
-    border-left-color: var(--danger);
-  }
-  .finding.warning {
-    border-left-color: var(--warn);
-  }
-  .f-head {
-    position: relative;
-    display: flex;
-    gap: 12px;
-    padding-right: 96px;
-  }
-  .accept {
-    position: absolute;
-    top: -4px;
-    right: -6px;
-    color: var(--text-2);
+    grid-template-columns: 110px minmax(0, 1fr) auto;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
   }
   .sev {
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--surface-2);
+    align-self: start;
+    padding: 3px 0 3px 10px;
+    border-left: 3px solid var(--text-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--text-2);
   }
-  .sev.critical {
-    background: var(--danger-soft);
+  .critical .sev {
+    border-left-color: var(--danger);
     color: var(--danger);
   }
-  .sev.warning {
-    background: var(--warn-soft);
+  .warning .sev {
+    border-left-color: var(--amber);
     color: var(--warn);
   }
-  .f-title {
+  .f-body {
     display: grid;
-    gap: 5px;
+    gap: 8px;
     justify-items: start;
     min-width: 0;
   }
+  .f-body h2 {
+    font-size: 17px;
+  }
   .dev {
     display: inline-flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 4px 8px;
+    gap: 8px;
     color: var(--text);
-    font-size: 13.5px;
+    font-weight: 600;
   }
   details {
-    margin-left: 46px;
+    width: 100%;
+    max-width: 66ch;
+    color: var(--text-2);
   }
   summary {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    padding: 4px 0;
     cursor: pointer;
-    color: var(--accent);
-    font-size: 13.5px;
     list-style: none;
+    font-weight: 600;
+    color: var(--link);
   }
   summary::-webkit-details-marker {
     display: none;
   }
+  details[open] summary :global(svg) {
+    transform: rotate(180deg);
+  }
   details p {
-    margin-top: 6px;
-    color: var(--text-2);
-    max-width: 70ch;
+    margin: 6px 0 0;
   }
   details h3 {
     margin-top: 12px;
+    color: var(--text);
   }
-  .f-actions {
-    display: flex;
+  .accept {
+    align-self: start;
+  }
+  .hints {
+    margin-top: 32px;
+    display: grid;
     gap: 8px;
-    margin-left: 46px;
+  }
+  .hidden-findings {
+    margin-top: 26px;
   }
   .accepted {
     list-style: none;
-    padding: 0;
     margin: 8px 0 0;
-    display: grid;
-    gap: 4px;
+    padding: 0;
   }
-  @media (max-width: 639px) {
-    .run {
-      justify-items: start;
-    }
-    .f-head {
-      padding-right: 0;
-      padding-top: 26px;
+  .accepted li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  @media (max-width: 640px) {
+    .finding {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
     }
     .accept {
-      top: -10px;
+      justify-self: start;
     }
-    details,
-    .f-actions {
-      margin-left: 0;
+    .tally div {
+      padding-right: 18px;
+      margin-right: 18px;
+    }
+    .tally dd {
+      font-size: 32px;
     }
   }
 </style>

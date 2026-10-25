@@ -16,6 +16,8 @@ export const store = $state<{
   loading: boolean;
   portScans: Record<number, boolean>;
   eventTick: number;
+  /** 24 h heartbeat per device: 48 half-hour slots ('1' online, '0' offline, '-' unknown). */
+  strips: Record<number, string>;
 }>({
   devices: new SvelteMap(),
   overview: null,
@@ -25,7 +27,20 @@ export const store = $state<{
   loading: true,
   portScans: {},
   eventTick: 0,
+  strips: {},
 });
+
+let stripTimer: ReturnType<typeof setInterval> | undefined;
+export async function loadStrips() {
+  try {
+    const r = await api.strips();
+    const next: Record<number, string> = {};
+    for (const [id, st] of Object.entries(r.strips)) next[Number(id)] = st;
+    store.strips = next;
+  } catch {
+    /* not critical */
+  }
+}
 
 /** A clock for relative times, ticking every 15 seconds. */
 export const clock = $state({ now: Date.now() });
@@ -78,6 +93,9 @@ export async function loadAll() {
     store.recent = recent;
     store.devices.clear();
     for (const d of devices ?? []) store.devices.set(d.id, d);
+    void loadStrips();
+    clearInterval(stripTimer);
+    stripTimer = setInterval(loadStrips, 5 * 60_000);
   } finally {
     store.loading = false;
   }
@@ -96,6 +114,9 @@ function handle(type: string, data: unknown) {
     case 'device': {
       const d = data as Device;
       store.devices.set(d.id, d);
+      // Keep the current slot of the heartbeat in step with live state.
+      const st = store.strips[d.id];
+      if (st && d.online && !st.endsWith('1')) store.strips[d.id] = st.slice(0, -1) + '1';
       break;
     }
     case 'device_removed':

@@ -1,9 +1,5 @@
 <script lang="ts">
-  import Plus from '@lucide/svelte/icons/plus';
-  import Send from '@lucide/svelte/icons/send';
-  import Pencil from '@lucide/svelte/icons/pencil';
-  import Trash from '@lucide/svelte/icons/trash-2';
-  import Bell from '@lucide/svelte/icons/bell';
+  import Icon from '../../lib/components/Icon.svelte';
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
   import Toggle from '../../lib/components/Toggle.svelte';
   import Dialog from '../../lib/components/Dialog.svelte';
@@ -82,10 +78,10 @@
 
 <SettingsCard title={t('settings.channels')}>
   {#snippet extra()}
-    <button class="btn small" type="button" onclick={() => { editing = null; editorOpen = true; }}><Plus size={15} /> {t('settings.channelAdd')}</button>
+    <button class="btn small" type="button" onclick={() => { editing = null; editorOpen = true; }}><Icon name="plus" size={15} /> {t('settings.channelAdd')}</button>
   {/snippet}
   {#if channels.length === 0}
-    <div class="empty"><Bell size={20} /><p class="muted">{t('settings.channelsEmpty')}</p></div>
+    <div class="empty"><Icon name="bell" size={20} /><p class="muted">{t('settings.channelsEmpty')}</p></div>
   {:else}
     <ul class="channels">
       {#each channels as c (c.id)}
@@ -95,9 +91,9 @@
             <span class="muted small">{t(`channel.${c.kind}`)} · {c.events.map((e) => t(`event.kind.${e}`)).join(', ') || '–'}</span>
           </div>
           <div class="ch-actions">
-            <button class="btn small" type="button" onclick={() => test(c)} disabled={testing === c.id || !c.enabled}><Send size={14} /> {t('settings.channelTest')}</button>
-            <button class="btn small icon" type="button" aria-label={t('common.edit')} onclick={() => { editing = c; editorOpen = true; }}><Pencil size={14} /></button>
-            <button class="btn small icon danger" type="button" aria-label={t('common.delete')} onclick={() => { deleting = c; deleteOpen = true; }}><Trash size={14} /></button>
+            <button class="btn small" type="button" onclick={() => test(c)} disabled={testing === c.id || !c.enabled}><Icon name="paper-plane-tilt" size={14} /> {t('settings.channelTest')}</button>
+            <button class="btn small icon" type="button" aria-label={t('common.edit')} onclick={() => { editing = c; editorOpen = true; }}><Icon name="pencil-simple" size={14} /></button>
+            <button class="btn small icon danger" type="button" aria-label={t('common.delete')} onclick={() => { deleting = c; deleteOpen = true; }}><Icon name="trash" size={14} /></button>
             <button type="button" role="switch" aria-checked={c.enabled} aria-label={t('settings.channelEnabled')} class="mini-switch" onclick={() => toggle(c, !c.enabled)}><span></span></button>
           </div>
         </li>

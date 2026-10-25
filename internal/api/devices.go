@@ -252,6 +252,69 @@ func (s *Server) handlePresence(w http.ResponseWriter, r *http.Request, _ *sessi
 	writeJSON(w, http.StatusOK, presenceResponse{From: from, To: to, Spans: spans, Gaps: gaps, OnlinePct: pct})
 }
 
+// Presence strips: the last 24 hours of every device as 48 half-hour slots,
+// for the heartbeat column of the device list.
+const (
+	stripSlots = 48
+	stripSlot  = 30 * time.Minute
+)
+
+type stripsResponse struct {
+	From  int64            `json:"from"`
+	Slot  int64            `json:"slot"`
+	Strip map[int64]string `json:"strips"` // per slot: 1 online, 0 offline, - not observed
+}
+
+func (s *Server) handlePresenceStrips(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
+	slot := stripSlot.Milliseconds()
+	now := s.now().UnixMilli()
+	to := (now/slot + 1) * slot // end of the current slot
+	from := to - stripSlots*slot
+	spans, err := s.d.Store.ListAllPresence(r.Context(), from, to)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	gaps, err := s.d.Store.ListGaps(r.Context(), from, to)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	covered := func(a, b int64) bool { // slot fully inside a monitoring gap
+		for _, g := range gaps {
+			if g.Start <= a && g.End >= b {
+				return true
+			}
+		}
+		return false
+	}
+	out := stripsResponse{From: from, Slot: slot, Strip: map[int64]string{}}
+	for _, d := range s.d.Monitor.Devices() {
+		b := make([]byte, stripSlots)
+		for i := range b {
+			a, e := from+int64(i)*slot, from+int64(i+1)*slot
+			switch {
+			case e <= d.FirstSeen || a > now || covered(a, e):
+				b[i] = '-'
+			default:
+				b[i] = '0'
+			}
+			for _, sp := range spans[d.ID] {
+				end := sp.End
+				if end == 0 {
+					end = now
+				}
+				if sp.Start < e && end > a {
+					b[i] = '1'
+					break
+				}
+			}
+		}
+		out.Strip[d.ID] = string(b)
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 func (s *Server) handleDeviceEvents(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
 	id, ok := pathID(r, "id")
 	if !ok {

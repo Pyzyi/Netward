@@ -1,38 +1,37 @@
 <script lang="ts">
-  import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
-  import Info from '@lucide/svelte/icons/info';
-  import ShieldCheck from '@lucide/svelte/icons/shield-check';
-  import ShieldAlert from '@lucide/svelte/icons/shield-alert';
-  import ChevronRight from '@lucide/svelte/icons/chevron-right';
-  import Check from '@lucide/svelte/icons/check';
-  import Globe from '@lucide/svelte/icons/globe';
-  import DeviceRow from '../lib/components/DeviceRow.svelte';
+  import Icon from '../lib/components/Icon.svelte';
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
+  import NetRing from '../lib/components/NetRing.svelte';
   import ScanButton from '../lib/components/ScanButton.svelte';
   import Sparkline from '../lib/components/Sparkline.svelte';
-  import EmptyState from '../lib/components/EmptyState.svelte';
   import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api } from '../lib/api';
   import { auth, clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
-  import { deviceTypes, displayName, typeLabel } from '../lib/devices';
+  import { category, deviceTypes, displayName, subtitle, typeLabel, type Category } from '../lib/devices';
   import { eventText } from '../lib/events';
-  import { number, relTime, t } from '../lib/i18n.svelte';
+  import { number, relTime, t, time } from '../lib/i18n.svelte';
   import type { DeviceType } from '../lib/types';
 
   const devices = $derived([...store.devices.values()]);
   const online = $derived(devices.filter((d) => d.online).length);
-  const fresh = $derived(
-    devices.filter((d) => d.new).sort((a, b) => b.firstSeen - a.firstSeen),
-  );
+  const fresh = $derived(devices.filter((d) => d.new).sort((a, b) => b.firstSeen - a.firstSeen));
   const ov = $derived(store.overview);
   const scanner = $derived(ov?.scanner);
   const active = $derived(scanner?.interfaces?.filter((i) => i.active) ?? []);
-  const byType = $derived.by(() => {
-    const m = new Map<DeviceType, number>();
-    for (const d of devices) m.set(d.type, (m.get(d.type) ?? 0) + 1);
-    return deviceTypes.filter((ty) => m.has(ty)).map((ty) => ({ type: ty, count: m.get(ty)! }));
+
+  // Device mix: one stacked bar by category, the types listed beneath.
+  const order: Category[] = ['net', 'compute', 'mobile', 'media', 'home', 'peripheral', 'unknown'];
+  const mix = $derived.by(() => {
+    const types = new Map<DeviceType, number>();
+    for (const d of devices) types.set(d.type, (types.get(d.type) ?? 0) + 1);
+    return order
+      .map((cat) => {
+        const items = deviceTypes.filter((ty) => category(ty) === cat && types.has(ty)).map((ty) => ({ type: ty, count: types.get(ty)! }));
+        return { cat, items, count: items.reduce((n, i) => n + i.count, 0) };
+      })
+      .filter((g) => g.count > 0);
   });
 
   let history = $state<{ t: number; ms: number }[]>([]);
@@ -78,9 +77,13 @@
   const feed = $derived(store.recent.filter((e) => e.kind !== 'auth_login').slice(0, 8));
 
   const inetState = $derived(ov?.internet.state ?? 'unknown');
-  const inetOk = $derived(inetState === 'online');
-  const secIssues = $derived((ov?.security.critical ?? 0) + (ov?.security.warning ?? 0));
+  const inetOk = $derived(inetState === 'online' || inetState === 'degraded');
   const deviceName = (id?: number) => (id ? store.devices.get(id) : undefined);
+  // The ring is drawn for the space it gets (labels need ~60 px on each side).
+  let ringBox = $state(0);
+  const ringLabels = $derived(ringBox >= 440);
+  const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 130 : 30)));
+  const sameDay = (ts: number) => new Date(ts).toDateString() === new Date(clock.now).toDateString();
 </script>
 
 <Dialog bind:open={confirmAll} title={t('overview.markAllTitle', { n: fresh.length })}>
@@ -91,456 +94,605 @@
   {/snippet}
 </Dialog>
 
-<div class="page">
+<section class="stage" aria-labelledby="net-title">
+  <div class="stage-inner">
+    <div class="stage-text">
+      <p class="eyebrow on-ink">
+        {#each active as i (i.name)}<span>{i.prefix}</span><span>{i.name}</span>{/each}
+        {#if scanner?.gateways?.length}<span>{t('overview.gateway')} {scanner.gateways[0]}</span>{/if}
+      </p>
+      <h1 id="net-title">{ov?.networkName || store.settings?.networkName || t('overview.unnamed')}</h1>
+
+      <a class="headline" href="/devices?filter=online" use:link>
+        <span class="big num">{store.loading ? '–' : number(online)}</span>
+        <span class="big-of">
+          <span>{t('overview.onlineOf')}</span>
+          <strong>{t('overview.devicesCount', { n: devices.length })}</strong>
+        </span>
+      </a>
+
+      <dl class="metrics">
+        <a class="metric" href="/devices?filter=new" use:link>
+          <dt>{t('overview.new')}</dt>
+          <dd class="num" class:amber={fresh.length > 0}>{fresh.length}</dd>
+        </a>
+        <a class="metric" href="/devices?filter=offline" use:link>
+          <dt>{t('overview.offline')}</dt>
+          <dd class="num">{devices.length - online}</dd>
+        </a>
+        <div class="metric inet">
+          <dt>{t('overview.internet')}</dt>
+          <dd>
+            <span class="inet-state" class:ok={inetOk} class:bad={inetState === 'offline' || inetState === 'lan_down'}>
+              {t(`internet.${inetState}`)}
+            </span>
+            {#if inetOk && ov?.internet.latencyMs !== undefined && ov.internet.latencyMs >= 0}
+              <span class="lat">{ov.internet.latencyMs} ms</span>
+            {/if}
+          </dd>
+          {#if history.length > 1}<span class="spark"><Sparkline points={history} height={22} /></span>{/if}
+        </div>
+      </dl>
+
+      <div class="stage-actions"><ScanButton onInk /></div>
+    </div>
+
+    <div class="stage-ring" bind:clientWidth={ringBox}>
+      {#if devices.length && ringBox}<NetRing {devices} size={ringSize} labels={ringLabels} />{/if}
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
   {#if noChannel}
-    <div class="notice warn channel-notice" role="status">
-      <TriangleAlert size={17} />
+    <div class="notice warn row-notice" role="status">
+      <Icon name="warning" size={17} />
       <span>{t('settings.channelsMissing')}</span>
       <a class="btn small" href="/settings/notifications" use:link>{t('settings.channelsSetup')}</a>
     </div>
   {/if}
   {#if scanner?.mode === 'demo'}
-    <div class="notice info"><Info size={17} /> {t('overview.demo')}</div>
+    <div class="notice info"><Icon name="info" size={17} /> {t('overview.demo')}</div>
   {:else if scanner?.mode === 'fallback'}
-    <div class="notice warn"><TriangleAlert size={17} /> {t('overview.fallback')}</div>
+    <div class="notice warn"><Icon name="warning" size={17} /> {t('overview.fallback')}</div>
   {/if}
   {#if scanner?.error}
-    <div class="notice danger"><TriangleAlert size={17} /> {t('overview.scanError', { msg: scanner.error })}</div>
+    <div class="notice danger"><Icon name="warning" size={17} /> {t('overview.scanError', { msg: scanner.error })}</div>
   {/if}
   {#each scanner?.interfaces?.filter((i) => i.active && (i.skipped === 'large' || i.skipped === 'too_large')) ?? [] as i (i.name)}
-    <div class="notice warn"><TriangleAlert size={17} /> {t('overview.subnetSkipped', { p: i.prefix })}</div>
+    <div class="notice warn"><Icon name="warning" size={17} /> {t('overview.subnetSkipped', { p: i.prefix })}</div>
   {/each}
   {#if ov && !ov.baseline && scanner?.mode !== 'demo'}
-    <div class="notice info"><Info size={17} /> {t('overview.learning')}</div>
+    <div class="notice info"><Icon name="info" size={17} /> {t('overview.learning')}</div>
   {/if}
-
-  <header class="head">
-    <div class="title">
-      <h1>{ov?.networkName || store.settings?.networkName || t('overview.unnamed')}</h1>
-      <p class="muted meta">
-        {#each active as i (i.name)}
-          <span class="mono">{i.prefix}</span><span class="sep">·</span><span>{i.name}</span><span class="sep">·</span>
-        {/each}
-        {#if scanner?.gateways?.length}
-          <span>{t('overview.gateway')} <span class="mono">{scanner.gateways[0]}</span></span>
-        {/if}
-      </p>
-    </div>
-    <div class="scan">
-      <ScanButton />
-      {#if scanner?.lastScanAt}
-        <span class="faint small">{t('overview.lastScan', { t: relTime(scanner.lastScanAt, clock.now) })}</span>
-      {/if}
-    </div>
-  </header>
-
-  <section class="tiles" aria-label="Status">
-    <a class="tile card" href="/devices?filter=online" use:link>
-      <span class="tile-label"><span class="dot on"></span>{t('overview.online')}</span>
-      <span class="big num">{store.loading ? '–' : number(online)}</span>
-      <span class="faint small">{t('overview.devicesTotal', { n: devices.length })}</span>
-    </a>
-    <a class="tile card" href="/devices?filter=offline" use:link>
-      <span class="tile-label"><span class="dot"></span>{t('overview.offline')}</span>
-      <span class="big num">{store.loading ? '–' : number(devices.length - online)}</span>
-      <span class="faint small">{t('overview.devicesTotal', { n: devices.length })}</span>
-    </a>
-    <a class="tile card" href="/devices?filter=new" use:link>
-      <span class="tile-label"><span class="dot new"></span>{t('overview.new')}</span>
-      <span class="big num" class:warn={fresh.length > 0}>{store.loading ? '–' : number(fresh.length)}</span>
-      <span class="faint small">{t('overview.newHint')}</span>
-    </a>
-    <a class="tile card" href="/settings/internet" use:link>
-      <span class="tile-label"><Globe size={14} />{t('overview.internet')}</span>
-      <span class="inet">
-        <span class="inet-state" class:ok={inetOk} class:bad={inetState === 'offline' || inetState === 'lan_down'} class:warn={inetState === 'degraded'}>
-          {t(`internet.${inetState}`)}
-        </span>
-        {#if inetOk && ov?.internet.latencyMs !== undefined && ov.internet.latencyMs >= 0}
-          <span class="muted num">{t('internet.latency', { ms: ov.internet.latencyMs })}</span>
-        {/if}
-      </span>
-      {#if history.length > 2}<Sparkline points={history} height={30} />{/if}
-    </a>
-  </section>
 
   <div class="grid">
     <div class="col">
-    <section class="card attention" aria-labelledby="att">
-      <div class="card-head">
-        <h2 id="att">{t('overview.attention')}</h2>
-        {#if fresh.length > 1}<button class="btn small" type="button" onclick={() => (confirmAll = true)}><Check size={15} /> {t('overview.markAllKnown')}</button>{/if}
-      </div>
-      <div class="list">
+      <section class="section" aria-labelledby="att">
+        <div class="section-head">
+          <h2 id="att">{t('overview.attention')} <span class="eyebrow">{fresh.length}</span></h2>
+          {#if fresh.length > 1}
+            <button class="btn small" type="button" onclick={() => (confirmAll = true)}><Icon name="check" size={14} /> {t('overview.markAllKnown')}</button>
+          {/if}
+        </div>
         {#if store.loading}
-          {#each [1, 2, 3] as i (i)}<div class="skeleton sk-row"></div>{/each}
+          {#each [1, 2] as i (i)}<div class="skeleton sk-row"></div>{/each}
         {:else if fresh.length === 0}
-          <EmptyState text={t('overview.attentionEmpty')} />
+          <p class="empty"><Icon name="check-circle" size={18} /> {t('overview.attentionEmpty')}</p>
         {:else}
-          {#each fresh.slice(0, 6) as d (d.id)}
-            <DeviceRow device={d} href="/devices/{d.id}" compact>
-              {#snippet actions()}
-                <button class="btn small" type="button" onclick={() => markKnown(d.id)}><Check size={15} /> {t('overview.markKnown')}</button>
-              {/snippet}
-            </DeviceRow>
-          {/each}
+          <ul class="fresh">
+            {#each fresh.slice(0, 6) as d (d.id)}
+              <li>
+                <a class="fresh-main" href="/devices/{d.id}" use:link>
+                  <DeviceIcon type={d.type} online={d.online} fresh size={38} />
+                  <span class="fresh-text">
+                    <span class="fresh-name">{displayName(d)}</span>
+                    <span class="sub">{subtitle(d) || typeLabel(d.type)}</span>
+                  </span>
+                  <span class="mono ip">{d.ip}</span>
+                  <span class="mono faint seen">{relTime(d.firstSeen, clock.now)}</span>
+                </a>
+                <button class="btn small" type="button" onclick={() => markKnown(d.id)}><Icon name="check" size={14} /> {t('overview.markKnown')}</button>
+              </li>
+            {/each}
+          </ul>
           {#if fresh.length > 6}
-            <a class="more" href="/devices?filter=new" use:link>{t('common.showAll')} ({fresh.length}) <ChevronRight size={15} /></a>
+            <a class="more" href="/devices?filter=new" use:link>{t('common.showAll')} ({fresh.length}) <Icon name="caret-right" size={14} /></a>
           {/if}
         {/if}
-      </div>
-    </section>
+      </section>
 
-    <section class="card" aria-labelledby="types">
-      <div class="card-head"><h2 id="types">{t('overview.byType')}</h2></div>
-      <div class="types">
-        {#each byType as bt (bt.type)}
-          <a class="type-chip" href="/devices?type={bt.type}" use:link>
-            <DeviceIcon type={bt.type} size={30} />
-            <span class="type-name">{typeLabel(bt.type)}</span>
-            <span class="num muted">{bt.count}</span>
-          </a>
-        {/each}
-      </div>
-    </section>
+      <section class="section" aria-labelledby="types">
+        <div class="section-head"><h2 id="types">{t('overview.byType')}</h2></div>
+        <div class="mixbar" aria-hidden="true">
+          {#each mix as g, i (g.cat)}
+            <span class="seg-{i % 7}" style:flex-grow={g.count} title="{t(`category.${g.cat}`)} {g.count}"></span>
+          {/each}
+        </div>
+        <dl class="mix">
+          {#each mix as g, i (g.cat)}
+            <div class="mix-group">
+              <dt><span class="key seg-{i % 7}"></span>{t(`category.${g.cat}`)} <span class="num faint">{g.count}</span></dt>
+              <dd>
+                {#each g.items as it (it.type)}
+                  <a href="/devices?type={it.type}" use:link>{typeLabel(it.type)} <span class="num">{it.count}</span></a>
+                {/each}
+              </dd>
+            </div>
+          {/each}
+        </dl>
+      </section>
     </div>
 
     <div class="col">
-    <section class="card" aria-labelledby="act">
-      <div class="card-head">
-        <h2 id="act">{t('overview.activity')}</h2>
-        <a class="small" href="/activity" use:link>{t('common.showAll')}</a>
-      </div>
-      <ul class="feed">
-        {#each feed as e (e.id)}
-          {@const dev = deviceName(e.deviceId)}
-          <li>
-            <span class="feed-dot {e.severity}"></span>
-            <span class="feed-text">
-              {#if dev}
-                <a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>
-              {:else}
-                {eventText(e)}
-              {/if}
+      <section class="section" aria-labelledby="act">
+        <div class="section-head">
+          <h2 id="act">{t('overview.activity')}</h2>
+          <a class="small" href="/activity" use:link>{t('common.showAll')}</a>
+        </div>
+        <ol class="feed">
+          {#each feed as e (e.id)}
+            {@const dev = deviceName(e.deviceId)}
+            <li class={e.severity}>
+              <time class="mono" datetime={new Date(e.ts).toISOString()} title={new Date(e.ts).toLocaleString()}>
+                {sameDay(e.ts) ? time(e.ts) : relTime(e.ts, clock.now)}
+              </time>
+              <span class="feed-text">
+                {#if dev}
+                  <a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>
+                {:else}
+                  {eventText(e)}
+                {/if}
+              </span>
+            </li>
+          {:else}
+            <li class="empty">{t('overview.activityEmpty')}</li>
+          {/each}
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="sec">
+        <div class="section-head"><h2 id="sec">{t('overview.security')}</h2></div>
+        <a class="sec" href="/security" use:link>
+          {#if (ov?.security.critical ?? 0) + (ov?.security.warning ?? 0) > 0}
+            <span class="sec-figures">
+              {#if ov?.security.critical}<span class="crit"><strong class="num">{ov.security.critical}</strong> {t('security.critical')}</span>{/if}
+              {#if ov?.security.warning}<span class="warnc"><strong class="num">{ov.security.warning}</strong> {t('security.count.warningWord', { n: ov.security.warning })}</span>{/if}
             </span>
-            <time class="faint small" datetime={new Date(e.ts).toISOString()}>{relTime(e.ts, clock.now)}</time>
-          </li>
-        {:else}
-          <li class="muted">{t('overview.activityEmpty')}</li>
-        {/each}
-      </ul>
-    </section>
-
-    
-
-    <section class="card security" aria-labelledby="sec">
-      <div class="card-head"><h2 id="sec">{t('overview.security')}</h2></div>
-      <a class="sec-body" href="/security" use:link>
-        {#if secIssues > 0}
-          <span class="sec-icon bad"><ShieldAlert size={22} /></span>
-          <span class="sec-text">
-            <strong>
-              {#if ov?.security.critical}{t('security.count.critical', { n: ov.security.critical })}{/if}
-              {#if ov?.security.critical && ov?.security.warning} · {/if}
-              {#if ov?.security.warning}{t('security.count.warning', { n: ov.security.warning })}{/if}
-            </strong>
-            <span class="faint small">{ov?.security.lastRunAt ? t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) }) : t('overview.securityNever')}</span>
-          </span>
-        {:else}
-          <span class="sec-icon ok"><ShieldCheck size={22} /></span>
-          <span class="sec-text">
-            <strong>{ov?.security.lastRunAt ? t('overview.securityOk') : t('overview.securityNever')}</strong>
-            {#if ov?.security.lastRunAt}<span class="faint small">{t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) })}</span>{/if}
-          </span>
+          {:else}
+            <span class="sec-ok"><Icon name="shield-check" size={20} /> {ov?.security.lastRunAt ? t('overview.securityOk') : t('overview.securityNever')}</span>
+          {/if}
+          <span class="faint small">{ov?.security.lastRunAt ? t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) }) : ''}</span>
+          <Icon name="caret-right" size={16} />
+        </a>
+        {#if auth.state && !auth.state.https}
+          <p class="hint http">{t('overview.http')}</p>
         {/if}
-        <ChevronRight size={18} class="chev" />
-      </a>
-      {#if auth.state && !auth.state.https}
-        <p class="hint http">{t('overview.http')}</p>
-      {/if}
-    </section>
+      </section>
     </div>
   </div>
 </div>
 
 <style>
-  .page {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-    max-width: 1280px;
+  /* Stage: the ink band continues into the page */
+  .stage {
+    background: var(--ink);
+    color: var(--on-ink);
   }
-  .head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+  .stage :focus-visible {
+    outline-color: var(--on-ink);
   }
-  .title {
+  .stage-inner {
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 30px 28px 40px;
     display: grid;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 40px;
+    align-items: center;
+  }
+  .stage-text {
+    display: grid;
+    gap: 18px;
+    align-content: center;
     min-width: 0;
   }
-  .meta {
+  .eyebrow.on-ink {
+    color: var(--on-ink-2);
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px;
-    font-size: 13.5px;
+    gap: 6px 14px;
   }
-  .sep {
-    color: var(--text-3);
+  h1 {
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    margin-top: -6px;
   }
-  .scan {
-    display: grid;
-    justify-items: end;
-    gap: 6px;
-  }
-  .small {
-    font-size: 12.5px;
-  }
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .tile {
-    display: grid;
-    align-content: start;
-    gap: 4px;
-    padding: 14px 16px;
-    color: inherit;
-    text-decoration: none;
-    transition: border-color 120ms var(--ease);
-  }
-  .tile:hover {
-    border-color: var(--border-strong);
-    text-decoration: none;
-  }
-  .tile-label {
+  .headline {
     display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--text-2);
-    font-weight: 550;
-    font-size: 13px;
+    align-items: flex-end;
+    gap: 16px;
+    color: var(--on-ink);
+    text-decoration: none;
   }
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--off);
-  }
-  .dot.on {
-    background: var(--ok);
-  }
-  .dot.new {
-    background: var(--warn);
+  .headline:hover {
+    text-decoration: none;
   }
   .big {
+    font-size: 120px;
+    line-height: 0.82;
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    color: var(--signal);
+  }
+  .big-of {
+    display: grid;
+    padding-bottom: 6px;
+    font-size: 17px;
+    line-height: 1.25;
+    color: var(--on-ink-2);
+  }
+  .big-of strong {
+    color: var(--on-ink);
+    font-weight: 650;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    margin: 4px 0 0;
+    border-top: 1px solid var(--ink-line);
+  }
+  .metric {
+    display: grid;
+    gap: 2px;
+    align-content: start;
+    padding: 14px 28px 0 0;
+    margin-right: 28px;
+    border-right: 1px solid var(--ink-line);
+    color: var(--on-ink);
+    text-decoration: none;
+  }
+  .metric:hover {
+    text-decoration: none;
+  }
+  .metric:hover dt {
+    color: var(--on-ink);
+  }
+  .metric.inet {
+    border-right: 0;
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .metric dt {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-ink-2);
+  }
+  .metric dd {
+    margin: 0;
     font-size: 30px;
-    font-weight: 620;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-  }
-  .big.warn {
-    color: var(--warn);
-  }
-  .inet {
+    font-weight: 760;
+    letter-spacing: -0.03em;
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    min-height: 34px;
-    padding-top: 6px;
+    gap: 10px;
+  }
+  .metric dd.amber {
+    color: var(--amber);
   }
   .inet-state {
-    font-size: 17px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.35;
   }
   .inet-state.ok {
-    color: var(--ok);
+    color: var(--signal);
   }
   .inet-state.bad {
-    color: var(--danger);
+    color: #ff7b6e;
   }
-  .inet-state.warn {
-    color: var(--warn);
+  .lat {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--on-ink-2);
+    letter-spacing: 0;
+  }
+  .spark {
+    display: block;
+    max-width: 260px;
+    margin-top: 4px;
+  }
+  .stage-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .stage-ring {
+    display: grid;
+    place-items: center;
+    width: 510px;
+    padding: 34px 0;
+  }
+
+  /* Paper */
+  .wrap {
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 28px 28px 56px;
+    display: grid;
+    gap: 16px;
+  }
+  .row-notice {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .row-notice span {
+    flex: 1 1 260px;
   }
   .grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 40px;
+    margin-top: 12px;
     align-items: start;
   }
   .col {
     display: grid;
-    gap: 16px;
+    gap: 40px;
     min-width: 0;
   }
-  .list {
-    display: grid;
-    gap: 2px;
-    padding: 0 8px 10px;
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .small {
+    font-size: 12.5px;
+  }
+  .empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    color: var(--text-2);
   }
   .sk-row {
-    height: 48px;
-    margin: 2px 6px;
+    height: 52px;
+    margin: 4px 0;
+  }
+
+  .fresh {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fresh li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fresh-main {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    color: inherit;
+    text-decoration: none;
+  }
+  .fresh-main:hover .fresh-name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .fresh-text {
+    display: grid;
+    min-width: 0;
+  }
+  .fresh-name {
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sub {
+    font-size: 13px;
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .more {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 8px 8px 2px;
+    margin-top: 10px;
+    font-weight: 600;
+  }
+
+  /* Device mix */
+  .mixbar {
+    display: flex;
+    height: 12px;
+    gap: 2px;
+    margin: 6px 0 16px;
+  }
+  .mixbar span {
+    flex-basis: 0;
+    min-width: 4px;
+  }
+  .seg-0 {
+    background: var(--text);
+  }
+  .seg-1 {
+    background: color-mix(in srgb, var(--text) 78%, var(--bg));
+  }
+  .seg-2 {
+    background: color-mix(in srgb, var(--text) 60%, var(--bg));
+  }
+  .seg-3 {
+    background: color-mix(in srgb, var(--text) 44%, var(--bg));
+  }
+  .seg-4 {
+    background: color-mix(in srgb, var(--text) 30%, var(--bg));
+  }
+  .seg-5 {
+    background: color-mix(in srgb, var(--text) 20%, var(--bg));
+  }
+  .seg-6 {
+    background: color-mix(in srgb, var(--text) 12%, var(--bg));
+  }
+  .mix {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px 24px;
+    margin: 0;
+  }
+  .mix dt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 650;
+  }
+  .key {
+    width: 10px;
+    height: 10px;
+    flex: none;
+  }
+  .mix dd {
+    margin: 4px 0 0 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
     font-size: 13px;
   }
+  .mix dd a {
+    color: var(--text-2);
+  }
+  .mix dd a:hover {
+    color: var(--text);
+  }
+
+  /* Activity */
   .feed {
     list-style: none;
     margin: 0;
-    padding: 0 16px 14px;
-    display: grid;
-    gap: 11px;
+    padding: 0;
   }
   .feed li {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 10px;
-    align-items: baseline;
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 12px;
+    padding: 8px 0 8px 12px;
+    border-left: 2px solid var(--border-strong);
+    font-size: 13.5px;
   }
-  .feed-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--border-strong);
-    transform: translateY(-1px);
+  .feed li.warning {
+    border-left-color: var(--amber);
   }
-  .feed-dot.warning {
-    background: var(--warn);
+  .feed li.critical {
+    border-left-color: var(--danger);
   }
-  .feed-dot.critical {
-    background: var(--danger);
-  }
-  .feed-text {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .feed-text a {
-    color: inherit;
-  }
-  .channel-notice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .channel-notice span {
-    flex: 1 1 260px;
-  }
-  .types {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 6px;
-    padding: 0 12px 14px;
-  }
-  /* On phones the type list becomes compact chips so activity stays close. */
-  @media (max-width: 639px) {
-    .types {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .type-chip {
-      gap: 6px;
-      padding: 4px 10px 4px 4px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-    }
-    .type-name {
-      flex: none;
-    }
-  }
-  .type-chip {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    color: inherit;
-    text-decoration: none;
-  }
-  .type-chip:hover {
-    background: var(--surface-2);
-    text-decoration: none;
-  }
-  .type-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .feed time {
+    color: var(--text-3);
+    padding-top: 1px;
     white-space: nowrap;
   }
-  .sec-body {
+  .feed-text a {
+    color: var(--text);
+  }
+
+  /* Security */
+  .sec {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 0 12px 12px;
-    padding: 10px;
-    border-radius: 8px;
-    color: inherit;
+    gap: 16px;
+    padding: 6px 0;
+    color: var(--text);
     text-decoration: none;
   }
-  .sec-body:hover {
-    background: var(--surface-2);
+  .sec:hover {
     text-decoration: none;
   }
-  .sec-icon {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    flex: none;
+  .sec-figures {
+    display: flex;
+    gap: 22px;
   }
-  .sec-icon.ok {
-    background: var(--ok-soft);
-    color: var(--ok);
+  .sec-figures strong {
+    font-size: 30px;
+    font-weight: 780;
+    letter-spacing: -0.03em;
+    margin-right: 4px;
   }
-  .sec-icon.bad {
-    background: var(--danger-soft);
+  .crit {
     color: var(--danger);
+    font-weight: 600;
   }
-  .sec-text {
-    display: grid;
-    flex: 1;
+  .warnc {
+    color: var(--warn);
+    font-weight: 600;
   }
-  .sec-body :global(.chev) {
-    color: var(--text-3);
+  .sec-ok {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ok);
+    font-weight: 650;
+  }
+  .sec > :global(:last-child) {
+    margin-left: auto;
   }
   .http {
-    padding: 0 16px 14px;
+    margin-top: 10px;
   }
-  @media (max-width: 1100px) {
+
+  @media (max-width: 1080px) {
+    .stage-inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .stage-ring {
+      width: 100%;
+      padding: 20px 0 6px;
+    }
     .grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
-  @media (max-width: 760px) {
-    .tiles {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 639px) {
-    .head {
-      align-items: flex-start;
-    }
-    .scan {
-      justify-items: start;
-    }
-    h1 {
-      font-size: 23px;
+  @media (max-width: 640px) {
+    .stage-inner {
+      padding: 22px 16px 28px;
+      gap: 24px;
     }
     .big {
-      font-size: 26px;
+      font-size: 88px;
+    }
+    .metrics {
+      grid-template-columns: auto auto;
+    }
+    .metric:nth-child(2) {
+      border-right: 0;
+    }
+    .metric.inet {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--ink-line);
+      margin-top: 14px;
+    }
+    .wrap {
+      padding: 20px 16px 40px;
+    }
+    .fresh-main {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .fresh-main .ip,
+    .fresh-main .seen {
+      display: none;
     }
   }
 </style>

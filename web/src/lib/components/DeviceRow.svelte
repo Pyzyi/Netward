@@ -1,38 +1,45 @@
 <script lang="ts">
-  import Star from '@lucide/svelte/icons/star';
-  import Bell from '@lucide/svelte/icons/bell';
+  import type { Snippet } from 'svelte';
+  import Icon from './Icon.svelte';
   import DeviceIcon from './DeviceIcon.svelte';
+  import Heartbeat from './Heartbeat.svelte';
   import { displayName, subtitle } from '../devices';
   import { link } from '../router.svelte';
-  import { clock } from '../state.svelte';
+  import { clock, store } from '../state.svelte';
   import { relTime, t } from '../i18n.svelte';
   import type { Device } from '../types';
-  import type { Snippet } from 'svelte';
 
-  let { device, href, showMac = true, compact = false, selected = false, actions }: {
-    device: Device; href: string; showMac?: boolean; compact?: boolean; selected?: boolean; actions?: Snippet;
-  } = $props();
+  // One line of the device register: glyph, name, address, the 24-hour
+  // heartbeat and the current state. `wide` adds the heartbeat column.
+  let {
+    device,
+    href,
+    wide = true,
+    compact = false,
+    selected = false,
+    actions,
+  }: { device: Device; href: string; wide?: boolean; compact?: boolean; selected?: boolean; actions?: Snippet } = $props();
   const d = $derived(device);
   const name = $derived(displayName(d));
   const sub = $derived(subtitle(d));
 </script>
 
-<div class="row-item" class:compact class:selected class:no-mac={!showMac}>
+<div class="row-item" class:compact class:selected class:narrow={!wide}>
   <a class="main" {href} use:link aria-current={selected ? 'true' : undefined}>
-    <DeviceIcon type={d.type} online={d.online} size={compact ? 34 : 38} />
+    <DeviceIcon type={d.type} online={d.online} fresh={d.new} size={compact ? 34 : 38} />
     <span class="names">
       <span class="name">
         <span class="text">{name}</span>
+        {#if d.favorite}<Icon name="fill:star" size={13} class="fav" label={t('device.actions.favorite')} />{/if}
+        {#if d.watch}<Icon name="bell" size={13} class="watch" label={t('device.actions.watch')} />{/if}
         {#if d.new}<span class="badge warn">{t('devices.newBadge')}</span>{/if}
         {#if d.isSelf}<span class="badge accent">{t('devices.thisServer')}</span>{/if}
-        {#if d.isGateway}<span class="badge">{t('devices.router')}</span>{/if}
-        {#if d.favorite}<Star size={13} class="fav" fill="currentColor" aria-label={t('device.actions.favorite')} />{/if}
-        {#if d.watch}<Bell size={13} class="watch" aria-label={t('device.actions.watch')} />{/if}
+        {#if d.isGateway}<span class="badge accent">{t('devices.router')}</span>{/if}
       </span>
       {#if sub}<span class="sub">{sub}</span>{/if}
     </span>
     <span class="ip mono">{d.ip}</span>
-    {#if showMac}<span class="mac mono faint">{d.mac}</span>{/if}
+    <span class="beat"><Heartbeat strip={store.strips[d.id] ?? ''} /></span>
     <span class="seen" class:on={d.online}>
       {#if d.online}
         {t('devices.onlineNow')}
@@ -50,34 +57,42 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    border-radius: 8px;
+    border-bottom: 1px solid var(--border);
   }
   .row-item:hover {
     background: var(--surface-2);
   }
   .row-item.selected {
-    background: var(--accent-soft);
+    background: var(--surface-3);
+    box-shadow: inset 3px 0 0 var(--text);
   }
   .main {
     flex: 1;
     min-width: 0;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) 128px 150px 110px;
+    grid-template-columns: auto minmax(0, 1fr) 128px 150px 92px;
     align-items: center;
-    gap: 14px;
-    padding: 9px 10px;
+    gap: 16px;
+    padding: 8px 12px;
     color: inherit;
     text-decoration: none;
   }
-  .no-mac .main {
-    grid-template-columns: auto minmax(0, 1fr) 128px 110px;
+  .main:hover {
+    text-decoration: none;
+  }
+  .narrow .main {
+    grid-template-columns: auto minmax(0, 1fr) 120px 92px;
+  }
+  .narrow .beat {
+    display: none;
   }
   .compact .main {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    padding: 8px 6px;
+    padding: 8px 4px;
   }
   .compact .seen,
-  .compact .mac {
+  .compact .beat,
+  .compact .ip {
     display: none;
   }
   .names {
@@ -89,7 +104,7 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
-    font-weight: 560;
+    font-weight: 650;
   }
   .text {
     overflow: hidden;
@@ -97,12 +112,10 @@
     white-space: nowrap;
   }
   .name :global(.fav) {
-    flex: none;
-    color: #d39a00;
+    color: var(--amber);
   }
   .name :global(.watch) {
-    flex: none;
-    color: var(--accent);
+    color: var(--text-2);
   }
   .sub {
     color: var(--text-2);
@@ -122,40 +135,40 @@
   }
   .seen.on {
     color: var(--ok);
-    font-weight: 550;
+    font-weight: 650;
   }
   .seen .state,
   .seen .ago {
     display: block;
   }
   .seen .state {
-    font-weight: 550;
-    color: var(--text-2);
+    font-weight: 600;
   }
   .seen .ago {
     font-size: 12px;
+    color: var(--text-3);
   }
   .actions {
     display: flex;
     gap: 6px;
     padding-right: 8px;
   }
-  @media (max-width: 1279px) {
+  @media (max-width: 1180px) {
     .main {
-      grid-template-columns: auto minmax(0, 1fr) 120px 100px;
+      grid-template-columns: auto minmax(0, 1fr) 120px 92px;
     }
-    .mac {
+    .beat {
       display: none;
     }
   }
   @media (max-width: 639px) {
-    /* IP and MAC are hidden here: icon, name, last seen. */
+    /* IP and heartbeat are hidden here: glyph, name, state. */
     .main,
-    .no-mac .main,
+    .narrow .main,
     .compact .main {
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 12px;
-      padding: 9px 4px;
+      padding: 9px 2px;
     }
     .ip {
       display: none;

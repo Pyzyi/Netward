@@ -1,6 +1,6 @@
 <script lang="ts">
+  import Icon from './Icon.svelte';
   import type { Snippet } from 'svelte';
-  import X from '@lucide/svelte/icons/x';
   import { t } from '../i18n.svelte';
 
   let {
@@ -34,7 +34,7 @@
       <header>
         <h2 id="dlg-title">{title}</h2>
         <button class="btn ghost icon small" type="button" aria-label={t('common.close')} onclick={() => (open = false)}>
-          <X size={18} />
+          <Icon name="x" size={18} />
         </button>
       </header>
       <div class="content">{@render children()}</div>
@@ -48,7 +48,8 @@
     width: calc(100% - 32px);
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: var(--radius-l);
+    border-radius: var(--radius);
+    border-top: 3px solid var(--text);
     background: var(--surface);
     color: var(--text);
     box-shadow: var(--shadow-pop);

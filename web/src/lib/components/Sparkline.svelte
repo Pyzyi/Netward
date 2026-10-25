@@ -1,5 +1,5 @@
 <script lang="ts">
-  let { points, height = 36 }: { points: { t: number; ms: number }[]; height?: number } = $props();
+  let { points, height = 36, color = 'var(--signal)' }: { points: { t: number; ms: number }[]; height?: number; color?: string } = $props();
 
   const W = 240;
   const path = $derived.by(() => {
@@ -26,7 +26,7 @@
 
 <svg viewBox="0 0 {W} {height}" preserveAspectRatio="none" width="100%" {height} aria-hidden="true">
   {#each path.fails as fx, i (i)}
-    <rect x={fx - 1} y="0" width="2" {height} fill="var(--danger)" opacity="0.5" />
+    <rect x={fx - 1} y="0" width="2" {height} fill="#ff7b6e" opacity="0.7" />
   {/each}
-  <path d={path.line} fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />
+  <path d={path.line} fill="none" stroke={color} stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />
 </svg>

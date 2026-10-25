@@ -4,8 +4,8 @@
   "description": "Dein Heimnetz im Blick",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F4F5F7",
-  "theme_color": "#1662D8",
+  "background_color": "#F3F1EC",
+  "theme_color": "#101C2E",
   "icons": [
     {
       "src": "/icon-192.png",

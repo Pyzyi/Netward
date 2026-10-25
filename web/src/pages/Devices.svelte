@@ -1,6 +1,5 @@
 <script lang="ts">
-  import Search from '@lucide/svelte/icons/search';
-  import X from '@lucide/svelte/icons/x';
+  import Icon from '../lib/components/Icon.svelte';
   import DeviceRow from '../lib/components/DeviceRow.svelte';
   import EmptyState from '../lib/components/EmptyState.svelte';
   import ScanButton from '../lib/components/ScanButton.svelte';
@@ -143,18 +142,18 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="layout" class:with-detail={selected !== undefined}>
-  <div class="page">
-    <header class="head">
+  <div class="register">
+    <header class="page-head">
       <div>
-        <h1>{t('nav.devices')}</h1>
-        <p class="muted">{t('devices.count', { n: counts.all })}</p>
+        <h1>{t('nav.devices')} <span class="total num">{counts.all}</span></h1>
+        <p class="lead">{t('devices.lead', { online: counts.online, offline: counts.offline })}</p>
       </div>
       <ScanButton />
     </header>
 
     <div class="toolbar">
       <div class="search">
-        <Search size={16} class="search-icon" />
+        <Icon name="magnifying-glass" size={17} class="search-icon" />
         <input
           bind:this={searchEl}
           class="input"
@@ -191,15 +190,15 @@
         {/each}
       </div>
       {#if typeFilter}
-        <button class="badge accent type-pill" type="button" onclick={() => navigate(`/devices${filter !== 'all' ? `?filter=${filter}` : ''}`, { replace: true })}>
-          {typeLabel(typeFilter)} <X size={12} />
+        <button class="btn small type-pill" type="button" onclick={() => navigate(`/devices${filter !== 'all' ? `?filter=${filter}` : ''}`, { replace: true })}>
+          {typeLabel(typeFilter)} <Icon name="x" size={12} />
         </button>
       {/if}
     </div>
 
-    <section class="card list" aria-label={t('nav.devices')}>
-      <div class="list-head" aria-hidden="true">
-        <span></span><span>{t('devices.col.name')}</span><span>{t('devices.col.ip')}</span><span class="mac-col">{t('devices.col.mac')}</span><span class="right">{t('devices.col.seen')}</span>
+    <section class="list" aria-label={t('nav.devices')}>
+      <div class="list-head eyebrow" class:narrow={selected !== undefined} aria-hidden="true">
+        <span></span><span>{t('devices.col.name')}</span><span>{t('devices.col.ip')}</span><span class="beat-col">{t('devices.col.beat')}</span><span class="right">{t('devices.col.seen')}</span>
       </div>
       {#if store.loading}
         {#each [1, 2, 3, 4, 5, 6] as i (i)}<div class="skeleton sk"></div>{/each}
@@ -212,10 +211,10 @@
       {:else}
         {#each groups as g (g.key)}
           {#if g.label}
-            <h2 class="group-label">{g.label} <span class="faint num">{g.items.length}</span></h2>
+            <h2 class="group-label eyebrow">{g.label} <span class="num">{g.items.length}</span></h2>
           {/if}
           {#each g.items as d (d.id)}
-            <DeviceRow device={d} href="/devices/{d.id}{qs}" selected={selected === d.id} showMac={selected === undefined} />
+            <DeviceRow device={d} href="/devices/{d.id}{qs}" selected={selected === d.id} wide={selected === undefined} />
           {/each}
         {/each}
       {/if}
@@ -229,35 +228,31 @@
 
 <style>
   .layout {
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: 26px 28px 56px;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
     min-width: 0;
-    gap: 20px;
-    max-width: 1440px;
   }
   .layout.with-detail {
-    grid-template-columns: minmax(0, 1fr) 480px;
+    grid-template-columns: minmax(0, 1fr) 470px;
   }
-  /* The detail panel needs room: drop the MAC column while it is open. */
-  .layout.with-detail .mac-col {
-    display: none;
-  }
-  .layout.with-detail .list-head {
-    grid-template-columns: 38px minmax(0, 1fr) 128px 110px;
-  }
-  .page {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-    align-content: start;
+  .register {
     min-width: 0;
   }
-  .head {
+  h1 {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    align-items: baseline;
     gap: 12px;
-    flex-wrap: wrap;
+  }
+  .total {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: 0;
   }
   .toolbar {
     display: flex;
@@ -273,12 +268,13 @@
     left: 11px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-3);
+    color: var(--text-2);
     pointer-events: none;
   }
   .search .input {
-    padding-left: 34px;
+    padding-left: 36px;
     padding-right: 34px;
+    background: var(--surface);
   }
   .kbd {
     position: absolute;
@@ -287,10 +283,10 @@
     transform: translateY(-50%);
     font-family: var(--mono);
     font-size: 11px;
-    padding: 1px 6px;
-    border: 1px solid var(--border-strong);
-    border-radius: 4px;
-    color: var(--text-3);
+    padding: 0 6px;
+    border: 1px solid var(--control-border);
+    border-radius: 3px;
+    color: var(--text-2);
   }
   .selects {
     display: flex;
@@ -298,12 +294,14 @@
   }
   .selects .select {
     width: auto;
+    background-color: transparent;
   }
   .filters {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    margin: 14px 0 0;
   }
   .scroll {
     min-width: 0;
@@ -311,26 +309,35 @@
     overflow-x: auto;
     scrollbar-width: none;
   }
+  .filters .seg {
+    border-bottom: 0;
+  }
+  .filters .seg button {
+    padding: 0 12px 0 0;
+  }
+  .filters .seg button[aria-pressed='true']::after {
+    left: 0;
+    right: 12px;
+  }
   .type-pill {
-    border: 0;
-    cursor: pointer;
-    height: 26px;
-    padding: 0 10px;
-    font-size: 12.5px;
+    gap: 6px;
   }
   .list {
-    padding: 6px;
+    margin-top: 6px;
+    border-top: 1px solid var(--text);
   }
   .list-head {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 128px 150px 110px;
-    gap: 14px;
-    padding: 6px 10px 8px;
-    font-size: 12px;
-    font-weight: 550;
-    color: var(--text-3);
+    grid-template-columns: 38px minmax(0, 1fr) 128px 150px 92px;
+    gap: 16px;
+    padding: 10px 12px 8px;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+  }
+  .list-head.narrow {
+    grid-template-columns: 38px minmax(0, 1fr) 120px 92px;
+  }
+  .list-head.narrow .beat-col {
+    display: none;
   }
   .right {
     text-align: right;
@@ -339,26 +346,28 @@
     display: flex;
     gap: 8px;
     align-items: baseline;
-    padding: 14px 10px 4px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-2);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    padding: 20px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .group-label .num {
+    color: var(--text-3);
   }
   .sk {
-    height: 50px;
-    margin: 4px;
+    height: 52px;
+    margin: 6px 0;
   }
-  @media (max-width: 1279px) {
-    .list-head {
-      grid-template-columns: 38px minmax(0, 1fr) 120px 100px;
-    }
-    .mac-col {
-      display: none;
-    }
+  @media (max-width: 1280px) {
     .layout.with-detail {
       grid-template-columns: minmax(0, 1fr) 420px;
+    }
+  }
+  @media (max-width: 1180px) {
+    .list-head {
+      grid-template-columns: 38px minmax(0, 1fr) 120px 92px;
+    }
+    .beat-col {
+      display: none;
     }
   }
   @media (max-width: 1100px) {
@@ -367,13 +376,11 @@
     }
   }
   @media (max-width: 639px) {
+    .layout {
+      padding: 18px 16px 40px;
+    }
     .list-head {
       display: none;
-    }
-    /* Hint that the filter chips continue to the right. */
-    .scroll {
-      mask-image: linear-gradient(to right, #000 82%, transparent);
-      padding-right: 28px;
     }
     .kbd {
       display: none;
@@ -384,8 +391,10 @@
     .selects .select {
       flex: 1;
     }
-    .list {
-      padding: 4px;
+    /* Hint that the filter tabs continue to the right. */
+    .scroll {
+      mask-image: linear-gradient(to right, #000 82%, transparent);
+      padding-right: 28px;
     }
   }
 </style>

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -399,3 +400,30 @@ func TestDeviceFlowAndCSVExport(t *testing.T) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+func TestPresenceStrips(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	h.mon.Observe(context.Background(), l2.Sighting{MAC: net.HardwareAddr{0x3c, 0, 0, 0, 0, 9}, IP: netip.MustParseAddr("192.168.1.9"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	rec := h.do(req{method: "GET", path: "/api/v1/presence/strips", cookie: s.cookie})
+	if rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	var r struct {
+		Slot   int64             `json:"slot"`
+		Strips map[string]string `json:"strips"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &r)
+	if len(r.Strips) != 1 || r.Slot != 30*60*1000 {
+		t.Fatalf("unexpected %+v", r)
+	}
+	for _, st := range r.Strips {
+		if len(st) != 48 || st[47] != '1' || st[0] != '-' {
+			t.Fatalf("strip %q: want unknown history and online now", st)
+		}
+	}
+	if rec := h.do(req{method: "GET", path: "/api/v1/presence/strips"}); rec.Code != 401 {
+		t.Fatal("strips readable without session")
+	}
+}

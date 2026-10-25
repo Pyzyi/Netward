@@ -73,6 +73,7 @@ export const api = {
   deleteDevice: (id: number) => request<void>('DELETE', `/devices/${id}`),
   mergeDevice: (id: number, into: number) => request<Device>('POST', `/devices/${id}/merge`, { into }),
   presence: (id: number, range: '24h' | '7d' | '30d') => request<Presence>('GET', `/devices/${id}/presence?range=${range}`),
+  strips: () => request<{ from: number; slot: number; strips: Record<string, string> }>('GET', '/presence/strips'),
   deviceEvents: (id: number) => request<EventItem[]>('GET', `/devices/${id}/events`),
   wake: (id: number) => request<void>('POST', `/devices/${id}/wake`),
   ping: (id: number) => request<{ ok: boolean; rttMs: number }>('POST', `/devices/${id}/ping`),

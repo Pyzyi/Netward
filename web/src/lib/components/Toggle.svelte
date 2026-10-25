@@ -43,17 +43,17 @@
     gap: 3px;
   }
   label {
-    font-weight: 520;
+    font-weight: 600;
     cursor: pointer;
   }
   .switch {
     flex: none;
     position: relative;
     width: 40px;
-    height: 24px;
+    height: 22px;
     margin-top: 1px;
     border: 0;
-    border-radius: 999px;
+    border-radius: 4px;
     background: var(--control-border);
     cursor: pointer;
     transition: background 150ms var(--ease);
@@ -69,14 +69,13 @@
     position: absolute;
     top: 3px;
     left: 3px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    background: var(--surface);
     transition: transform 150ms var(--ease);
   }
   .switch[aria-checked='true'] .knob {
-    transform: translateX(16px);
+    transform: translateX(18px);
   }
 </style>

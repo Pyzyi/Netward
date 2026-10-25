@@ -150,6 +150,7 @@ func (s *Server) Handler() http.Handler {
 	authed("DELETE /api/v1/devices/{id}", s.handleDeleteDevice)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)
+	authed("GET /api/v1/presence/strips", s.handlePresenceStrips)
 	authed("GET /api/v1/devices/{id}/events", s.handleDeviceEvents)
 	authed("POST /api/v1/devices/{id}/wake", s.handleWake)
 	authed("POST /api/v1/devices/{id}/ping", s.handlePing)

@@ -1,10 +1,19 @@
 <script lang="ts">
-  let { size = 28 }: { size?: number } = $props();
+  // The mark echoes the Netzring: the network as a ring around its router,
+  // one device lighting up. On a tile for light surfaces, bare on ink.
+  let { size = 28, tile = true }: { size?: number; tile?: boolean } = $props();
 </script>
 
-<svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-  <rect width="32" height="32" rx="8" fill="var(--accent)" />
-  <path d="M10 22.5V9.5l12 13V9.5" fill="none" stroke="var(--accent-text)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="10" cy="9.5" r="2.6" fill="var(--accent-text)" />
-  <circle cx="22" cy="22.5" r="2.6" fill="var(--accent-text)" />
+<svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" class="logo" class:tile>
+  {#if tile}<rect width="32" height="32" rx="7" fill="var(--ink)" />{/if}
+  <circle cx="16" cy="16" r="9.5" fill="none" stroke="var(--on-ink)" stroke-width="2.4" />
+  <circle cx="16" cy="16" r="2.6" fill="var(--on-ink)" />
+  <circle cx="22.7" cy="9.3" r="3.6" fill="var(--amber)" stroke="var(--ink)" stroke-width="2" />
 </svg>
+
+<style>
+  .logo {
+    flex: none;
+    display: block;
+  }
+</style>

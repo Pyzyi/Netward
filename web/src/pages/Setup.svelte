@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Lock from '@lucide/svelte/icons/lock';
+  import Icon from '../lib/components/Icon.svelte';
   import AuthCard from '../lib/components/AuthCard.svelte';
   import PasswordStrength from '../lib/components/PasswordStrength.svelte';
   import { api, ApiError } from '../lib/api';
@@ -70,7 +70,7 @@
 <AuthCard>
   {#if st && !st.setupAllowed}
     <div class="blocked">
-      <span class="lock"><Lock size={22} /></span>
+      <span class="lock"><Icon name="lock-simple" size={22} /></span>
       <h1>{t('setup.blockedTitle')}</h1>
       <p class="muted">{st.setupReason === 'expired' ? t('setup.expired') : t('setup.notLocal')}</p>
     </div>
@@ -138,14 +138,15 @@
     margin-bottom: 4px;
   }
   .step {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-    letter-spacing: 0.02em;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   h1 {
-    font-size: 22px;
+    font-size: 28px;
   }
   .grow {
     flex: 1;

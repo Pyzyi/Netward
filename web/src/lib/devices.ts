@@ -1,26 +1,3 @@
-import type { Component } from 'svelte';
-import Router from '@lucide/svelte/icons/router';
-import Wifi from '@lucide/svelte/icons/wifi';
-import Network from '@lucide/svelte/icons/network';
-import Server from '@lucide/svelte/icons/server';
-import HardDrive from '@lucide/svelte/icons/hard-drive';
-import Monitor from '@lucide/svelte/icons/monitor';
-import Laptop from '@lucide/svelte/icons/laptop';
-import Smartphone from '@lucide/svelte/icons/smartphone';
-import Tablet from '@lucide/svelte/icons/tablet';
-import Watch from '@lucide/svelte/icons/watch';
-import Tv from '@lucide/svelte/icons/tv';
-import Cast from '@lucide/svelte/icons/cast';
-import Speaker from '@lucide/svelte/icons/speaker';
-import Gamepad from '@lucide/svelte/icons/gamepad-2';
-import Printer from '@lucide/svelte/icons/printer';
-import Cctv from '@lucide/svelte/icons/cctv';
-import House from '@lucide/svelte/icons/house';
-import Lightbulb from '@lucide/svelte/icons/lightbulb';
-import Plug from '@lucide/svelte/icons/plug';
-import Cpu from '@lucide/svelte/icons/cpu';
-import Box from '@lucide/svelte/icons/box';
-import Unknown from '@lucide/svelte/icons/circle-question-mark';
 import { t } from './i18n.svelte';
 import type { Device, DeviceType } from './types';
 
@@ -29,11 +6,13 @@ export const deviceTypes: DeviceType[] = [
   'streaming', 'speaker', 'game_console', 'printer', 'camera', 'smart_home', 'light', 'plug', 'iot', 'virtual', 'unknown',
 ];
 
-export const typeIcons: Record<DeviceType, Component> = {
-  router: Router, access_point: Wifi, switch: Network, server: Server, nas: HardDrive, computer: Monitor,
-  laptop: Laptop, phone: Smartphone, tablet: Tablet, watch: Watch, tv: Tv, streaming: Cast, speaker: Speaker,
-  game_console: Gamepad, printer: Printer, camera: Cctv, smart_home: House, light: Lightbulb, plug: Plug,
-  iot: Cpu, virtual: Box, unknown: Unknown,
+/** Phosphor duotone glyph per device type (see lib/icons.ts). */
+export const typeIcons: Record<DeviceType, string> = {
+  router: 'duo:router', access_point: 'duo:wifi-high', switch: 'duo:network', server: 'duo:hard-drives', nas: 'duo:database',
+  computer: 'duo:desktop-tower', laptop: 'duo:laptop', phone: 'duo:device-mobile', tablet: 'duo:device-tablet',
+  watch: 'duo:watch', tv: 'duo:television-simple', streaming: 'duo:screencast', speaker: 'duo:speaker-hifi',
+  game_console: 'duo:game-controller', printer: 'duo:printer', camera: 'duo:security-camera', smart_home: 'duo:house-line',
+  light: 'duo:lightbulb', plug: 'duo:plug', iot: 'duo:cpu', virtual: 'duo:cube', unknown: 'duo:question',
 };
 
 export type Category = 'net' | 'compute' | 'mobile' | 'media' | 'home' | 'peripheral' | 'unknown';

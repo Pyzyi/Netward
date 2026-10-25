@@ -1,15 +1,5 @@
 <script lang="ts">
-  import UserPlus from '@lucide/svelte/icons/user-plus';
-  import LogIn from '@lucide/svelte/icons/log-in';
-  import LogOut from '@lucide/svelte/icons/log-out';
-  import Shuffle from '@lucide/svelte/icons/shuffle';
-  import Globe from '@lucide/svelte/icons/globe';
-  import GlobeLock from '@lucide/svelte/icons/globe-lock';
-  import ShieldAlert from '@lucide/svelte/icons/shield-alert';
-  import Settings from '@lucide/svelte/icons/settings';
-  import Trash from '@lucide/svelte/icons/trash-2';
-  import Radar from '@lucide/svelte/icons/radar';
-  import KeyRound from '@lucide/svelte/icons/key-round';
+  import Icon from '../lib/components/Icon.svelte';
   import EmptyState from '../lib/components/EmptyState.svelte';
   import { api } from '../lib/api';
   import { clock, store } from '../lib/state.svelte';
@@ -65,111 +55,108 @@
     return out;
   });
 
-  const icons: Record<string, typeof UserPlus> = {
-    device_new: UserPlus, device_online: LogIn, device_offline: LogOut, ip_changed: Shuffle, ip_conflict: ShieldAlert,
-    internet_down: GlobeLock, internet_up: Globe, security_finding: ShieldAlert, device_flood: ShieldAlert,
-    device_removed: Trash, device_merged: Shuffle, scan_baseline: Radar, auth_login: KeyRound, auth_failed: ShieldAlert,
-    auth_setup: KeyRound, auth_password: KeyRound, config_settings: Settings, config_channel: Settings,
+  const icons: Record<string, string> = {
+    device_new: 'user-plus', device_online: 'sign-in', device_offline: 'sign-out', ip_changed: 'shuffle',
+    ip_conflict: 'warning', internet_down: 'wifi-slash', internet_up: 'globe-simple', security_finding: 'shield-warning',
+    device_flood: 'warning', device_removed: 'trash', device_merged: 'git-merge', scan_baseline: 'broadcast',
+    auth_login: 'key', auth_failed: 'shield-warning', auth_setup: 'key', auth_password: 'key',
+    config_settings: 'gear-six', config_channel: 'gear-six',
   };
 </script>
 
-<div class="page">
-  <header>
+<div class="wrap">
+  <header class="page-head">
     <h1>{t('activity.title')}</h1>
+    <div class="seg filters" role="group" aria-label="Filter">
+      {#each filters as f (f)}
+        <button type="button" aria-pressed={filter === f} onclick={() => (filter = f)}>{t(`activity.filter.${f}`)}</button>
+      {/each}
+    </div>
   </header>
-  <div class="seg scroll" role="group" aria-label="Filter">
-    {#each filters as f (f)}
-      <button type="button" aria-pressed={filter === f} onclick={() => (filter = f)}>{t(`activity.filter.${f}`)}</button>
-    {/each}
-  </div>
 
-  <section class="card feed">
-    {#if loading && items.length === 0}
-      {#each [1, 2, 3, 4, 5] as i (i)}<div class="skeleton sk"></div>{/each}
-    {:else if items.length === 0}
-      <EmptyState text={t('activity.empty')} />
-    {:else}
-      {#each grouped as g, gi (`${g.day}-${gi}`)}
-        <h2 class="day">{g.day}</h2>
-        <ul>
+  {#if loading && items.length === 0}
+    {#each [1, 2, 3, 4, 5] as i (i)}<div class="skeleton sk"></div>{/each}
+  {:else if items.length === 0}
+    <EmptyState text={t('activity.empty')} />
+  {:else}
+    {#each grouped as g, gi (`${g.day}-${gi}`)}
+      <section class="day">
+        <h2 class="eyebrow day-label">{g.day} <span>{g.items.length}</span></h2>
+        <ol>
           {#each g.items as e (e.id)}
-            {@const Icon = icons[e.kind] ?? Settings}
             {@const dev = e.deviceId ? store.devices.get(e.deviceId) : undefined}
-            <li>
-              <span class="ev-icon {e.severity}"><Icon size={16} /></span>
+            <li class={e.severity}>
+              <time class="mono" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
+              <span class="ev-icon"><Icon name={icons[e.kind] ?? 'gear-six'} size={16} /></span>
               <span class="text">
                 {#if dev}<a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>{:else}{eventText(e)}{/if}
-                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono small"> ({e.data.from} → {e.data.to})</span>{/if}
+                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono"> {e.data.from} → {e.data.to}</span>{/if}
               </span>
-              <time class="faint num" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
             </li>
           {/each}
-        </ul>
-      {/each}
-      {#if more}
-        <div class="more"><button class="btn" type="button" onclick={() => load()} disabled={loading}>{t('activity.loadMore')}</button></div>
-      {/if}
+        </ol>
+      </section>
+    {/each}
+    {#if more}
+      <div class="more"><button class="btn" type="button" onclick={() => load()} disabled={loading}>{t('activity.loadMore')}</button></div>
     {/if}
-  </section>
+  {/if}
 </div>
 
 <style>
-  .page {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    max-width: 920px;
+  .day,
+  .more {
+    max-width: 1000px;
   }
-  .scroll {
-    min-width: 0;
-    max-width: 100%;
+  .filters {
+    border-bottom: 0;
     overflow-x: auto;
+    max-width: 100%;
     scrollbar-width: none;
   }
-  .feed {
-    padding: 4px 0 8px;
+  .sk {
+    height: 40px;
+    margin: 6px 0;
   }
-  .day {
-    position: sticky;
-    top: 0;
-    padding: 14px 20px 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-2);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: var(--surface);
+  .day + .day {
+    margin-top: 26px;
   }
-  ul {
+  .day-label {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  ol {
     list-style: none;
     margin: 0;
-    padding: 0 12px;
+    padding: 0;
   }
   li {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 12px;
+    grid-template-columns: 56px 30px minmax(0, 1fr);
     align-items: center;
-    padding: 8px;
-    border-radius: 8px;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
   }
-  li:hover {
-    background: var(--surface-2);
+  time {
+    color: var(--text-3);
   }
   .ev-icon {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--surface-2);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--tile);
     color: var(--text-2);
   }
-  .ev-icon.warning {
+  li.warning .ev-icon {
     background: var(--warn-soft);
     color: var(--warn);
   }
-  .ev-icon.critical {
+  li.critical .ev-icon {
     background: var(--danger-soft);
     color: var(--danger);
   }
@@ -178,18 +165,18 @@
     overflow-wrap: anywhere;
   }
   .text a {
-    color: inherit;
-  }
-  .small {
-    font-size: 12.5px;
-  }
-  .sk {
-    height: 40px;
-    margin: 8px 16px;
+    color: var(--text);
+    font-weight: 600;
   }
   .more {
     display: flex;
     justify-content: center;
-    padding: 12px;
+    padding: 24px 0 0;
+  }
+  @media (max-width: 640px) {
+    li {
+      grid-template-columns: 44px 28px minmax(0, 1fr);
+      gap: 8px;
+    }
   }
 </style>

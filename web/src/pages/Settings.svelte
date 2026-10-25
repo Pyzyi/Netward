@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Icon from '../lib/components/Icon.svelte';
   import General from './settings/General.svelte';
   import Scanning from './settings/Scanning.svelte';
   import Notifications from './settings/Notifications.svelte';
@@ -9,7 +10,6 @@
   import Data from './settings/Data.svelte';
   import About from './settings/About.svelte';
   import { link, router } from '../lib/router.svelte';
-  import LogOut from '@lucide/svelte/icons/log-out';
   import { auth, logout, store } from '../lib/state.svelte';
   import { t } from '../lib/i18n.svelte';
 
@@ -38,15 +38,15 @@
   });
 </script>
 
-<div class="page">
-  <div class="title-row">
+<div class="wrap">
+  <header class="page-head">
     <h1>{t('settings.title')}</h1>
-    <!-- The sidebar (with sign-out) is hidden on phones. -->
+    <!-- The band (with sign-out) is reduced on phones. -->
     <div class="account-mobile">
       <span class="muted">{auth.state?.username}</span>
-      <button class="btn small" type="button" onclick={logout}><LogOut size={15} /> {t('nav.logout')}</button>
+      <button class="btn small" type="button" onclick={logout}><Icon name="sign-out" size={15} /> {t('nav.logout')}</button>
     </div>
-  </div>
+  </header>
   <div class="layout">
     <nav class="subnav" aria-label={t('settings.title')} bind:this={subnav}>
       {#each sections as s (s.id)}
@@ -65,77 +65,67 @@
 </div>
 
 <style>
-  .page {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-    max-width: 1080px;
-  }
   .layout {
     display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
-    gap: 28px;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 40px;
     align-items: start;
   }
   .subnav {
     position: sticky;
-    top: 20px;
+    top: 80px;
     display: grid;
-    gap: 2px;
   }
   .subnav a {
-    padding: 8px 10px;
-    border-radius: 7px;
+    padding: 8px 0 8px 14px;
+    border-left: 1px solid var(--border-strong);
     color: var(--text-2);
-    font-weight: 520;
+    font-weight: 600;
     text-decoration: none;
   }
   .subnav a:hover {
-    background: var(--surface-2);
     color: var(--text);
   }
   .subnav a[aria-current='page'] {
-    background: var(--surface);
     color: var(--text);
-    box-shadow: inset 0 0 0 1px var(--border);
+    border-left: 3px solid var(--text);
+    padding-left: 12px;
   }
   .content {
     display: grid;
-    gap: 16px;
+    gap: 36px;
     min-width: 0;
-  }
-  .title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
   }
   .account-mobile {
     display: none;
     align-items: center;
     gap: 10px;
   }
-  @media (max-width: 639px) {
+  @media (max-width: 860px) {
     .account-mobile {
       display: flex;
     }
-  }
-  @media (max-width: 860px) {
     .layout {
       grid-template-columns: 1fr;
-      gap: 14px;
+      gap: 18px;
     }
     .subnav {
       position: static;
       display: flex;
       overflow-x: auto;
-      gap: 4px;
       scrollbar-width: none;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
     }
     .subnav a {
       white-space: nowrap;
+      border-left: 0;
+      padding: 8px 12px 10px 0;
+      margin-right: 6px;
+    }
+    .subnav a[aria-current='page'] {
+      border-left: 0;
+      padding-left: 0;
+      box-shadow: inset 0 -2px 0 var(--text);
     }
   }
 </style>

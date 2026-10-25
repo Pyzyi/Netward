@@ -17,17 +17,17 @@
   } = $props();
 </script>
 
-<section class="card">
+<section class="block">
   {#if title}
-    <div class="card-head">
+    <div class="block-head">
       <div class="titles">
-        <h3>{title}</h3>
+        <h3 class="block-title">{title}</h3>
         {#if lead}<p class="hint">{lead}</p>{/if}
       </div>
       {#if extra}{@render extra()}{/if}
     </div>
   {/if}
-  <div class="card-body body">{@render children()}</div>
+  <div class="body">{@render children()}</div>
   {#if onsave}
     <footer>
       {#if error}<p class="error-text" role="alert">{error}</p>{/if}
@@ -38,20 +38,35 @@
 </section>
 
 <style>
+  .block {
+    border-top: 1px solid var(--text);
+  }
+  .block-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0 4px;
+  }
   .titles {
     display: grid;
-    gap: 3px;
+    gap: 4px;
+    max-width: 64ch;
+  }
+  .block-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
   }
   .body {
     display: grid;
     gap: 18px;
-    padding-top: 8px;
+    padding: 14px 0 4px;
   }
   footer {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
+    padding: 16px 0 0;
   }
 </style>

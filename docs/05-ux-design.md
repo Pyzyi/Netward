@@ -1,6 +1,50 @@
 # 05 · UX- und Design-Konzept
 
-> Rolle: Product Designer · Status: **überarbeitet nach Plan-Review 1** (siehe [07](07-review-protokoll.md))
+> Rolle: Product Designer · Status: **Redesign 2 „Leitstand“** (Abschnitt 0 ersetzt die visuellen Festlegungen
+> der Abschnitte 2–4; Prinzipien, Informationsarchitektur und Mikrotexte gelten weiter)
+
+## 0. Redesign 2 · Designsprache „Leitstand“
+
+### Warum
+Die erste Fassung war sauber, aber austauschbar: weiße Karten mit 1-px-Rahmen, linke Icon-Navigation,
+Kennzahl-Kacheln mit Farbpunkt, Pillen-Badges, SaaS-Blau, Lucide-Icons. Das ist der Baukasten fast jeder
+generierten Admin-Oberfläche. Nutzerfeedback: „sieht aus wie die nächste Vibecoding-App“.
+
+### Leitidee
+Netzwart ist ein **Messinstrument für das eigene Netz**, kein SaaS-Dashboard. Vorbild ist ein Leitstand:
+dunkler Kopf mit Live-Zustand, darunter ruhiges „Papier“ mit dichten, tabellarischen Listen. Farbe bedeutet
+ausschließlich Zustand. Aktionen sind tintenschwarz, nicht blau.
+
+### Erkennungszeichen (nur Netzwart hat das)
+1. **Netzring.** Die Übersicht zeigt das Netz als Ring: Router in der Mitte, jedes Gerät ein Punkt, nach
+   Kategorie gruppiert. Online gefüllt, offline hohl, neu mit Halo. Klick öffnet das Gerät. Live aktualisiert.
+2. **Herzschlag-Streifen.** Jede Gerätezeile zeigt die letzten 24 Stunden als 48 Takte. Man sieht auf einen
+   Blick, wer immer da ist, wer abends kommt, wer seit Tagen fehlt. Das kann weder Fing noch NetAlertX.
+3. **Tintenkopf.** Ein durchgehendes dunkles Band trägt Netzname, Subnetz, Navigation und den Live-Puls
+   des Scanners. Auf der Übersicht wird es zur Bühne für Ring und Kennzahlen.
+
+### Regeln
+| Thema | Regel |
+|---|---|
+| Fläche | Hintergrund warmes Papier `#F4F2EC`, nur schwebende Elemente (Detailpanel, Dialoge, Menüs) sind weiße Blätter. **Keine Karten-Raster.** Abschnitte trennen Haarlinien und Abstand. |
+| Farbe | Tinte `#0F1B2D` für Kopf, Primäraktionen, Überschriften. Status: Signalgrün (online), Bernstein (neu/Hinweis), Ziegelrot (kritisch). Kein Akzentblau, keine Verläufe (einzige Ausnahme: der Halo neuer Geräte). |
+| Schrift | **Schibsted Grotesk** (UI, Zahlen in Schwer 800) und **JetBrains Mono** (IP, MAC, Ports, Uhrzeiten, kleine Rubriken in Versalien). Große Zahlen statt Kacheln. |
+| Icons | **Phosphor**: Duotone für Gerätetypen in quadratischen Kacheln (Radius 10), Regular für Bedienelemente. Keine Icons ohne Funktion. |
+| Formen | Radien 4 px (Steuerelemente), 8 px (Blätter), 10 px (Geräte-Kacheln). Status-Pillen entfallen zugunsten von Text in Statusfarbe mit Punkt. |
+| Dichte | Gerätezeile 52 px, Listen ohne Rahmen, Hover als Papier-Tönung. |
+| Bewegung | Nur Bedeutung: Scan-Puls im Kopf, Halo neuer Geräte, Einblenden des Panels. `prefers-reduced-motion` schaltet alles ab. |
+| Dunkelmodus | Kopf und Fläche verschmelzen zu Nachtblau; Primäraktionen werden hell mit dunkler Schrift. |
+
+### Seiten
+- **Übersicht:** Tintenbühne mit großer Zahl „24 von 28 online“, Neu/Offline/Internet als Zeile darunter,
+  rechts der Netzring. Auf Papier: „Braucht Aufmerksamkeit“, „Letzte Aktivität“ (Zeitachse mit Uhrzeit in Mono),
+  Sicherheit, Gerätetypen als ein gestapelter Balken statt 18 Zeilen.
+- **Geräte:** Register mit Suche, Filter als Textreiter mit Zählern, Zeilen mit Kachel · Name/Modell · IP ·
+  Herzschlag · Status.
+- **Gerätedetail:** weißes Blatt rechts; Kopf mit großer Kachel, Name, Statuszeile; Aktionen als Werkzeugleiste.
+- **Aktivität:** Tagesrubriken, Uhrzeit-Spalte in Mono, Schweregrad als feine Linie.
+- **Sicherheit:** Prüfbericht: Schweregrad in Versalien links, Befund, Gerät, aufklappbar „Warum / Was tun“.
+- **Anmeldung/Einrichtung:** geteilt: links Tintenfläche mit Ring-Grafik, rechts Formular auf Papier.
 
 ## 1. Gestaltungsprinzipien
 

@@ -1,19 +1,10 @@
 <script lang="ts">
+  import Icon from '../lib/components/Icon.svelte';
   import { errorText } from '../lib/errors';
-  import X from '@lucide/svelte/icons/x';
-  import Check from '@lucide/svelte/icons/check';
-  import Pencil from '@lucide/svelte/icons/pencil';
-  import Star from '@lucide/svelte/icons/star';
-  import Bell from '@lucide/svelte/icons/bell';
-  import Power from '@lucide/svelte/icons/power';
-  import Radar from '@lucide/svelte/icons/radar';
-  import Activity from '@lucide/svelte/icons/activity';
-  import Ellipsis from '@lucide/svelte/icons/ellipsis';
-  import Merge from '@lucide/svelte/icons/merge';
-  import Trash from '@lucide/svelte/icons/trash-2';
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
   import CopyButton from '../lib/components/CopyButton.svelte';
   import Timeline from '../lib/components/Timeline.svelte';
+  import Heartbeat from '../lib/components/Heartbeat.svelte';
   import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api, ApiError } from '../lib/api';
@@ -290,7 +281,7 @@
 >
   {#if notFound}
     <div class="pad">
-      <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><X size={18} /></button>
+      <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><Icon name="x" size={18} /></button>
       <p class="muted">{t('device.notFound')}</p>
     </div>
   {:else if !d}
@@ -302,8 +293,8 @@
   {:else}
     <h2 class="sr-only" tabindex="-1" bind:this={heading}>{displayName(d)}</h2>
     <header class="pad hero">
-      <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><X size={18} /></button>
-      <DeviceIcon type={d.type} online={d.online} size={56} />
+      <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><Icon name="x" size={18} /></button>
+      <DeviceIcon type={d.type} online={d.online} fresh={d.new} size={60} />
       <div class="ident">
         <div class="name-wrap">
         <input
@@ -321,14 +312,14 @@
             }
           }}
         />
-          <Pencil size={15} class="name-pencil" aria-hidden="true" />
+          <Icon name="pencil-simple" size={15} class="name-pencil" />
         </div>
         <p class="muted sub">
           {[vendorName(d), modelName(d.model)].filter(Boolean).join(' · ') || typeLabel(d.type)}
         </p>
         <div class="status-row">
           <span class="badge" class:ok={d.online}>{sinceText}</span>
-          <span class="saved" role="status">{#if savedFlash}<Check size={13} /> {t('common.saved')}{/if}</span>
+          <span class="saved" role="status">{#if savedFlash}<Icon name="check" size={13} /> {t('common.saved')}{/if}</span>
           {#if d.new}<span class="badge warn">{t('devices.newBadge')}</span>{/if}
           {#if d.isSelf}<span class="badge accent">{t('devices.thisServer')}</span>{/if}
           {#if d.isGateway}<span class="badge">{t('devices.router')}</span>{/if}
@@ -338,32 +329,36 @@
           {#if d.macKind === 'virtual'}<span class="badge">{t('devices.virtual')}</span>{/if}
         </div>
       </div>
+      <div class="hero-beat">
+        <span class="eyebrow">{t('devices.col.beat')}</span>
+        <Heartbeat strip={store.strips[d.id] ?? ''} width={396} height={22} />
+      </div>
     </header>
 
     <div class="actions pad">
       {#if !d.known}
-        <button class="btn primary small" type="button" onclick={() => patch({ known: true })}><Check size={15} /> {t('device.actions.known')}</button>
+        <button class="btn primary small" type="button" onclick={() => patch({ known: true })}><Icon name="check" size={15} /> {t('device.actions.known')}</button>
       {/if}
       <button class="btn small" class:pressed={d.favorite} type="button" aria-pressed={d.favorite} onclick={() => patch({ favorite: !d.favorite })}>
-        <Star size={15} fill={d.favorite ? 'currentColor' : 'none'} /> {t('device.actions.favorite')}
+        <Icon name={d.favorite ? 'fill:star' : 'star'} size={15} /> {t('device.actions.favorite')}
       </button>
       <button class="btn small" class:pressed={d.watch} type="button" aria-pressed={d.watch} title={t('device.actions.watchHint')} onclick={() => patch({ watch: !d.watch })}>
-        <Bell size={15} /> {t('device.actions.watch')}
+        <Icon name="bell" size={15} /> {t('device.actions.watch')}
       </button>
       {#if !d.online && !d.isSelf}
-        <button class="btn small" type="button" onclick={wake} disabled={demo} title={demo ? t('err.demo_mode') : t('device.actions.wakeHint')}><Power size={15} /> {t('device.actions.wake')}</button>
+        <button class="btn small" type="button" onclick={wake} disabled={demo} title={demo ? t('err.demo_mode') : t('device.actions.wakeHint')}><Icon name="power" size={15} /> {t('device.actions.wake')}</button>
       {/if}
       <button class="btn small" type="button" onclick={ping} disabled={pinging || demo} title={demo ? t('err.demo_mode') : undefined}>
-        <span class:spin={pinging} class="ico"><Activity size={15} /></span> {t('device.actions.ping')}
+        <span class:spin={pinging} class="ico"><Icon name="pulse" size={15} /></span> {t('device.actions.ping')}
       </button>
       <div class="menu-wrap">
         <button class="btn small icon" type="button" bind:this={moreBtn} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t('common.more')} onclick={() => (menuOpen = !menuOpen)}>
-          <Ellipsis size={16} />
+          <Icon name="dots-three" size={16} />
         </button>
         {#if menuOpen}
           <div class="menu" role="menu" tabindex="-1" bind:this={menuEl} onkeydown={menuKey}>
-            <button role="menuitem" type="button" onclick={() => { menuOpen = false; mergeOpen = true; }}><Merge size={15} /> {t('device.actions.merge')}</button>
-            <button role="menuitem" type="button" class="danger" onclick={() => { menuOpen = false; forgetOpen = true; }}><Trash size={15} /> {t('device.actions.forget')}</button>
+            <button role="menuitem" type="button" onclick={() => { menuOpen = false; mergeOpen = true; }}><Icon name="git-merge" size={15} /> {t('device.actions.merge')}</button>
+            <button role="menuitem" type="button" class="danger" onclick={() => { menuOpen = false; forgetOpen = true; }}><Icon name="trash" size={15} /> {t('device.actions.forget')}</button>
           </div>
         {/if}
       </div>
@@ -443,7 +438,7 @@
         {#if services.length}
           <p class="label svc-label">{t('device.identity.services')}</p>
           <div class="chips">
-            {#each services as s (s)}<span class="badge mono" title={detail?.details.instances[s] ?? ''}>{s.replace(/\._(tcp|udp)$/, '').replace(/^_/, '')}</span>{/each}
+            {#each services as s (s)}<span class="chip mono" title={detail?.details.instances[s] ?? ''}>{s.replace(/\._(tcp|udp)$/, '').replace(/^_/, '')}</span>{/each}
           </div>
         {/if}
       {/if}
@@ -453,7 +448,7 @@
       <div class="sec-head">
         <h3>{t('device.section.ports')}</h3>
         <button class="btn small" type="button" onclick={scanPorts} disabled={scanning || demo} title={demo ? t('err.demo_mode') : t('device.ports.hint')}>
-          <span class:spin={scanning} class="ico"><Radar size={15} /></span>
+          <span class:spin={scanning} class="ico"><Icon name="broadcast" size={15} /></span>
           {scanning ? t('device.ports.scanning') : t('device.actions.ports')}
         </button>
       </div>
@@ -534,24 +529,25 @@
   }
   .detail {
     position: sticky;
-    top: 20px;
+    top: 76px;
     align-self: start;
-    max-height: calc(100dvh - 40px);
+    max-height: calc(100dvh - 96px);
     overflow-y: auto;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-l);
+    border-top: 3px solid var(--text);
+    border-radius: 0 0 var(--radius) var(--radius);
     overscroll-behavior: contain;
   }
   .pad {
-    padding: 18px 20px;
+    padding: 18px 22px;
   }
   .hero {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 16px;
-    align-items: flex-start;
-    padding-bottom: 8px;
+    padding-top: 22px;
   }
   .close {
     position: absolute;
@@ -562,27 +558,34 @@
     display: grid;
     gap: 4px;
     min-width: 0;
-    flex: 1;
-    padding-right: 28px;
-  }
-  .name-input {
-    width: 100%;
-    padding: 2px 28px 2px 6px;
-    margin-left: -6px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background: transparent;
-    font-size: 20px;
-    font-weight: 620;
-    letter-spacing: -0.01em;
-  }
-  .name-input:hover {
-    border-color: var(--border);
+    padding-right: 30px;
   }
   .name-wrap {
     position: relative;
     display: flex;
     align-items: center;
+  }
+  .name-input {
+    width: 100%;
+    padding: 1px 28px 1px 6px;
+    margin-left: -7px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 22px;
+    font-weight: 760;
+    letter-spacing: -0.025em;
+  }
+  .name-input:hover {
+    border-color: var(--border-strong);
+  }
+  .name-input:focus {
+    outline: none;
+    border-color: var(--text);
+    background: var(--bg);
+  }
+  .name-input::placeholder {
+    color: var(--text);
   }
   .name-wrap :global(.name-pencil) {
     position: absolute;
@@ -593,6 +596,16 @@
   .name-wrap:focus-within :global(.name-pencil) {
     display: none;
   }
+  .sub {
+    font-size: 13.5px;
+  }
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin-top: 4px;
+  }
   .saved {
     display: inline-flex;
     align-items: center;
@@ -601,30 +614,26 @@
     color: var(--ok);
     min-height: 1em;
   }
-  .name-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: var(--surface);
+  .saved:empty {
+    display: none;
   }
-  .name-input::placeholder {
-    color: var(--text);
-    opacity: 1;
-  }
-  .sub {
-    font-size: 13.5px;
-  }
-  .status-row {
-    display: flex;
-    flex-wrap: wrap;
+  .hero-beat {
+    grid-column: 1 / -1;
+    display: grid;
     gap: 6px;
-    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .hero-beat :global(.beat) {
+    width: 100%;
+    height: auto;
   }
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding-top: 6px;
-    padding-bottom: 16px;
+    padding-top: 0;
+    padding-bottom: 18px;
     border-bottom: 1px solid var(--border);
   }
   .ico {
@@ -637,27 +646,28 @@
     position: absolute;
     right: 0;
     top: calc(100% + 4px);
-    z-index: 20;
-    min-width: 260px;
-    padding: 6px;
+    z-index: 10;
+    min-width: 220px;
+    padding: 4px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
     box-shadow: var(--shadow-pop);
-    display: grid;
   }
   .menu button {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
+    width: 100%;
     padding: 8px 10px;
     border: 0;
-    border-radius: 6px;
-    background: none;
+    border-radius: 4px;
+    background: transparent;
     text-align: left;
     cursor: pointer;
   }
-  .menu button:hover {
+  .menu button:hover,
+  .menu button:focus-visible {
     background: var(--surface-2);
   }
   .menu .danger {
@@ -666,17 +676,33 @@
   .section {
     display: grid;
     gap: 12px;
-    padding: 18px 20px;
+    padding: 18px 22px;
+    border-top: 0;
     border-bottom: 1px solid var(--border);
   }
   .section.last {
     border-bottom: 0;
   }
+  .section h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
   .sec-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
+  }
+  .sec-head .seg {
+    border-bottom: 0;
+  }
+  .sec-head .seg button {
+    height: 26px;
+    font-size: 12.5px;
   }
   .small {
     font-size: 12.5px;
@@ -684,8 +710,7 @@
   .copy {
     display: flex;
     align-items: center;
-    gap: 2px;
-    margin: -6px 0;
+    gap: 6px;
   }
   .small-select {
     height: 32px;
@@ -698,28 +723,43 @@
     flex-wrap: wrap;
     gap: 6px;
   }
-  .chips .badge {
-    font-size: 11.5px;
+  .chip {
+    padding: 2px 7px;
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    color: var(--text-2);
   }
   .ports,
   .history {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: grid;
-    gap: 6px;
   }
   .ports li {
     display: grid;
     grid-template-columns: 64px 1fr;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
   }
   .port {
-    font-weight: 500;
+    font-weight: 600;
   }
   .history li {
     display: flex;
     justify-content: space-between;
     gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .history time {
+    white-space: nowrap;
+  }
+  @keyframes slide {
+    from {
+      transform: translateX(24px);
+      opacity: 0;
+    }
   }
   @media (max-width: 1100px) {
     .backdrop {
@@ -727,11 +767,10 @@
       position: fixed;
       inset: 0;
       z-index: 50;
-      background: rgb(10 14 20 / 0.35);
+      background: rgb(10 14 20 / 0.45);
     }
     .detail {
       position: fixed;
-      left: auto;
       top: 0;
       right: 0;
       bottom: 0;
@@ -739,15 +778,9 @@
       width: min(480px, 100%);
       max-height: none;
       border-radius: 0;
-      border-width: 0 0 0 1px;
+      border-width: 3px 0 0 1px;
       box-shadow: var(--shadow-panel);
       animation: slide 200ms var(--ease);
-    }
-    @keyframes slide {
-      from {
-        transform: translateX(24px);
-        opacity: 0.6;
-      }
     }
   }
   @media (max-width: 639px) {

@@ -20,6 +20,26 @@ func (s *Store) OpenPresence(ctx context.Context, deviceID, ts int64) error {
 	return err
 }
 
+// ListAllPresence returns the presence spans of every device overlapping [from, to].
+func (s *Store) ListAllPresence(ctx context.Context, from, to int64) (map[int64][]PresenceSpan, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT device_id, started_at, IFNULL(ended_at, 0) FROM presence
+		WHERE started_at <= ? AND (ended_at IS NULL OR ended_at >= ?) ORDER BY device_id, started_at`, to, from)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][]PresenceSpan{}
+	for rows.Next() {
+		var id int64
+		var p PresenceSpan
+		if err := rows.Scan(&id, &p.Start, &p.End); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], p)
+	}
+	return out, rows.Err()
+}
+
 // ClosePresence ends the open span of a device at ts.
 func (s *Store) ClosePresence(ctx context.Context, deviceID, ts int64) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE presence SET ended_at = MAX(started_at, ?) WHERE device_id = ? AND ended_at IS NULL`, ts, deviceID)

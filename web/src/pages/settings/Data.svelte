@@ -1,7 +1,6 @@
 <script lang="ts">
+  import Icon from '../../lib/components/Icon.svelte';
   import Dialog from '../../lib/components/Dialog.svelte';
-  import Download from '@lucide/svelte/icons/download';
-  import Check from '@lucide/svelte/icons/check';
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
@@ -50,13 +49,13 @@
 
 <SettingsCard title={t('settings.export')} lead={t('settings.exportHint')}>
   <div class="row wrap">
-    <a class="btn" href="/api/v1/export?format=csv" download><Download size={15} /> CSV</a>
-    <a class="btn" href="/api/v1/export?format=json" download><Download size={15} /> JSON</a>
+    <a class="btn" href="/api/v1/export?format=csv" download><Icon name="download-simple" size={15} /> CSV</a>
+    <a class="btn" href="/api/v1/export?format=json" download><Icon name="download-simple" size={15} /> JSON</a>
   </div>
 </SettingsCard>
 
 <SettingsCard title={t('settings.ackAll')}>
-  <div><button class="btn" type="button" disabled={unknownCount === 0} onclick={() => (confirmAck = true)}><Check size={15} /> {t('settings.ackAll')}</button></div>
+  <div><button class="btn" type="button" disabled={unknownCount === 0} onclick={() => (confirmAck = true)}><Icon name="check" size={15} /> {t('settings.ackAll')}</button></div>
 </SettingsCard>
 
 <Dialog bind:open={confirmAck} title={t('overview.markAllTitle', { n: unknownCount })}>

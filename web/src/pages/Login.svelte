@@ -58,7 +58,7 @@
     margin-bottom: 4px;
   }
   h1 {
-    font-size: 22px;
+    font-size: 28px;
   }
   .linkish {
     justify-self: start;

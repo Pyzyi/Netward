@@ -1,6 +1,5 @@
 <script lang="ts">
-  import Copy from '@lucide/svelte/icons/copy';
-  import Check from '@lucide/svelte/icons/check';
+  import Icon from './Icon.svelte';
   import { t } from '../i18n.svelte';
 
   let { value }: { value: string } = $props();
@@ -27,5 +26,5 @@
 </script>
 
 <button class="btn ghost icon small" type="button" onclick={copy} aria-label={copied ? t('common.copied') : t('common.copy')} title={copied ? t('common.copied') : t('common.copy')}>
-  {#if copied}<Check size={15} />{:else}<Copy size={15} />{/if}
+  {#if copied}<Icon name="check" size={15} />{:else}<Icon name="copy" size={15} />{/if}
 </button>
