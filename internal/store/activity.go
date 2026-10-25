@@ -203,14 +203,29 @@ func (s *Store) ListGaps(ctx context.Context, from, to int64) ([]Gap, error) {
 
 // CloseAllPresence ends every open presence span at the device's last_seen
 // (capped at ts). Used after a monitoring gap.
-func (s *Store) CloseAllPresence(ctx context.Context, ts int64) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE presence SET ended_at = MAX(started_at,
-		MIN(?, (SELECT last_seen FROM devices WHERE devices.id = presence.device_id))) WHERE ended_at IS NULL`, ts)
+// It returns the devices that were online, so the caller can avoid treating
+// their return as news.
+func (s *Store) CloseAllPresence(ctx context.Context, ts int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id FROM devices WHERE online = 1`)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if _, err := s.db.ExecContext(ctx, `UPDATE presence SET ended_at = MAX(started_at,
+		MIN(?, (SELECT last_seen FROM devices WHERE devices.id = presence.device_id))) WHERE ended_at IS NULL`, ts); err != nil {
+		return nil, err
 	}
 	_, err = s.db.ExecContext(ctx, `UPDATE devices SET online = 0 WHERE online = 1`)
-	return err
+	return ids, err
 }
 
 // Backup writes a consistent copy of the database to path (VACUUM INTO).
@@ -256,9 +271,17 @@ func (s *Store) UpsertFinding(ctx context.Context, f Finding) (bool, error) {
 	}
 }
 
-// PruneFindings deletes findings not confirmed by the run that started at runStart.
-func (s *Store) PruneFindings(ctx context.Context, runStart int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM security_findings WHERE last_seen < ?`, runStart)
+// PruneFindings deletes findings the run that started at runStart did not
+// confirm. Device findings are only pruned for devices the run checked (an
+// offline device proves nothing), and dismissed findings are kept for 30 days
+// so a port that is briefly unreachable does not resurrect them.
+func (s *Store) PruneFindings(ctx context.Context, runStart int64, checked []int64) error {
+	ids, _ := json.Marshal(checked)
+	_, err := s.db.ExecContext(ctx, `DELETE FROM security_findings
+		WHERE last_seen < ?
+		  AND (device_id IS NULL OR device_id IN (SELECT value FROM json_each(?)))
+		  AND (dismissed = 0 OR last_seen < ?)`,
+		runStart, string(ids), runStart-30*24*3600*1000)
 	return err
 }
 

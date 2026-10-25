@@ -298,8 +298,17 @@ func watchdog(ctx context.Context, st *store.Store, mon *monitor.Monitor, sc *sc
 		if last.IsZero() {
 			last = started
 		}
-		if !sc.Status().Scanning && time.Since(last) > limit && len(sc.Status().Interfaces) > 0 {
+		swept, since := sc.Health()
+		if !since.IsZero() && time.Since(since) > limit {
+			return fmt.Errorf("scan stuck for %s", time.Since(since).Round(time.Second))
+		}
+		// Only when something is actually swept: a skipped (too large) or
+		// missing interface must not cause a restart loop.
+		if swept > 0 && since.IsZero() && time.Since(last) > limit {
 			return fmt.Errorf("no completed scan for %s", time.Since(last).Round(time.Second))
+		}
+		if swept == 0 {
+			started = time.Now() // start counting once an interface appears
 		}
 	}
 }

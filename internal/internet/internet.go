@@ -95,8 +95,13 @@ func (m *Monitor) Configure(enabled bool, targets []string) {
 	m.enabled = enabled
 	m.targets = append([]string(nil), targets...)
 	if !enabled {
+		// An outage cannot be observed to end while checks are off: close it now
+		// instead of leaving it open forever (and reporting a bogus recovery later).
+		if m.outageAt != 0 && m.fails >= failLimit {
+			_ = m.st.CloseOutages(context.Background(), time.Now().UnixMilli())
+		}
 		m.status = Status{State: StateDisabled}
-		m.fails = 0
+		m.fails, m.outageAt = 0, 0
 	} else if m.status.State == StateDisabled {
 		m.status = Status{State: StateUnknown}
 	}

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -171,12 +172,36 @@ func TestEventsAndFindings(t *testing.T) {
 	if isNew {
 		t.Fatal("second upsert reported as new")
 	}
-	if err := s.PruneFindings(ctx, 30); err != nil {
+	if err := s.PruneFindings(ctx, 30, nil); err != nil {
 		t.Fatal(err)
 	}
 	fs, _ := s.ListFindings(ctx)
 	if len(fs) != 0 {
 		t.Fatal("stale finding not pruned")
+	}
+
+	// Device findings: only pruned for checked devices; dismissals survive a missed run.
+	nas := Device{Ident: "aa:00:00:00:00:01", MAC: "aa:00:00:00:00:01", FirstSeen: 1, LastSeen: 1}
+	if err := s.InsertDevice(ctx, &nas); err != nil {
+		t.Fatal(err)
+	}
+	telnet := Finding{CheckID: "risky_port", DeviceID: nas.ID, Severity: "critical", Data: json.RawMessage(`{"port":23}`), LastSeen: 40}
+	_, _ = s.UpsertFinding(ctx, telnet)
+	fs, _ = s.ListFindings(ctx)
+	_ = s.SetFindingDismissed(ctx, fs[0].ID, true)
+	_ = s.PruneFindings(ctx, 50, nil) // NAS asleep: not checked
+	_ = s.PruneFindings(ctx, 60, []int64{nas.ID})
+	telnet.LastSeen = 70
+	if isNew, _ := s.UpsertFinding(ctx, telnet); isNew {
+		t.Fatal("dismissed finding came back as new")
+	}
+	if fs, _ = s.ListFindings(ctx); len(fs) != 1 || !fs[0].Dismissed {
+		t.Fatalf("dismissal lost: %+v", fs)
+	}
+	_, _ = s.UpsertFinding(ctx, Finding{CheckID: "risky_port", DeviceID: nas.ID, Severity: "critical", Data: json.RawMessage(`{"port":21}`), LastSeen: 70})
+	_ = s.PruneFindings(ctx, 80, []int64{nas.ID})
+	if fs, _ = s.ListFindings(ctx); len(fs) != 1 || string(fs[0].Data) != `{"port":23}` {
+		t.Fatalf("undismissed stale finding of a checked device not pruned: %+v", fs)
 	}
 }
 

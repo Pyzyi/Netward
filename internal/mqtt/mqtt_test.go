@@ -84,6 +84,18 @@ func (b *fakeBroker) handle(c net.Conn) {
 			_, _ = c.Write(packet(pPuback<<4, append([]byte(nil), id...)))
 		case pSubscribe:
 			_, _ = c.Write(packet(pSuback<<4, []byte{body[0], body[1], 1}))
+			// Deliver retained messages for "<prefix>+/config" filters.
+			fl := int(binary.BigEndian.Uint16(body[2:4]))
+			if filter := string(body[4 : 4+fl]); strings.HasSuffix(filter, "+/config") {
+				prefix := strings.TrimSuffix(filter, "+/config")
+				b.mu.Lock()
+				for topic, v := range b.retained {
+					if strings.HasPrefix(topic, prefix) && strings.HasSuffix(topic, "/config") && v != "" {
+						_, _ = c.Write(packet(pPublish<<4|1, append(appendString(nil, topic), v...)))
+					}
+				}
+				b.mu.Unlock()
+			}
 			// Home Assistant announces itself right after a subscription.
 			msg := appendString(nil, "homeassistant/status")
 			msg = append(msg, "online"...)
@@ -211,6 +223,41 @@ func TestBridgePublishesWatchedDevices(t *testing.T) {
 	if v, _ := b.get("netzwart/stats/total"); v != "2" {
 		t.Fatalf("stats total = %q", v)
 	}
+}
+
+// Review 2: switching brokers resends discovery configs, and entities of
+// devices that are no longer watched are cleared from the broker.
+func TestBridgeResyncsAfterBrokerChange(t *testing.T) {
+	b1, b2 := newBroker(t), newBroker(t)
+	stale := "homeassistant/device_tracker/netzwart_aaaaaaaaaaaa/config"
+	b2.mu.Lock()
+	b2.retained[stale] = `{"name":null}`
+	b2.mu.Unlock()
+	src := fakeSource{devs: []store.Device{{ID: 1, Ident: "3c:22:fb:00:00:01", MAC: "3c:22:fb:00:00:01", Watch: true, Online: true}}}
+	br := NewBridge(src, hub.New(), nil, nil, "test", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	br.dial = (&net.Dialer{}).DialContext
+	cfgFor := func(b *fakeBroker) config.MQTT {
+		host, port, _ := net.SplitHostPort(b.ln.Addr().String())
+		return config.MQTT{Enabled: true, Host: host, Port: mustAtoi(port), DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	br.Configure(cfgFor(b1), "de")
+	go br.Run(ctx)
+	topic := "homeassistant/device_tracker/" + ObjectID("3c:22:fb:00:00:01") + "/config"
+	waitFor := func(what string, ok func() bool) {
+		t.Helper()
+		for deadline := time.Now().Add(8 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+			if ok() {
+				return
+			}
+		}
+		t.Fatal(what)
+	}
+	waitFor("config on first broker", func() bool { _, ok := b1.get(topic); return ok })
+	br.Configure(cfgFor(b2), "de")
+	waitFor("config not resent to the new broker", func() bool { _, ok := b2.get(topic); return ok })
+	waitFor("stale entity not cleared", func() bool { v, _ := b2.get(stale); return v == "" })
 }
 
 func mustAtoi(s string) int {

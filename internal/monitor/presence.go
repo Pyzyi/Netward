@@ -32,8 +32,13 @@ func (m *Monitor) recoverGap(ctx context.Context) error {
 	if time.Duration(now-hb)*time.Millisecond < gapThreshold {
 		return nil
 	}
-	if err := m.st.CloseAllPresence(ctx, hb); err != nil {
+	ids, err := m.st.CloseAllPresence(ctx, hb)
+	if err != nil {
 		return err
+	}
+	m.wasOnline = map[int64]bool{}
+	for _, id := range ids {
+		m.wasOnline[id] = true
 	}
 	m.log.Info("monitoring gap detected; closed open presence spans", "since", time.UnixMilli(hb).UTC())
 	return m.st.AddGap(ctx, hb, now)
@@ -103,7 +108,17 @@ func (m *Monitor) sweepOffline(ctx context.Context) {
 		}
 		m.gateOpen = true
 	}
+	// Devices still absent once the slowest offline threshold has passed after
+	// start really left during the gap; later returns are news again.
+	if m.wasOnline != nil && now.Sub(m.startedAt) > max(m.settings.OfflineAfterDur(true), m.settings.OfflineAfterDur(false)) {
+		m.wasOnline = nil
+	}
 	for _, e := range m.byID {
+		// The wall clock jumped back (NTP step, board without RTC): a last_seen
+		// in the future would keep the device online for the size of the jump.
+		if ms := now.UnixMilli(); e.d.LastSeen > ms+60_000 {
+			e.d.LastSeen = ms
+		}
 		if !e.d.Online || e.probing || e.d.IsSelf {
 			continue
 		}
@@ -126,6 +141,13 @@ func (m *Monitor) sweepOffline(ctx context.Context) {
 			<-m.probeSem
 			m.mu.Lock()
 			defer m.mu.Unlock()
+			if ctx.Err() != nil {
+				// Shutting down: an interrupted probe proves nothing.
+				if cur := m.byID[snap.ID]; cur != nil {
+					cur.probing = false
+				}
+				return
+			}
 			cur := m.byID[snap.ID]
 			if cur == nil {
 				return

@@ -146,13 +146,20 @@ func (c *Checker) run(ctx context.Context) {
 	}
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 4)
+	var checked []int64
 	for _, d := range devs {
+		if d.IsGateway {
+			checked = append(checked, d.ID) // UPnP finding is decided from stored details
+		}
 		if !d.Online || d.IsSelf {
 			continue
 		}
 		ip, err := netip.ParseAddr(d.IP)
 		if err != nil {
 			continue
+		}
+		if !d.IsGateway {
+			checked = append(checked, d.ID)
 		}
 		wg.Add(1)
 		sem <- struct{}{}
@@ -231,7 +238,10 @@ func (c *Checker) run(ctx context.Context) {
 			c.notifier.Notify(notify.Event{Kind: notify.KindSecurity, Severity: f.Severity, TS: runStart, Device: dev, Data: data})
 		}
 	}
-	if err := c.st.PruneFindings(ctx, runStart); err != nil {
+	if ctx.Err() != nil {
+		return // an interrupted run confirms nothing
+	}
+	if err := c.st.PruneFindings(ctx, runStart, checked); err != nil {
 		c.log.Error("prune findings", "err", err)
 	}
 	c.log.Info("security check finished", "findings", len(findings), "took", time.Since(start).Round(time.Millisecond))

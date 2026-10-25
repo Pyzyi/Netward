@@ -165,6 +165,16 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 	base := cfg.BaseTopic
 	haStatus := cfg.DiscoveryPrefix + "/status"
 	resync := make(chan struct{}, 1)
+	// Discovery configs are tracked per broker session: a new broker (or one
+	// without persistence) has none of them yet.
+	b.mu.Lock()
+	b.published = map[string]bool{}
+	b.mu.Unlock()
+	// Retained configs the broker still holds from earlier runs; entities of
+	// devices that are no longer watched are removed after the initial sync.
+	trackerPrefix := cfg.DiscoveryPrefix + "/device_tracker/"
+	var retainedMu sync.Mutex
+	retained := map[string]bool{}
 	cl, err := Connect(ctx, Options{
 		Addr: net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)), TLS: cfg.TLS,
 		ClientID: "netzwart-" + hex.EncodeToString(rnd), Username: cfg.Username, Password: string(cfg.Password),
@@ -176,6 +186,16 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 				case resync <- struct{}{}:
 				default:
 				}
+			}
+			if id, ok := strings.CutSuffix(strings.TrimPrefix(topic, trackerPrefix), "/config"); ok &&
+				strings.HasPrefix(topic, trackerPrefix) && strings.HasPrefix(id, "netzwart_") {
+				retainedMu.Lock()
+				if len(payload) > 0 && len(retained) < 10000 {
+					retained[id] = true
+				} else {
+					delete(retained, id)
+				}
+				retainedMu.Unlock()
 			}
 		},
 	})
@@ -191,9 +211,14 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 	if err := cl.Subscribe(ctx, haStatus); err != nil {
 		return err
 	}
+	if err := cl.Subscribe(ctx, trackerPrefix+"+/config"); err != nil {
+		return err
+	}
 	if err := b.publishAll(ctx, cl, cfg); err != nil {
 		return err
 	}
+	cleanup := time.NewTimer(3 * time.Second) // time for the broker to deliver retained configs
+	defer cleanup.Stop()
 	b.setStatus("connected", "")
 	b.log.Info("mqtt connected", "broker", cfg.Host)
 	stats := time.NewTicker(time.Minute)
@@ -207,7 +232,31 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 			return nil
 		case <-cl.Done():
 			return cl.Err()
+		case <-cleanup.C:
+			watched := map[string]bool{}
+			for _, d := range b.src.Devices() {
+				if d.Watch {
+					watched[deviceObjectID(d)] = true
+				}
+			}
+			retainedMu.Lock()
+			var stale []string
+			for id := range retained {
+				if !watched[id] {
+					stale = append(stale, id)
+				}
+			}
+			retainedMu.Unlock()
+			for _, id := range stale {
+				if err := b.remove(ctx, cl, cfg, id); err != nil {
+					return err
+				}
+			}
 		case <-resync:
+			// Home Assistant restarted: send every config again.
+			b.mu.Lock()
+			b.published = map[string]bool{}
+			b.mu.Unlock()
 			if err := b.publishAll(ctx, cl, cfg); err != nil {
 				return err
 			}

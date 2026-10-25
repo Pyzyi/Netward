@@ -107,14 +107,20 @@ func (s *Scanner) PortScan(ctx context.Context, id int64) ([]store.Port, error) 
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// The scan outlives the request (the user may navigate away) but has its
+	// own deadline. An incomplete scan is discarded: storing it would delete
+	// the ports the device is known to have.
+	scanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 45*time.Second)
 	defer cancel()
 	s.hub.Publish("portscan", map[string]any{"id": id, "running": true})
-	ports := ScanPorts(ctx, ip, TopPorts())
-	if err := s.mon.SetPorts(context.WithoutCancel(ctx), id, ports, time.Now().UnixMilli()); err != nil {
+	defer s.hub.Publish("portscan", map[string]any{"id": id, "running": false})
+	ports := ScanPorts(scanCtx, ip, TopPorts())
+	if err := scanCtx.Err(); err != nil {
 		return nil, err
 	}
-	s.hub.Publish("portscan", map[string]any{"id": id, "running": false})
+	if err := s.mon.SetPorts(scanCtx, id, ports, time.Now().UnixMilli()); err != nil {
+		return nil, err
+	}
 	return ports, nil
 }
 

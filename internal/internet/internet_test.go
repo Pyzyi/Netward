@@ -76,3 +76,30 @@ func TestDisabled(t *testing.T) {
 		t.Fatal("disabled monitor must report disabled")
 	}
 }
+
+// Review 2: switching the check off during an outage must close it.
+func TestDisableClosesOutage(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "i.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	r := &rec{}
+	m := New(st, hub.New(), r, r, nil, &egress.Policy{}, func() []netip.Addr { return nil }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	m.Configure(true, []string{"192.0.2.1:443"})
+	now := time.Now()
+	m.record(ctx, now, StateOffline, -1, "", true)
+	m.record(ctx, now.Add(30*time.Second), StateOffline, -1, "", true)
+	m.Configure(false, nil)
+	if outs, _ := st.ListOutages(ctx, 0); len(outs) != 1 || outs[0].End == 0 {
+		t.Fatalf("outage left open: %+v", outs)
+	}
+	m.Configure(true, []string{"192.0.2.1:443"})
+	m.record(ctx, now.Add(time.Hour), StateOnline, 10*time.Millisecond, "", true)
+	for _, k := range r.kinds {
+		if k == "internet_up" {
+			t.Fatal("bogus recovery notification")
+		}
+	}
+}

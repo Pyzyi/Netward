@@ -97,6 +97,7 @@ type Monitor struct {
 
 	baselineAt  int64 // 0 = still learning
 	gateOpen    bool
+	wasOnline   map[int64]bool // online before a monitoring gap; their return is not news
 	startedAt   time.Time
 	lastSweepAt time.Time
 	admitTokens float64
@@ -518,6 +519,10 @@ func (m *Monitor) trackAddress(ctx context.Context, e *entry, ip netip.Addr, ifa
 func (m *Monitor) setOnline(ctx context.Context, e *entry, now int64) {
 	e.d.Online = true
 	_ = m.st.OpenPresence(ctx, e.d.ID, now)
+	if m.wasOnline[e.d.ID] {
+		delete(m.wasOnline, e.d.ID) // it was there before Netzwart restarted
+		return
+	}
 	if e.d.Watch {
 		snap := m.view(e)
 		m.addEvent(ctx, notify.KindDeviceOnline, "info", &snap, nil)

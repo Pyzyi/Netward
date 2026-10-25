@@ -338,6 +338,8 @@ func TestGapRecovery(t *testing.T) {
 	e := newEnvWithStore(t, st)
 	e.sweep(map[byte][]byte{10: {10}})
 	d, _ := e.m.DeviceByIP(ip(10))
+	yes := true
+	e.m.PatchDevice(ctx, d.ID, store.DevicePatch{Watch: &yes})
 	e.m.flush(ctx)
 	// Simulate a heartbeat from one hour ago (process was down since).
 	old := time.Now().Add(-time.Hour).UnixMilli()
@@ -354,6 +356,28 @@ func TestGapRecovery(t *testing.T) {
 	spans, _ := st.ListPresence(ctx, d.ID, 0, time.Now().UnixMilli())
 	if len(spans) != 1 || spans[0].End == 0 {
 		t.Fatalf("open span not closed: %+v", spans)
+	}
+	// Review 2: a watched device that is still there is not reported as "came online".
+	e2.sweep(map[byte][]byte{10: {10}})
+	if d2, _ := e2.m.Device(d.ID); !d2.Online {
+		t.Fatal("device not online again")
+	}
+	if e2.rec.kinds()[notify.KindDeviceOnline] != 0 {
+		t.Fatal("restart produced an online notification")
+	}
+}
+
+// Review 2: a wall clock that jumps back must not keep devices online.
+func TestClockJumpBack(t *testing.T) {
+	e := newEnv(t)
+	e.sweep(map[byte][]byte{10: {10}})
+	d, _ := e.m.DeviceByIP(ip(10))
+	e.clk.Add(-2 * time.Hour)
+	e.m.SweepOffline(e.ctx)
+	e.clk.Add(time.Hour)
+	e.m.SweepOffline(e.ctx)
+	if d, _ := e.m.Device(d.ID); d.Online {
+		t.Fatal("device silent for an hour is still online after the clock jumped back")
 	}
 }
 

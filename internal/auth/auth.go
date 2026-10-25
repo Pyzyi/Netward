@@ -228,7 +228,9 @@ type Key struct {
 }
 
 // IPKey limits one client address: 5 free attempts, then up to 15 minutes.
-func IPKey(prefix, ip string) Key { return Key{Name: prefix + "/ip/" + ip, Free: 5, Max: 15 * time.Minute} }
+func IPKey(prefix, ip string) Key {
+	return Key{Name: prefix + "/ip/" + ip, Free: 5, Max: 15 * time.Minute}
+}
 
 // UserKey limits guesses against one account from many addresses. Its backoff
 // is short so an attacker cannot lock the owner out for long.

@@ -87,6 +87,7 @@ type Scanner struct {
 	settings  config.Settings
 	status    Status
 	ifaces    []netinfo.Interface // currently swept
+	scanSince time.Time           // start of the running sweep, zero when idle
 	enqueued  map[int64]bool
 	ssdp      map[netip.Addr]*ssdpEntry
 	portScans map[int64]bool
@@ -331,6 +332,14 @@ func (s *Scanner) scanLoop(ctx context.Context) error {
 	}
 }
 
+// Health reports how many interfaces are swept and since when the running
+// sweep is going (zero when idle). The watchdog uses it.
+func (s *Scanner) Health() (swept int, scanningSince time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.ifaces), s.scanSince
+}
+
 func (s *Scanner) scanOnce(ctx context.Context) error {
 	ifaces, err := s.refresh()
 	if err != nil {
@@ -338,8 +347,14 @@ func (s *Scanner) scanOnce(ctx context.Context) error {
 		return err
 	}
 	start := time.Now()
+	s.mu.Lock()
+	s.scanSince = start
+	s.mu.Unlock()
 	s.setStatus(func(st *Status) { st.Scanning = true; st.Error = "" })
 	defer func() {
+		s.mu.Lock()
+		s.scanSince = time.Time{}
+		s.mu.Unlock()
 		d := time.Since(start)
 		s.setStatus(func(st *Status) {
 			st.Scanning = false
