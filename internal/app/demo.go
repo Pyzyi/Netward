@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -100,7 +101,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		_ = st.ReplaceServices(ctx, d.ID, "mdns", svcs)
 		var ports []store.Port
 		for _, p := range dd.ports {
-			ports = append(ports, store.Port{Port: p, Proto: "tcp"})
+			ports = append(ports, store.Port{Port: p, Proto: "tcp", Service: scanner.Services[p]})
 		}
 		if len(ports) > 0 {
 			_ = st.ReplacePorts(ctx, d.ID, ports, now.Add(-2*time.Hour).UnixMilli())

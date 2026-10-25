@@ -12,7 +12,7 @@
   import { auth, clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
-  import { relTime, t } from '../lib/i18n.svelte';
+  import { has, relTime, t } from '../lib/i18n.svelte';
   import type { Finding } from '../lib/types';
 
   let findings = $state<Finding[]>([]);
@@ -63,7 +63,10 @@
   function title(f: Finding): string {
     switch (f.check) {
       case 'risky_port':
-        return t('security.port.title', { service: (f.data.service ?? '').toUpperCase(), port: f.data.port ?? '' });
+        return t('security.port.title', {
+          service: has(`security.port.name.${f.data.service}`) ? t(`security.port.name.${f.data.service}`) : (f.data.service ?? '').toUpperCase(),
+          port: f.data.port ?? '',
+        });
       case 'upnp_igd':
         return t('security.upnp.title');
       case 'ip_conflict':
@@ -89,7 +92,7 @@
       <p class="muted lead">{t('security.lead')}</p>
     </div>
     <div class="run">
-      <button class="btn primary" type="button" onclick={run} disabled={running || store.overview?.scanner.mode === 'demo'}>
+      <button class="btn primary" type="button" onclick={run} disabled={running || store.overview?.scanner.mode === 'demo'} title={store.overview?.scanner.mode === 'demo' ? t('err.demo_mode') : undefined}>
         <span class:spin={running} class="ico"><RefreshCw size={16} /></span>
         {running ? t('security.running') : t('security.run')}
       </button>
@@ -114,7 +117,7 @@
         {@const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined}
         <li class="card finding {f.severity}">
           <div class="f-head">
-            <button class="btn small ghost accept" type="button" onclick={() => dismiss(f, true)}>{t('security.accept')}</button>
+            <button class="btn small ghost accept" type="button" title={t('security.acceptHint')} onclick={() => dismiss(f, true)}>{t('security.accept')}</button>
             <span class="sev {f.severity}">
               {#if f.severity === 'critical'}<ShieldAlert size={18} />{:else if f.severity === 'warning'}<TriangleAlert size={18} />{:else}<Info size={18} />{/if}
             </span>

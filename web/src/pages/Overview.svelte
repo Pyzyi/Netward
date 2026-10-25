@@ -11,6 +11,7 @@
   import ScanButton from '../lib/components/ScanButton.svelte';
   import Sparkline from '../lib/components/Sparkline.svelte';
   import EmptyState from '../lib/components/EmptyState.svelte';
+  import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api } from '../lib/api';
   import { auth, clock, store } from '../lib/state.svelte';
@@ -55,7 +56,9 @@
       toast(t('common.error'), 'error');
     }
   }
+  let confirmAll = $state(false);
   async function markAll() {
+    confirmAll = false;
     try {
       const r = await api.acknowledgeAll();
       toast(t('settings.ackDone', { n: r.count }));
@@ -64,13 +67,38 @@
     }
   }
 
+  // Alerts that silently go nowhere are worse than none: say so.
+  let noChannel = $state(false);
+  $effect(() => {
+    if (!store.settings?.notifyNewDevice || scanner?.mode === 'demo') return;
+    api.channels().then((r) => (noChannel = !r.channels.some((c) => c.enabled)), () => {});
+  });
+
+  // Sign-ins are recorded in the activity log but are noise on the overview.
+  const feed = $derived(store.recent.filter((e) => e.kind !== 'auth_login').slice(0, 8));
+
   const inetState = $derived(ov?.internet.state ?? 'unknown');
   const inetOk = $derived(inetState === 'online');
   const secIssues = $derived((ov?.security.critical ?? 0) + (ov?.security.warning ?? 0));
   const deviceName = (id?: number) => (id ? store.devices.get(id) : undefined);
 </script>
 
+<Dialog bind:open={confirmAll} title={t('overview.markAllTitle', { n: fresh.length })}>
+  <p>{t('overview.markAllText')}</p>
+  {#snippet footer()}
+    <button class="btn" type="button" onclick={() => (confirmAll = false)}>{t('common.cancel')}</button>
+    <button class="btn primary" type="button" onclick={markAll}>{t('overview.markAllKnown')}</button>
+  {/snippet}
+</Dialog>
+
 <div class="page">
+  {#if noChannel}
+    <div class="notice warn channel-notice" role="status">
+      <TriangleAlert size={17} />
+      <span>{t('settings.channelsMissing')}</span>
+      <a class="btn small" href="/settings/notifications" use:link>{t('settings.channelsSetup')}</a>
+    </div>
+  {/if}
   {#if scanner?.mode === 'demo'}
     <div class="notice info"><Info size={17} /> {t('overview.demo')}</div>
   {:else if scanner?.mode === 'fallback'}
@@ -141,7 +169,7 @@
     <section class="card attention" aria-labelledby="att">
       <div class="card-head">
         <h2 id="att">{t('overview.attention')}</h2>
-        {#if fresh.length > 1}<button class="btn small" type="button" onclick={markAll}><Check size={15} /> {t('overview.markAllKnown')}</button>{/if}
+        {#if fresh.length > 1}<button class="btn small" type="button" onclick={() => (confirmAll = true)}><Check size={15} /> {t('overview.markAllKnown')}</button>{/if}
       </div>
       <div class="list">
         {#if store.loading}
@@ -184,7 +212,7 @@
         <a class="small" href="/activity" use:link>{t('common.showAll')}</a>
       </div>
       <ul class="feed">
-        {#each store.recent.slice(0, 8) as e (e.id)}
+        {#each feed as e (e.id)}
           {@const dev = deviceName(e.deviceId)}
           <li>
             <span class="feed-dot {e.severity}"></span>
@@ -212,9 +240,9 @@
           <span class="sec-icon bad"><ShieldAlert size={22} /></span>
           <span class="sec-text">
             <strong>
-              {#if ov?.security.critical}{ov.security.critical} {t('security.critical')}{/if}
+              {#if ov?.security.critical}{t('security.count.critical', { n: ov.security.critical })}{/if}
               {#if ov?.security.critical && ov?.security.warning} · {/if}
-              {#if ov?.security.warning}{ov.security.warning} {t('security.warning')}{/if}
+              {#if ov?.security.warning}{t('security.count.warning', { n: ov.security.warning })}{/if}
             </strong>
             <span class="faint small">{ov?.security.lastRunAt ? t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) }) : t('overview.securityNever')}</span>
           </span>
@@ -399,11 +427,37 @@
   .feed-text a {
     color: inherit;
   }
+  .channel-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .channel-notice span {
+    flex: 1 1 260px;
+  }
   .types {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 6px;
     padding: 0 12px 14px;
+  }
+  /* On phones the type list becomes compact chips so activity stays close. */
+  @media (max-width: 639px) {
+    .types {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .type-chip {
+      gap: 6px;
+      padding: 4px 10px 4px 4px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .type-name {
+      flex: none;
+    }
   }
   .type-chip {
     display: flex;

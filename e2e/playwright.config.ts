@@ -4,6 +4,8 @@ export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
+  // One Netzwart instance with one account: run desktop and mobile one after another.
+  workers: 1,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: process.env.NETZWART_URL ?? 'http://127.0.0.1:18850',

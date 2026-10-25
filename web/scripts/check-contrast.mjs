@@ -42,6 +42,8 @@ const pairs = [
   ['ok', 'surface', 4.5], ['ok', 'bg', 4.5], ['ok', 'ok-soft', 4.5],
   ['warn', 'surface', 4.5], ['warn', 'bg', 4.5], ['warn', 'warn-soft', 4.5],
   ['danger', 'surface', 4.5], ['danger', 'danger-soft', 4.5], ['accent', 'accent-soft', 4.5],
+  ['text-3', 'bg', 4.5], ['text-3', 'surface', 4.5], ['text-3', 'surface-2', 4.5],
+  ['control-border', 'surface', 3.0], ['control-border', 'bg', 3.0], // WCAG 1.4.11 non-text contrast
   ['off', 'surface', 2.0], // status dots are always accompanied by text
 ];
 

@@ -2,7 +2,9 @@
   import type { Presence } from '../types';
   import { dateTime, time, t } from '../i18n.svelte';
 
-  let { data }: { data: Presence } = $props();
+  // since: when Netzwart first saw the device; before that nothing is known.
+  let { data, since = 0 }: { data: Presence; since?: number } = $props();
+  const unknownUntil = $derived(Math.min(data.to, Math.max(data.from, since)));
 
   const total = $derived(Math.max(1, data.to - data.from));
   const pct = (v: number) => `${(Math.max(0, Math.min(total, v - data.from)) / total) * 100}%`;
@@ -15,11 +17,13 @@
     const day = 86400000;
     if (span <= day + 60000) {
       const hour = 3600000;
-      const first = new Date(data.from);
-      first.setMinutes(0, 0, 0);
-      let at = first.getTime() + hour;
-      while (new Date(at).getHours() % 6 !== 0) at += hour;
-      for (; at < data.to - hour; at += 6 * hour) out.push({ at, label: time(at) });
+      // Step in wall-clock hours (setHours), so ticks stay on 00/06/12/18
+      // across daylight-saving changes.
+      const at = new Date(data.from);
+      at.setMinutes(0, 0, 0);
+      at.setHours(at.getHours() + 1);
+      while (at.getHours() % 6 !== 0) at.setHours(at.getHours() + 1);
+      for (; at.getTime() < data.to - 2 * hour; at.setHours(at.getHours() + 6)) out.push({ at: at.getTime(), label: time(at.getTime()) });
     } else {
       const fmt = new Intl.DateTimeFormat(undefined, span > 8 * day ? { day: 'numeric', month: 'short' } : { weekday: 'short' });
       const step = span > 8 * day ? 6 * day : day;
@@ -36,6 +40,9 @@
     {#each data.spans as s (s.start)}
       <span class="on" style:left={pct(s.start)} style:width={width(s.start, s.end || data.to)} title="{dateTime(s.start)} – {s.end ? dateTime(s.end) : t('device.status.online')}"></span>
     {/each}
+    {#if unknownUntil > data.from}
+      <span class="unknown" style:left="0" style:width={width(data.from, unknownUntil)} title={t('device.presence.unknown')}></span>
+    {/if}
     {#each data.gaps as g (g.start)}
       <span class="gap" style:left={pct(g.start)} style:width={width(g.start, g.end)} title={t('device.presence.gap')}></span>
     {/each}
@@ -44,7 +51,14 @@
     {#each ticks as tick (tick.at)}
       <span style:left={pct(tick.at)}>{tick.label}</span>
     {/each}
+    <span class="now">{t('device.presence.now')}</span>
   </div>
+  <ul class="legend">
+    <li><span class="sw on-sw"></span>{t('device.status.online')}</li>
+    <li><span class="sw off-sw"></span>{t('common.offline')}</li>
+    {#if data.gaps.length}<li><span class="sw gap-sw"></span>{t('device.presence.gap')}</li>{/if}
+    {#if unknownUntil > data.from}<li><span class="sw unknown-sw"></span>{t('device.presence.unknown')}</li>{/if}
+  </ul>
 </div>
 
 <style>
@@ -60,7 +74,8 @@
     overflow: hidden;
   }
   .on,
-  .gap {
+  .gap,
+  .unknown {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -70,8 +85,44 @@
     background: var(--ok);
     opacity: 0.85;
   }
-  .gap {
-    background: repeating-linear-gradient(135deg, var(--border-strong) 0 4px, transparent 4px 8px);
+  .gap,
+  .gap-sw {
+    background: repeating-linear-gradient(135deg, var(--control-border) 0 3px, transparent 3px 7px);
+  }
+  .unknown,
+  .unknown-sw {
+    background: radial-gradient(var(--border-strong) 1px, transparent 1.2px) 0 0 / 6px 6px, var(--surface);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw {
+    width: 14px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  .on-sw {
+    background: var(--ok);
+  }
+  .off-sw {
+    background: var(--surface-2);
+  }
+  .ticks .now {
+    right: 0;
+    transform: none;
   }
   .ticks {
     position: relative;

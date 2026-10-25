@@ -2,6 +2,7 @@
   import { errorText } from '../../lib/errors';
   import Dialog from '../../lib/components/Dialog.svelte';
   import { api } from '../../lib/api';
+  import { toast } from '../../lib/components/toast.svelte';
   import { t } from '../../lib/i18n.svelte';
   import type { Channel, ChannelConfig, ChannelKind } from '../../lib/types';
 
@@ -21,6 +22,7 @@
   let enabled = $state(true);
   let busy = $state(false);
   let error = $state('');
+  let savedId = $state<number | null>(null); // set once "save & test" stored a new channel
 
   $effect(() => {
     if (!open) return;
@@ -32,6 +34,13 @@
     cfg = c as ChannelConfig;
     subs = channel?.events ?? ['device_new', 'ip_conflict', 'internet_up', 'security_finding', 'device_flood'];
     enabled = channel?.enabled ?? true;
+    error = '';
+    savedId = null;
+  });
+
+  // A message from the previous service does not apply to the new one.
+  $effect(() => {
+    void kind;
     error = '';
   });
 
@@ -74,14 +83,25 @@
   const isSecretSet = (key: string) =>
     channel !== null && channel.kind === kind && (channel.config as Record<string, unknown>)[key] === MASK;
 
-  async function save() {
+  async function save(thenTest = false) {
     busy = true;
     error = '';
     const body = { name: name.trim() || t(`channel.${kind}`), kind, config: { ...cfg }, events: subs, enabled };
     if (body.config.port !== undefined) body.config.port = Number(body.config.port) || undefined;
     try {
-      const saved = channel ? await api.updateChannel(channel.id, body) : await api.createChannel(body);
+      const id = savedId ?? channel?.id;
+      const saved = id ? await api.updateChannel(id, body) : await api.createChannel(body);
       onsaved(saved);
+      if (thenTest) {
+        const r = await api.testChannel(saved.id);
+        if (!r.ok) {
+          // Keep the dialog open so the settings can be corrected right away.
+          savedId = saved.id;
+          error = t('settings.channelTestFail', { reason: r.reason ?? '' });
+          return;
+        }
+        toast(t('settings.channelTestOk'), 'ok', 6000);
+      }
       open = false;
     } catch (e) {
       error = errorText(e);
@@ -130,6 +150,10 @@
         {/if}
       </div>
     {/each}
+    <details class="help">
+      <summary>{t('channel.helpTitle')}</summary>
+      <p>{t(`channel.help.${kind}`)}</p>
+    </details>
     <p class="hint">{t('settings.localhostHint')}</p>
     <fieldset>
       <legend class="label">{t('settings.channelEvents')}</legend>
@@ -147,11 +171,25 @@
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (open = false)}>{t('common.cancel')}</button>
+    <button class="btn" type="button" disabled={busy || !enabled} onclick={() => save(true)}>{t('settings.channelSaveTest')}</button>
     <button class="btn primary" type="submit" form="chform" disabled={busy}>{t('common.save')}</button>
   {/snippet}
 </Dialog>
 
 <style>
+  .help {
+    font-size: 13.5px;
+    color: var(--text-2);
+  }
+  .help summary {
+    cursor: pointer;
+    font-weight: 550;
+    color: var(--text);
+    padding: 4px 0;
+  }
+  .help p {
+    margin: 6px 0 0;
+  }
   .two {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -370,6 +370,11 @@
     .list-head {
       display: none;
     }
+    /* Hint that the filter chips continue to the right. */
+    .scroll {
+      mask-image: linear-gradient(to right, #000 82%, transparent);
+      padding-right: 28px;
+    }
     .kbd {
       display: none;
     }

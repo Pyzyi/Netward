@@ -22,12 +22,14 @@
   let deleting = $state<Channel | null>(null);
   let deleteOpen = $state(false);
   let testing = $state<number | null>(null);
+  let loaded = $state(false);
 
   async function load() {
     const r = await api.channels();
     channels = r.channels;
     kinds = r.kinds;
     events = r.events;
+    loaded = true;
   }
   void load();
 
@@ -66,7 +68,14 @@
   }
 </script>
 
-<SettingsCard title={t('settings.notifications')}>
+{#if loaded && notifyNew && !channels.some((c) => c.enabled)}
+  <div class="notice warn missing" role="status">
+    <span>{t('settings.channelsMissing')}</span>
+    <button class="btn small" type="button" onclick={() => { editing = null; editorOpen = true; }}>{t('settings.channelsSetup')}</button>
+  </div>
+{/if}
+
+<SettingsCard title={t('settings.whenNotify')}>
   <Toggle bind:checked={notifyNew} label={t('settings.notifyNew')} onchange={saveToggles} />
   <Toggle bind:checked={notifyRandom} label={t('settings.notifyRandom')} hint={t('settings.notifyRandomHint')} disabled={!notifyNew} onchange={saveToggles} />
 </SettingsCard>
@@ -109,6 +118,13 @@
 </Dialog>
 
 <style>
+  .missing {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
   .empty {
     display: flex;
     gap: 12px;

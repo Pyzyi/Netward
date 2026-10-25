@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Dialog from '../../lib/components/Dialog.svelte';
   import Download from '@lucide/svelte/icons/download';
   import Check from '@lucide/svelte/icons/check';
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
@@ -19,7 +20,10 @@
     toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
   }
 
+  let confirmAck = $state(false);
+  const unknownCount = $derived([...store.devices.values()].filter((d) => !d.known && !d.isSelf).length);
   async function ackAll() {
+    confirmAck = false;
     const r = await api.acknowledgeAll();
     toast(t('settings.ackDone', { n: r.count }));
   }
@@ -52,8 +56,16 @@
 </SettingsCard>
 
 <SettingsCard title={t('settings.ackAll')}>
-  <div><button class="btn" type="button" onclick={ackAll}><Check size={15} /> {t('settings.ackAll')}</button></div>
+  <div><button class="btn" type="button" disabled={unknownCount === 0} onclick={() => (confirmAck = true)}><Check size={15} /> {t('settings.ackAll')}</button></div>
 </SettingsCard>
+
+<Dialog bind:open={confirmAck} title={t('overview.markAllTitle', { n: unknownCount })}>
+  <p>{t('overview.markAllText')}</p>
+  {#snippet footer()}
+    <button class="btn" type="button" onclick={() => (confirmAck = false)}>{t('common.cancel')}</button>
+    <button class="btn primary" type="button" onclick={ackAll}>{t('settings.ackAll')}</button>
+  {/snippet}
+</Dialog>
 
 <style>
   .two {

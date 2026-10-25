@@ -2,6 +2,7 @@
   import { errorText } from '../lib/errors';
   import X from '@lucide/svelte/icons/x';
   import Check from '@lucide/svelte/icons/check';
+  import Pencil from '@lucide/svelte/icons/pencil';
   import Star from '@lucide/svelte/icons/star';
   import Bell from '@lucide/svelte/icons/bell';
   import Power from '@lucide/svelte/icons/power';
@@ -17,7 +18,7 @@
   import { toast } from '../lib/components/toast.svelte';
   import { api, ApiError } from '../lib/api';
   import { clock, store } from '../lib/state.svelte';
-  import { deviceTypes, displayName, typeLabel } from '../lib/devices';
+  import { deviceTypes, displayName, modelName, typeLabel, vendorName } from '../lib/devices';
   import { navigate } from '../lib/router.svelte';
   import { eventText } from '../lib/events';
   import { dateTime, durationSince, relTime, t } from '../lib/i18n.svelte';
@@ -39,6 +40,79 @@
   let mergeTarget = $state<number | ''>('');
   let pinging = $state(false);
   let panel: HTMLElement | undefined = $state();
+  let heading: HTMLElement | undefined = $state();
+  let moreBtn: HTMLButtonElement | undefined = $state();
+  let menuEl: HTMLElement | undefined = $state();
+
+  // Keyboard focus: move into the panel when a device opens, and back to its
+  // row in the list when the panel closes.
+  const opener = document.activeElement as HTMLElement | null;
+  let focusedFor = -1;
+  $effect(() => {
+    if (d && heading && focusedFor !== id) {
+      focusedFor = id;
+      heading.focus({ preventScroll: true });
+    }
+  });
+  $effect(() => {
+    const myId = id;
+    return () => {
+      const row = document.querySelector<HTMLElement>(`a.main[href^="/devices/${myId}"]`);
+      queueMicrotask(() => {
+        if (document.activeElement && document.activeElement !== document.body && document.contains(document.activeElement)) return;
+        (row ?? (opener && document.contains(opener) ? opener : null))?.focus({ preventScroll: true });
+      });
+    };
+  });
+
+  // Below 1100px the panel covers the page: make it a modal dialog and the
+  // rest of the app inert, so keyboard and screen-reader focus stay inside.
+  let overlay = $state(window.matchMedia('(max-width: 1100px)').matches);
+  $effect(() => {
+    const mq = window.matchMedia('(max-width: 1100px)');
+    const on = () => (overlay = mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  });
+  $effect(() => {
+    if (!overlay || !panel) return;
+    const changed: HTMLElement[] = [];
+    for (let node: HTMLElement | null = panel; node && node !== document.body; node = node.parentElement) {
+      for (const sib of node.parentElement?.children ?? []) {
+        const el = sib as HTMLElement;
+        if (el === node || el.inert || el.classList.contains('backdrop') || el.getAttribute('aria-live')) continue;
+        el.inert = true;
+        changed.push(el);
+      }
+    }
+    return () => changed.forEach((el) => (el.inert = false));
+  });
+
+  // Return focus to the "more" button after a dialog opened from its menu closes.
+  let dialogWasOpen = false;
+  $effect(() => {
+    const anyOpen = forgetOpen || mergeOpen;
+    if (dialogWasOpen && !anyOpen) moreBtn?.focus();
+    dialogWasOpen = anyOpen;
+  });
+  $effect(() => {
+    if (menuOpen) menuEl?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  });
+  function closeMenu(refocus = true) {
+    menuOpen = false;
+    if (refocus) moreBtn?.focus();
+  }
+  function menuKey(e: KeyboardEvent) {
+    const items = [...(menuEl?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = (i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    } else if (e.key === 'Tab') {
+      closeMenu(false);
+    }
+  }
 
   const d = $derived(store.devices.get(id) ?? detail?.device);
   const scanning = $derived(store.portScans[id] ?? false);
@@ -96,11 +170,17 @@
     if (d?.portsScannedAt) void load();
   });
 
+  // Quiet confirmation for edits that save on blur or click.
+  let savedFlash = $state(false);
+  let flashTimer: ReturnType<typeof setTimeout> | undefined;
   async function patch(p: Parameters<typeof api.patchDevice>[1], okText?: string) {
     try {
       const upd = await api.patchDevice(id, p);
       store.devices.set(upd.id, upd);
       if (okText) toast(okText);
+      savedFlash = true;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => (savedFlash = false), 2000);
     } catch (e) {
       toast(errorText(e), 'error');
     }
@@ -186,14 +266,28 @@
   const otherAddresses = $derived((detail?.addresses ?? []).filter((a) => a.ip !== d?.ip));
 
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape' && !forgetOpen && !mergeOpen && !(e.target as HTMLElement).closest('input, textarea, select')) onclose();
+    if (e.key !== 'Escape' || forgetOpen || mergeOpen) return;
+    if (menuOpen) {
+      closeMenu(); // Escape closes the innermost layer first
+      return;
+    }
+    if (!(e.target as HTMLElement).closest('input, textarea, select')) onclose();
+  }
+  function onWindowClick(e: MouseEvent) {
+    if (menuOpen && !(e.target as HTMLElement).closest('.menu-wrap')) closeMenu(false);
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} onclick={onWindowClick} />
 
 <div class="backdrop" onclick={onclose} aria-hidden="true"></div>
-<aside class="detail" bind:this={panel} aria-label={d ? displayName(d) : ''}>
+<aside
+  class="detail"
+  bind:this={panel}
+  aria-label={d ? displayName(d) : ''}
+  role={overlay ? 'dialog' : undefined}
+  aria-modal={overlay ? 'true' : undefined}
+>
   {#if notFound}
     <div class="pad">
       <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><X size={18} /></button>
@@ -206,10 +300,12 @@
       <div class="skeleton" style:height="120px"></div>
     </div>
   {:else}
+    <h2 class="sr-only" tabindex="-1" bind:this={heading}>{displayName(d)}</h2>
     <header class="pad hero">
       <button class="btn ghost icon small close" type="button" onclick={onclose} aria-label={t('common.close')}><X size={18} /></button>
       <DeviceIcon type={d.type} online={d.online} size={56} />
       <div class="ident">
+        <div class="name-wrap">
         <input
           class="name-input"
           bind:value={nameDraft}
@@ -225,11 +321,14 @@
             }
           }}
         />
+          <Pencil size={15} class="name-pencil" aria-hidden="true" />
+        </div>
         <p class="muted sub">
-          {[d.vendor, d.model].filter(Boolean).join(' · ') || typeLabel(d.type)}
+          {[vendorName(d), modelName(d.model)].filter(Boolean).join(' · ') || typeLabel(d.type)}
         </p>
         <div class="status-row">
           <span class="badge" class:ok={d.online}>{sinceText}</span>
+          <span class="saved" role="status">{#if savedFlash}<Check size={13} /> {t('common.saved')}{/if}</span>
           {#if d.new}<span class="badge warn">{t('devices.newBadge')}</span>{/if}
           {#if d.isSelf}<span class="badge accent">{t('devices.thisServer')}</span>{/if}
           {#if d.isGateway}<span class="badge">{t('devices.router')}</span>{/if}
@@ -251,16 +350,18 @@
       <button class="btn small" class:pressed={d.watch} type="button" aria-pressed={d.watch} title={t('device.actions.watchHint')} onclick={() => patch({ watch: !d.watch })}>
         <Bell size={15} /> {t('device.actions.watch')}
       </button>
-      <button class="btn small" type="button" onclick={wake} disabled={demo}><Power size={15} /> {t('device.actions.wake')}</button>
-      <button class="btn small" type="button" onclick={ping} disabled={pinging || demo}>
+      {#if !d.online && !d.isSelf}
+        <button class="btn small" type="button" onclick={wake} disabled={demo} title={demo ? t('err.demo_mode') : t('device.actions.wakeHint')}><Power size={15} /> {t('device.actions.wake')}</button>
+      {/if}
+      <button class="btn small" type="button" onclick={ping} disabled={pinging || demo} title={demo ? t('err.demo_mode') : undefined}>
         <span class:spin={pinging} class="ico"><Activity size={15} /></span> {t('device.actions.ping')}
       </button>
       <div class="menu-wrap">
-        <button class="btn small icon" type="button" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t('common.more')} onclick={() => (menuOpen = !menuOpen)}>
+        <button class="btn small icon" type="button" bind:this={moreBtn} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t('common.more')} onclick={() => (menuOpen = !menuOpen)}>
           <Ellipsis size={16} />
         </button>
         {#if menuOpen}
-          <div class="menu" role="menu">
+          <div class="menu" role="menu" tabindex="-1" bind:this={menuEl} onkeydown={menuKey}>
             <button role="menuitem" type="button" onclick={() => { menuOpen = false; mergeOpen = true; }}><Merge size={15} /> {t('device.actions.merge')}</button>
             <button role="menuitem" type="button" class="danger" onclick={() => { menuOpen = false; forgetOpen = true; }}><Trash size={15} /> {t('device.actions.forget')}</button>
           </div>
@@ -278,7 +379,7 @@
         </div>
       </div>
       {#if presence}
-        <Timeline data={presence} />
+        <Timeline data={presence} since={d.firstSeen} />
         <p class="muted small">{t('device.presence.online', { pct: Math.round(presence.onlinePct) })}</p>
       {:else}
         <div class="skeleton" style:height="50px"></div>
@@ -297,10 +398,10 @@
           <dd class="hint">{t(`device.macKind.${d.macKind}`)}</dd>
         {/if}
         <dt>{t('device.field.vendor')}</dt>
-        <dd title={d.vendorOfficial}>{d.vendor || t('common.unknown')}</dd>
+        <dd title={d.vendorOfficial || (d.vendor ? undefined : t('device.vendorFromModel'))}>{vendorName(d) || t('common.unknown')}</dd>
         {#if d.model}
           <dt>{t('device.field.model')}</dt>
-          <dd>{d.model}</dd>
+          <dd title={modelName(d.model) !== d.model ? d.model : undefined}>{modelName(d.model)}</dd>
         {/if}
         <dt><label for="dtype">{t('device.field.type')}</label></dt>
         <dd>
@@ -351,7 +452,7 @@
     <section class="section">
       <div class="sec-head">
         <h3>{t('device.section.ports')}</h3>
-        <button class="btn small" type="button" onclick={scanPorts} disabled={scanning || demo} title={t('device.ports.hint')}>
+        <button class="btn small" type="button" onclick={scanPorts} disabled={scanning || demo} title={demo ? t('err.demo_mode') : t('device.ports.hint')}>
           <span class:spin={scanning} class="ico"><Radar size={15} /></span>
           {scanning ? t('device.ports.scanning') : t('device.actions.ports')}
         </button>
@@ -466,7 +567,7 @@
   }
   .name-input {
     width: 100%;
-    padding: 2px 6px;
+    padding: 2px 28px 2px 6px;
     margin-left: -6px;
     border: 1px solid transparent;
     border-radius: 6px;
@@ -477,6 +578,28 @@
   }
   .name-input:hover {
     border-color: var(--border);
+  }
+  .name-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .name-wrap :global(.name-pencil) {
+    position: absolute;
+    right: 8px;
+    color: var(--text-3);
+    pointer-events: none;
+  }
+  .name-wrap:focus-within :global(.name-pencil) {
+    display: none;
+  }
+  .saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12.5px;
+    color: var(--ok);
+    min-height: 1em;
   }
   .name-input:focus {
     outline: none;

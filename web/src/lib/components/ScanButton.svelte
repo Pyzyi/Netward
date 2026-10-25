@@ -26,7 +26,7 @@
   }
 </script>
 
-<button class="btn primary" type="button" onclick={scan} disabled={scanning || demo}>
+<button class="btn primary" type="button" onclick={scan} disabled={scanning || demo} title={demo ? t('err.demo_mode') : undefined}>
   <span class:spin={scanning} class="ico"><RefreshCw size={16} /></span>
   {scanning ? t('overview.scanning') : t('overview.scanNow')}
 </button>

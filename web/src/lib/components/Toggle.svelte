@@ -54,7 +54,7 @@
     margin-top: 1px;
     border: 0;
     border-radius: 999px;
-    background: var(--border-strong);
+    background: var(--control-border);
     cursor: pointer;
     transition: background 150ms var(--ease);
   }

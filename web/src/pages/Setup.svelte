@@ -3,8 +3,9 @@
   import AuthCard from '../lib/components/AuthCard.svelte';
   import PasswordStrength from '../lib/components/PasswordStrength.svelte';
   import { api, ApiError } from '../lib/api';
-  import { applyAuth, auth } from '../lib/state.svelte';
-  import { i18n, setLang, t, type Lang } from '../lib/i18n.svelte';
+  import { applyAuth, auth, loadAuth } from '../lib/state.svelte';
+  import { toast } from '../lib/components/toast.svelte';
+  import { i18n, t } from '../lib/i18n.svelte';
 
   let step = $state(1);
   let username = $state('admin');
@@ -14,6 +15,8 @@
   let networkName = $state('');
   let busy = $state(false);
   let error = $state('');
+  let pwError = $state('');
+  let showPw = $state(false);
 
   const st = $derived(auth.state);
   const mismatch = $derived(repeat.length > 0 && repeat !== password);
@@ -21,12 +24,14 @@
   function next(e: SubmitEvent) {
     e.preventDefault();
     error = '';
+    pwError = '';
     if (password.length < 10) {
-      error = t('err.password_too_short');
+      pwError = t('err.password_too_short');
+      document.getElementById('p')?.focus();
       return;
     }
     if (password !== repeat) {
-      error = t('setup.mismatch');
+      document.getElementById('r')?.focus(); // the field shows the mismatch
       return;
     }
     step = 2;
@@ -48,6 +53,12 @@
       applyAuth({ ...res, setupRequired: false, setupAllowed: false, setupTokenRequired: false });
     } catch (err) {
       const code = err instanceof ApiError ? err.code : 'network';
+      if (code === 'already_setup') {
+        // Someone finished setup in the meantime: show the login instead.
+        toast(t('err.already_setup'), 'info', 6000);
+        await loadAuth();
+        return;
+      }
       error = t(`err.${code}`, { s: err instanceof ApiError ? err.retryAfter : 0 });
       if (code.startsWith('password') || code === 'invalid_username' || code === 'setup_token') step = 1;
     } finally {
@@ -76,15 +87,19 @@
       </div>
       <div class="field">
         <label for="p">{t('setup.password')}</label>
-        <input id="p" class="input" type="password" bind:value={password} autocomplete="new-password" required minlength="10" maxlength="128" />
+        <input id="p" class="input" type={showPw ? 'text' : 'password'} bind:value={password} autocomplete="new-password" required minlength="10" maxlength="128"
+          aria-invalid={pwError ? 'true' : undefined} aria-describedby="p-hint{pwError ? ' p-err' : ''}" oninput={() => (pwError = '')} />
         <PasswordStrength {password} />
-        <p class="hint">{t('setup.passwordHint')}</p>
+        {#if pwError}<p class="error-text" id="p-err">{pwError}</p>{/if}
+        <p class="hint" id="p-hint">{t('setup.passwordHint')}</p>
       </div>
       <div class="field">
         <label for="r">{t('setup.passwordRepeat')}</label>
-        <input id="r" class="input" type="password" bind:value={repeat} autocomplete="new-password" aria-invalid={mismatch} required />
-        {#if mismatch}<p class="error-text">{t('setup.mismatch')}</p>{/if}
+        <input id="r" class="input" type={showPw ? 'text' : 'password'} bind:value={repeat} autocomplete="new-password" aria-invalid={mismatch}
+          aria-describedby={mismatch ? 'r-err' : undefined} required />
+        {#if mismatch}<p class="error-text" id="r-err">{t('setup.mismatch')}</p>{/if}
       </div>
+      <label class="check"><input type="checkbox" bind:checked={showPw} /> {t('setup.showPassword')}</label>
       {#if st?.setupTokenRequired}
         <div class="field">
           <label for="tok">{t('setup.token')}</label>
@@ -106,13 +121,7 @@
         <label for="n">{t('setup.networkName')}</label>
         <input id="n" class="input" bind:value={networkName} placeholder={t('setup.networkPlaceholder')} maxlength="64" />
       </div>
-      <div class="field">
-        <label for="l">{t('setup.language')}</label>
-        <select id="l" class="select" value={i18n.lang} onchange={(e) => setLang(e.currentTarget.value as Lang)}>
-          <option value="de">Deutsch</option>
-          <option value="en">English</option>
-        </select>
-      </div>
+
       {#if error}<p class="error-text" role="alert">{error}</p>{/if}
       <div class="row">
         <button class="btn" type="button" onclick={() => (step = 1)} disabled={busy}>{t('common.back')}</button>

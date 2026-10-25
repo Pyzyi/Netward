@@ -62,6 +62,29 @@ test('devices: search, open detail, rename, close', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+// Review 2 (UX H1): names stay readable in the phone layout.
+test('device names are readable at every width', async ({ page }) => {
+  await login(page);
+  await page.goto('/devices');
+  const name = page.locator('a.main .names').first();
+  await expect(name).toBeVisible();
+  const box = await name.boundingBox();
+  expect(box!.width).toBeGreaterThan(100);
+});
+
+// Review 2 (UX H4): keyboard focus moves into the detail panel and back.
+test('keyboard: open detail, escape returns focus to the row', async ({ page }) => {
+  await login(page);
+  await page.goto('/devices');
+  const row = page.locator('a.main').nth(2);
+  await row.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('aside.detail h2')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('aside.detail')).toHaveCount(0);
+  await expect(page.locator('a.main').nth(2)).toBeFocused();
+});
+
 test('security, activity and settings pages render', async ({ page }) => {
   const problems = watch(page);
   await login(page);

@@ -9,7 +9,8 @@
   --border-strong: #cdd2da;
   --text: #121519;
   --text-2: #5b6370;
-  --text-3: #7a828e;
+  --text-3: #626a76;
+  --control-border: #7e8692; /* 3:1 for form controls (WCAG 1.4.11) */
   --accent: #1662d8;
   --accent-hover: #1253b8;
   --accent-soft: #e7effc;
@@ -53,7 +54,8 @@
     --border-strong: #353d4b;
     --text: #e7eaee;
     --text-2: #98a1ae;
-    --text-3: #7c8594;
+    --text-3: #848d9b;
+    --control-border: #687182;
     --accent: #5a93f0;
     --accent-hover: #74a5f4;
     --accent-soft: #1a2a45;
@@ -88,7 +90,8 @@
   --border-strong: #353d4b;
   --text: #e7eaee;
   --text-2: #98a1ae;
-  --text-3: #7c8594;
+  --text-3: #848d9b;
+  --control-border: #687182;
   --accent: #5a93f0;
   --accent-hover: #74a5f4;
   --accent-soft: #1a2a45;
@@ -346,7 +349,7 @@ textarea {
   width: 100%;
   height: 38px;
   padding: 0 11px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-s);
   background: var(--surface);
   transition: border-color 120ms var(--ease), box-shadow 120ms var(--ease);

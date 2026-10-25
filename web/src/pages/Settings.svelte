@@ -9,7 +9,8 @@
   import Data from './settings/Data.svelte';
   import About from './settings/About.svelte';
   import { link, router } from '../lib/router.svelte';
-  import { store } from '../lib/state.svelte';
+  import LogOut from '@lucide/svelte/icons/log-out';
+  import { auth, logout, store } from '../lib/state.svelte';
   import { t } from '../lib/i18n.svelte';
 
   const sections = [
@@ -28,18 +29,32 @@
     sections.find((s) => router.route.name === 'settings' && s.id === router.route.section) ?? sections[0],
   );
   const Comp = $derived(current.comp);
+
+  // On narrow screens the section tabs scroll sideways; keep the active one visible.
+  let subnav: HTMLElement | undefined = $state();
+  $effect(() => {
+    void current.id;
+    subnav?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  });
 </script>
 
 <div class="page">
-  <h1>{t('settings.title')}</h1>
+  <div class="title-row">
+    <h1>{t('settings.title')}</h1>
+    <!-- The sidebar (with sign-out) is hidden on phones. -->
+    <div class="account-mobile">
+      <span class="muted">{auth.state?.username}</span>
+      <button class="btn small" type="button" onclick={logout}><LogOut size={15} /> {t('nav.logout')}</button>
+    </div>
+  </div>
   <div class="layout">
-    <nav class="subnav" aria-label={t('settings.title')}>
+    <nav class="subnav" aria-label={t('settings.title')} bind:this={subnav}>
       {#each sections as s (s.id)}
         <a href="/settings/{s.id}" use:link aria-current={current.id === s.id ? 'page' : undefined}>{t(s.label)}</a>
       {/each}
     </nav>
     <div class="content">
-      <h2 class="section-title">{t(current.label)}</h2>
+      <h2 class="sr-only">{t(current.label)}</h2>
       {#if store.settings}
         <Comp />
       {:else}
@@ -89,8 +104,21 @@
     gap: 16px;
     min-width: 0;
   }
-  .section-title {
-    font-size: 18px;
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .account-mobile {
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+  @media (max-width: 639px) {
+    .account-mobile {
+      display: flex;
+    }
   }
   @media (max-width: 860px) {
     .layout {
@@ -108,9 +136,6 @@
     }
     .subnav a {
       white-space: nowrap;
-    }
-    .section-title {
-      display: none;
     }
   }
 </style>

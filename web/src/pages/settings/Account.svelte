@@ -4,7 +4,7 @@
   import PasswordStrength from '../../lib/components/PasswordStrength.svelte';
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
-  import { clock, store, updateSettings } from '../../lib/state.svelte';
+  import { clock, logout, store, updateSettings } from '../../lib/state.svelte';
   import { relTime, t } from '../../lib/i18n.svelte';
   import type { Session } from '../../lib/types';
 
@@ -87,7 +87,10 @@
           <span class="muted small">{t('settings.sessionMeta', { t: relTime(s.lastSeenAt, clock.now), ip: s.ip })}</span>
         </div>
         {#if s.current}
-          <span class="badge accent">{t('settings.sessionCurrent')}</span>
+          <span class="s-current">
+            <span class="badge accent">{t('settings.sessionCurrent')}</span>
+            <button class="btn small" type="button" onclick={logout}>{t('nav.logout')}</button>
+          </span>
         {:else}
           <button class="btn small" type="button" onclick={() => revoke(s.id)}>{t('settings.sessionRevoke')}</button>
         {/if}
@@ -107,6 +110,11 @@
 </SettingsCard>
 
 <style>
+  .s-current {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .sessions {
     list-style: none;
     padding: 0;

@@ -34,7 +34,12 @@
     <span class="ip mono">{d.ip}</span>
     {#if showMac}<span class="mac mono faint">{d.mac}</span>{/if}
     <span class="seen" class:on={d.online}>
-      {d.online ? t('devices.onlineNow') : relTime(d.lastSeen, clock.now)}
+      {#if d.online}
+        {t('devices.onlineNow')}
+      {:else}
+        <span class="state">{t('common.offline')}</span>
+        <span class="ago">{relTime(d.lastSeen, clock.now)}</span>
+      {/if}
     </span>
   </a>
   {#if actions}<div class="actions">{@render actions()}</div>{/if}
@@ -119,6 +124,17 @@
     color: var(--ok);
     font-weight: 550;
   }
+  .seen .state,
+  .seen .ago {
+    display: block;
+  }
+  .seen .state {
+    font-weight: 550;
+    color: var(--text-2);
+  }
+  .seen .ago {
+    font-size: 12px;
+  }
   .actions {
     display: flex;
     gap: 6px;
@@ -133,11 +149,10 @@
     }
   }
   @media (max-width: 639px) {
+    /* IP and MAC are hidden here: icon, name, last seen. */
     .main,
-    .no-mac .main {
-    grid-template-columns: auto minmax(0, 1fr) 128px 110px;
-  }
-  .compact .main {
+    .no-mac .main,
+    .compact .main {
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 12px;
       padding: 9px 4px;
