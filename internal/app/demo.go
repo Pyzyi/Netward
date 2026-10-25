@@ -11,12 +11,12 @@ import (
 
 type demoDevice struct {
 	mac, ip, host, vendor, model, typ, os string
-	name, location                         string
-	known, fav, watch, online, gateway     bool
-	self, newDev, phone                    bool
-	macKind                                string
-	services                               []string
-	ports                                  []int
+	name, location                        string
+	known, fav, watch, online, gateway    bool
+	self, newDev, phone                   bool
+	macKind                               string
+	services                              []string
+	ports                                 []int
 }
 
 // demoDevices describe a typical German home network behind a FRITZ!Box.
