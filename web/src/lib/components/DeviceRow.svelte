@@ -33,6 +33,8 @@
         {#if d.favorite}<Icon name="fill:star" size={13} class="fav" label={t('device.actions.favorite')} />{/if}
         {#if d.watch}<Icon name="bell" size={13} class="watch" label={t('device.actions.watch')} />{/if}
         {#if d.new}<span class="badge warn">{t('devices.newBadge')}</span>{/if}
+        {#if d.software?.status === 'outdated'}<span class="badge danger" title={d.software.name}>{t('devices.outdatedBadge')}</span>{/if}
+        {#if d.software?.status === 'update'}<span class="badge warn" title={d.software.name}>{t('devices.updateBadge')}</span>{/if}
         {#if d.isSelf}<span class="badge accent">{t('devices.thisServer')}</span>{/if}
         {#if d.isGateway}<span class="badge accent">{t('devices.router')}</span>{/if}
       </span>

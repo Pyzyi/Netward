@@ -16,6 +16,7 @@ import (
 
 	"github.com/Pyzyi/netzwart/internal/config"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 	"github.com/Pyzyi/netzwart/internal/textutil"
 )
@@ -277,7 +278,12 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request, _ *session
 	if s.d.FritzBox != nil {
 		fritzStatus = s.d.FritzBox.Status()
 	}
+	var upd any
+	if s.d.Update != nil {
+		upd = s.d.Update.Status()
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
+		"update": upd, "softwareDataAsOf": software.DataAsOf,
 		"version": s.d.Version, "startedAt": s.d.StartedAt.UnixMilli(), "goVersion": runtime.Version(),
 		"uid": os.Getuid(), "rawSockets": s.d.RawSockets, "mode": s.scannerStatus().Mode,
 		"dbSize": s.d.Store.Size(), "memory": ms.Sys, "mqtt": mqttStatus, "fritzbox": fritzStatus, "https": s.isHTTPS(r),

@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -172,7 +174,14 @@ func TestEventsAndFindings(t *testing.T) {
 	if isNew {
 		t.Fatal("second upsert reported as new")
 	}
-	if err := s.PruneFindings(ctx, 30, nil); err != nil {
+	// Another job's prune leaves the finding alone.
+	if err := s.PruneFindings(ctx, 30, nil, []string{"software_outdated"}); err != nil {
+		t.Fatal(err)
+	}
+	if fs, _ := s.ListFindings(ctx); len(fs) != 1 {
+		t.Fatal("finding pruned by a job that does not own it")
+	}
+	if err := s.PruneFindings(ctx, 30, nil, []string{"upnp"}); err != nil {
 		t.Fatal(err)
 	}
 	fs, _ := s.ListFindings(ctx)
@@ -189,8 +198,8 @@ func TestEventsAndFindings(t *testing.T) {
 	_, _ = s.UpsertFinding(ctx, telnet)
 	fs, _ = s.ListFindings(ctx)
 	_ = s.SetFindingDismissed(ctx, fs[0].ID, true)
-	_ = s.PruneFindings(ctx, 50, nil) // NAS asleep: not checked
-	_ = s.PruneFindings(ctx, 60, []int64{nas.ID})
+	_ = s.PruneFindings(ctx, 50, nil, []string{"risky_port"}) // NAS asleep: not checked
+	_ = s.PruneFindings(ctx, 60, []int64{nas.ID}, []string{"risky_port"})
 	telnet.LastSeen = 70
 	if isNew, _ := s.UpsertFinding(ctx, telnet); isNew {
 		t.Fatal("dismissed finding came back as new")
@@ -199,7 +208,7 @@ func TestEventsAndFindings(t *testing.T) {
 		t.Fatalf("dismissal lost: %+v", fs)
 	}
 	_, _ = s.UpsertFinding(ctx, Finding{CheckID: "risky_port", DeviceID: nas.ID, Severity: "critical", Data: json.RawMessage(`{"port":21}`), LastSeen: 70})
-	_ = s.PruneFindings(ctx, 80, []int64{nas.ID})
+	_ = s.PruneFindings(ctx, 80, []int64{nas.ID}, []string{"risky_port"})
 	if fs, _ = s.ListFindings(ctx); len(fs) != 1 || string(fs[0].Data) != `{"port":23}` {
 		t.Fatalf("undismissed stale finding of a checked device not pruned: %+v", fs)
 	}
@@ -297,5 +306,65 @@ func TestBackup(t *testing.T) {
 	var v int
 	if err := b.GetSetting(ctx, "k", &v); err != nil || v != 1 {
 		t.Fatalf("backup content wrong: %v %v", v, err)
+	}
+}
+
+func TestSoftwareRowsAndPreUpdateBackup(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "netzwart.db")
+	s, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := Device{Ident: "aa:00:00:00:00:0a", MAC: "aa:00:00:00:00:0a", FirstSeen: 1, LastSeen: 1}
+	b := Device{Ident: "aa:00:00:00:00:0b", MAC: "aa:00:00:00:00:0b", FirstSeen: 1, LastSeen: 1}
+	_ = s.InsertDevice(ctx, &a)
+	_ = s.InsertDevice(ctx, &b)
+	_ = s.UpsertSoftware(ctx, Software{DeviceID: a.ID, Source: "smb", Product: "windows", Version: "10.0.19045", SeenAt: 10})
+	_ = s.UpsertSoftware(ctx, Software{DeviceID: a.ID, Source: "smb", Product: "windows", Version: "10.0.26200", SeenAt: 20})
+	_ = s.UpsertSoftware(ctx, Software{DeviceID: b.ID, Source: "smb", Product: "windows", Version: "10.0.22631", SeenAt: 15})
+	_ = s.UpsertSoftware(ctx, Software{DeviceID: b.ID, Source: "manual", Product: "windows", Version: "x", SeenAt: 5})
+	// Merging keeps the newer row per source and moves the others.
+	if err := s.MergeDevices(ctx, b.ID, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	all, err := s.ListSoftware(ctx)
+	if err != nil || len(all[b.ID]) != 0 || len(all[a.ID]) != 2 {
+		t.Fatalf("after merge: %+v %v", all, err)
+	}
+	for _, sw := range all[a.ID] {
+		if sw.Source == "smb" && sw.Version != "10.0.26200" {
+			t.Fatalf("older row won the merge: %+v", sw)
+		}
+	}
+	_ = s.DeleteSoftware(ctx, a.ID, "manual")
+	if all, _ = s.ListSoftware(ctx); len(all[a.ID]) != 1 {
+		t.Fatalf("manual row not deleted: %+v", all)
+	}
+
+	// Pretend the database is one schema behind: reopening keeps a copy the
+	// older version can still open.
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = ?`, len(migrations)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.ExecContext(ctx, `DROP TABLE software`); err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+	s, err = Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	backup := filepath.Join(dir, "backup", fmt.Sprintf("pre-update-schema-%d.db", len(migrations)-1))
+	old, err := sql.Open("sqlite", "file:"+backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer old.Close()
+	var v int
+	if err := old.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&v); err != nil || v != len(migrations)-1 {
+		t.Fatalf("backup schema %d err %v", v, err)
 	}
 }

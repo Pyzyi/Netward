@@ -1,5 +1,5 @@
 import type { EventItem } from './types';
-import { duration, t } from './i18n.svelte';
+import { duration, has, t } from './i18n.svelte';
 
 /** Human sentence for an activity log entry. */
 export function eventText(e: EventItem, deviceName?: string): string {
@@ -9,7 +9,11 @@ export function eventText(e: EventItem, deviceName?: string): string {
   for (const [k, v] of Object.entries(d)) if (typeof v === 'string' || typeof v === 'number') vars[k] = v;
   vars.name = name; // the live device name wins over the name stored with the event
   if (e.kind === 'internet_up' && typeof d.durationMs === 'number') vars.duration = duration(d.durationMs);
-  const key = `event.${e.kind}`;
+  let key = `event.${e.kind}`;
+  // Software findings have their own sentences ("… bekommt keine Updates mehr").
+  if (e.kind === 'security_finding' && typeof d.check === 'string' && has(`${key}.${d.check}${d.count ? '.count' : ''}`)) {
+    key = `${key}.${d.check}${d.count ? '.count' : ''}`;
+  }
   const text = t(key, vars);
   return text === key ? e.kind : text;
 }

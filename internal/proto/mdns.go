@@ -3,6 +3,7 @@ package proto
 import (
 	"fmt"
 	"net/netip"
+	"slices"
 	"strings"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -19,12 +20,33 @@ type MDNSInstance struct {
 type MDNSInfo struct {
 	Hostname     string // from an A record pointing at the sender, or a reverse PTR
 	Instances    []MDNSInstance
-	ServiceTypes []string // from _services._dns-sd._udp browsing
-	Model        string   // model hints from TXT records (model=, md=, am=, ty=)
-	FriendlyName string   // fn= (Google Cast)
-	HomeKitCat   string   // ci= (HomeKit accessory category)
+	ServiceTypes []string    // from _services._dns-sd._udp browsing
+	Model        string      // model hints from TXT records (model=, md=, am=, ty=)
+	FriendlyName string      // fn= (Google Cast)
+	HomeKitCat   string      // ci= (HomeKit accessory category)
+	TXT          []TXTRecord // version-related TXT keys (see VersionTXT)
 	Response     bool
 }
+
+// TXTRecord holds the whitelisted keys of one service's TXT record.
+type TXTRecord struct {
+	Service string
+	KV      map[string]string
+}
+
+// VersionTXT lists, per DNS-SD service type, the TXT keys that carry version
+// information. Nothing else from these records is kept: no serial numbers,
+// no device IDs (T-33).
+var VersionTXT = map[string][]string{
+	"_airplay._tcp":        {"osvers", "model"},
+	"_device-info._tcp":    {"osxvers", "model"},
+	"_http._tcp":           {"vendor", "version_major", "version_minor", "version_build"},
+	"_esphomelib._tcp":     {"version"},
+	"_shelly._tcp":         {"ver", "gen"},
+	"_home-assistant._tcp": {"version"},
+}
+
+const maxTXTRecords = 8
 
 const maxMDNSRecords = 96
 
@@ -170,6 +192,21 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 				r, err := parser.TXTResource()
 				if err != nil {
 					return info, err
+				}
+				if _, svc, ok := serviceOf(owner); ok && len(info.TXT) < maxTXTRecords {
+					if keys := VersionTXT[svc]; keys != nil {
+						kv := map[string]string{}
+						for _, s := range r.TXT {
+							k, v, ok := strings.Cut(s, "=")
+							k = strings.ToLower(k)
+							if ok && v != "" && len(v) <= 64 && slices.Contains(keys, k) {
+								kv[k] = v
+							}
+						}
+						if len(kv) > 0 {
+							info.TXT = append(info.TXT, TXTRecord{Service: svc, KV: kv})
+						}
+					}
 				}
 				for _, kv := range r.TXT {
 					k, v, ok := strings.Cut(kv, "=")

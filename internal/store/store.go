@@ -82,6 +82,20 @@ func (s *Store) migrate(ctx context.Context) error {
 	if current > len(migrations) {
 		return fmt.Errorf("database schema version %d is newer than this build supports (%d); refusing to downgrade", current, len(migrations))
 	}
+	if current > 0 && current < len(migrations) {
+		// Keep the last copy an older Netzwart can open, so an update can be
+		// rolled back. Daily backups would be overwritten with the new schema.
+		dir := filepath.Join(filepath.Dir(s.path), "backup")
+		name := filepath.Join(dir, fmt.Sprintf("pre-update-schema-%d.db", current))
+		if _, err := os.Stat(name); errors.Is(err, os.ErrNotExist) {
+			if err := os.MkdirAll(dir, 0o700); err != nil {
+				return err
+			}
+			if err := s.Backup(ctx, name); err != nil {
+				return fmt.Errorf("backup before migration: %w", err)
+			}
+		}
+	}
 	for v := current + 1; v <= len(migrations); v++ {
 		err := s.tx(ctx, func(tx *sql.Tx) error {
 			if _, err := tx.ExecContext(ctx, migrations[v-1]); err != nil {

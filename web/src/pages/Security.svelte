@@ -68,13 +68,27 @@
         return t('security.conflict.title', { ip: f.data.ip ?? '' });
       case 'unknown_devices':
         return t('security.unknown.title', { n: unknownCount });
+      case 'software_outdated':
+      case 'software_update': {
+        const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t(`software.product.${f.data.product}`);
+        return t(`security.software.title.${f.data.status}`, { name });
+      }
     }
   }
+  // Software findings explain themselves on the device page; here a short version.
+  function softwareAdvice(f: Finding): string {
+    for (const key of [`software.advice.${f.data.product}.${f.data.status}`, `software.advice.${f.data.status}`]) {
+      if (has(key)) return t(key);
+    }
+    return '';
+  }
   function why(f: Finding): string {
+    if (f.check === 'software_outdated' || f.check === 'software_update') return t(`security.software.why.${f.data.status}`);
     if (f.check === 'risky_port') return t(`security.port.why.${f.data.service}`);
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
   }
   function todo(f: Finding): string {
+    if (f.check === 'software_outdated' || f.check === 'software_update') return softwareAdvice(f);
     if (f.check === 'risky_port') return t(`security.port.todo.${f.data.service}`);
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
   }

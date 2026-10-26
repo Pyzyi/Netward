@@ -97,8 +97,8 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Image size
         run: docker image ls netzwart:ci
-      - name: Integration tests (privileges, ownership, discovery, API)
-        run: sudo --preserve-env=GITHUB_ACTIONS e2e/container-test.sh netzwart:ci
+      - name: Integration tests (privileges, ownership, discovery, API, update from the last release)
+        run: sudo --preserve-env=GITHUB_ACTIONS e2e/container-test.sh netzwart:ci ghcr.io/${GITHUB_REPOSITORY,,}:latest
       - name: Start demo instance
         run: |
           docker run -d --name netzwart-demo --network host \
@@ -165,11 +165,16 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.IMAGE }}
+          # "latest" is the newest release, not the newest commit: main builds
+          # are published as "edge". No bare major tag while still at 0.x.
+          flavor: |
+            latest=false
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+            type=edge,branch=main
             type=sha,format=short
       # The Dockerfile cross-compiles on the build platform, so no QEMU is needed.
       - id: build
@@ -190,3 +195,21 @@ jobs:
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    needs: [publish]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create release from docs/releases/<tag>.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          notes="docs/releases/${TAG}.md"
+          [ -f "$notes" ] || { echo "::error::release notes $notes missing"; exit 1; }
+          gh release create "$TAG" --verify-tag --title "Netzwart ${TAG#v}" --notes-file "$notes"

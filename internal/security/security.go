@@ -1,12 +1,15 @@
 // Package security runs the network security check: services that should
 // not be reachable, UPnP port forwarding on the router, IP conflicts and
-// devices nobody has confirmed. It only ever opens TCP connections and
-// closes them again; no payload is sent to any device.
+// devices nobody has confirmed. The port check only opens TCP connections and
+// closes them again. Two software probes go further (docs/08): the SSH
+// greeting is read without sending anything, and Windows is asked for its
+// version through the first step of an SMB logon that is never completed.
 package security
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/netip"
 	"strings"
@@ -17,6 +20,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/scanner"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -50,6 +54,33 @@ var riskyPorts = map[int]risk{
 	139:   {"info", "netbios"},
 }
 
+const (
+	sshPort = 22
+	smbPort = 445
+)
+
+// smbProbeAllowed skips devices that are known not to run Windows. Their SMB
+// servers (Samba on NAS and Linux, macOS file sharing) answer with
+// placeholder versions; software.FromNTLMVersion filters those too, this just
+// avoids the round trip.
+func smbProbeAllowed(d store.Device) bool {
+	vendor := strings.ToLower(d.Vendor + " " + d.VendorOfficial)
+	for _, v := range []string{"apple", "synology", "qnap", "avm", "raspberry", "western digital", "asustor", "buffalo", "netgear"} {
+		if strings.Contains(vendor, v) {
+			return false
+		}
+	}
+	switch d.Type {
+	case "nas", "router", "access_point", "phone", "tablet", "tv", "printer":
+		return false
+	}
+	switch d.OS {
+	case "iOS", "iPadOS", "macOS", "Android", "Linux":
+		return false
+	}
+	return true
+}
+
 // Status describes the last run.
 type Status struct {
 	Running   bool  `json:"running"`
@@ -65,13 +96,15 @@ type Checker struct {
 	notifier notify.Notifier
 	log      *slog.Logger
 
-	mu     sync.Mutex
-	status Status
+	mu        sync.Mutex
+	status    Status
+	swTrigger chan struct{}
+	swLastRun int64
 }
 
 // New creates a checker.
 func New(st *store.Store, mon *monitor.Monitor, h *hub.Hub, n notify.Notifier, log *slog.Logger) *Checker {
-	c := &Checker{st: st, mon: mon, hub: h, notifier: n, log: log}
+	c := &Checker{st: st, mon: mon, hub: h, notifier: n, log: log, swTrigger: make(chan struct{}, 1)}
 	var last int64
 	if err := st.GetSetting(context.Background(), "security_last_run", &last); err == nil {
 		c.status.LastRunAt = last
@@ -132,10 +165,11 @@ func (c *Checker) run(ctx context.Context) {
 		c.hub.Publish("security", st)
 	}()
 	devs := c.mon.Devices()
-	ports := make([]int, 0, len(riskyPorts))
+	ports := make([]int, 0, len(riskyPorts)+1)
 	for p := range riskyPorts {
 		ports = append(ports, p)
 	}
+	ports = append(ports, sshPort) // not risky by itself; read for the software check
 
 	var mu sync.Mutex
 	var findings []store.Finding
@@ -166,11 +200,20 @@ func (c *Checker) run(ctx context.Context) {
 		go func(d store.Device, ip netip.Addr) {
 			defer wg.Done()
 			defer func() { <-sem }()
+			var obs []software.Observation
 			for _, p := range scanner.ScanPorts(ctx, ip, ports) {
+				switch {
+				case p.Port == sshPort:
+					obs = append(obs, software.ProbeSSH(ctx, ip)...)
+					continue
+				case p.Port == smbPort && smbProbeAllowed(d):
+					obs = append(obs, software.ProbeSMB(ctx, ip)...)
+				}
 				r := riskyPorts[p.Port]
 				data, _ := json.Marshal(map[string]any{"port": p.Port, "service": r.service})
 				add(store.Finding{CheckID: CheckRiskyPort, DeviceID: d.ID, Severity: r.severity, Data: data, LastSeen: runStart})
 			}
+			c.mon.AddSoftware(d.ID, obs)
 		}(d, ip)
 	}
 	wg.Wait()
@@ -241,10 +284,17 @@ func (c *Checker) run(ctx context.Context) {
 	if ctx.Err() != nil {
 		return // an interrupted run confirms nothing
 	}
-	if err := c.st.PruneFindings(ctx, runStart, checked); err != nil {
+	if err := c.st.PruneFindings(ctx, runStart, checked, []string{CheckRiskyPort, CheckUPnP, CheckConflict, CheckUnknown}); err != nil {
 		c.log.Error("prune findings", "err", err)
 	}
 	c.log.Info("security check finished", "findings", len(findings), "took", time.Since(start).Round(time.Millisecond))
+}
+
+func suffix(s string) string {
+	if s == "" {
+		return ""
+	}
+	return ": " + s
 }
 
 // Describe returns a short title and detail text for notifications.
@@ -268,6 +318,15 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return tr("IP-Konflikt bei ", "IP conflict on ") + ip, ""
 	case CheckUnknown:
 		return tr("Unbestätigte Geräte im Netz", "Unconfirmed devices on the network"), ""
+	case CheckSoftwareOutdated:
+		if n, ok := data["count"].(int); ok {
+			return fmt.Sprintf(tr("%d Geräte bekommen keine Sicherheitsupdates mehr", "%d devices no longer get security updates"), n),
+				tr("Details in Netzwart unter Sicherheit.", "See Security in Netzwart for details.")
+		}
+		sw, _ := data["software"].(string)
+		return tr("Keine Sicherheitsupdates mehr", "No more security updates") + suffix(sw),
+			tr("Das System dieses Geräts wird vom Hersteller nicht mehr gepflegt. Netzwart zeigt, was du tun kannst.",
+				"The maker no longer maintains this device's system. Netzwart shows what you can do.")
 	}
 	return check, ""
 }

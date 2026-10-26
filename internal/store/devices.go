@@ -42,6 +42,14 @@ type Device struct {
 	EnrichedAt      int64  `json:"enrichedAt"`
 	PortsScannedAt  int64  `json:"portsScannedAt"`
 	New             bool   `json:"new"` // first seen after the learning phase and not yet acknowledged
+	// Software is the short software verdict, filled in by the monitor.
+	Software *SoftwareSummary `json:"software,omitempty"`
+}
+
+// SoftwareSummary is the part of the software assessment lists need.
+type SoftwareSummary struct {
+	Status string `json:"status"` // supported | aging | outdated | update | unknown
+	Name   string `json:"name"`   // "Windows 10 22H2"
 }
 
 const deviceCols = `id, ident, mac, ip, name, hostname, vendor, vendor_official, model, os, type, type_confidence,
@@ -422,6 +430,11 @@ func (s *Store) MergeDevices(ctx context.Context, from, into int64) error {
 				SELECT ?2, ip, interface, first_seen, last_seen FROM device_addresses WHERE device_id = ?1`,
 			`INSERT OR IGNORE INTO device_names (device_id, source, name, updated_at)
 				SELECT ?2, source, name, updated_at FROM device_names WHERE device_id = ?1`,
+			`INSERT INTO software (device_id, source, product, version, evidence, update_available, seen_at)
+				SELECT ?2, source, product, version, evidence, update_available, seen_at FROM software WHERE device_id = ?1 AND true
+				ON CONFLICT (device_id, source) DO UPDATE SET product = excluded.product, version = excluded.version,
+					evidence = excluded.evidence, update_available = excluded.update_available, seen_at = excluded.seen_at
+				WHERE excluded.seen_at > software.seen_at`,
 			`UPDATE devices SET
 				name = CASE WHEN name = '' THEN (SELECT name FROM devices WHERE id = ?1) ELSE name END,
 				notes = CASE WHEN notes = '' THEN (SELECT notes FROM devices WHERE id = ?1) ELSE notes END,
@@ -461,4 +474,49 @@ func (s *Store) ExpireRandomDevices(ctx context.Context, cutoff int64) ([]int64,
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// Software is one statement about a device's software (see internal/software).
+type Software struct {
+	DeviceID        int64
+	Source          string
+	Product         string
+	Version         string
+	Evidence        string
+	UpdateAvailable bool
+	SeenAt          int64
+}
+
+// UpsertSoftware stores or replaces the row of sw.DeviceID and sw.Source.
+func (s *Store) UpsertSoftware(ctx context.Context, sw Software) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO software (device_id, source, product, version, evidence, update_available, seen_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (device_id, source) DO UPDATE SET product = excluded.product, version = excluded.version,
+			evidence = excluded.evidence, update_available = excluded.update_available, seen_at = excluded.seen_at`,
+		sw.DeviceID, sw.Source, sw.Product, sw.Version, sw.Evidence, b2i(sw.UpdateAvailable), sw.SeenAt)
+	return err
+}
+
+// DeleteSoftware removes the row of a device and source.
+func (s *Store) DeleteSoftware(ctx context.Context, deviceID int64, source string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM software WHERE device_id = ? AND source = ?`, deviceID, source)
+	return err
+}
+
+// ListSoftware returns all software rows, grouped by device.
+func (s *Store) ListSoftware(ctx context.Context) (map[int64][]Software, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT device_id, source, product, version, evidence, update_available, seen_at FROM software`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][]Software{}
+	for rows.Next() {
+		var sw Software
+		if err := rows.Scan(&sw.DeviceID, &sw.Source, &sw.Product, &sw.Version, &sw.Evidence, &sw.UpdateAvailable, &sw.SeenAt); err != nil {
+			return nil, err
+		}
+		out[sw.DeviceID] = append(out[sw.DeviceID], sw)
+	}
+	return out, rows.Err()
 }

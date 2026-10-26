@@ -3,7 +3,10 @@
 # docker-compose.yml on an isolated bridge network next to a few "devices",
 # then checks privilege drop, file ownership, discovery and the API.
 #
-#   sudo e2e/container-test.sh [image]
+#   sudo e2e/container-test.sh [image] [previous-image]
+#
+# The previous image (default: the published "latest") is used for the
+# update test: data created by it must survive the switch to [image].
 #
 # Needs root on the host to inspect the data directories, which the
 # container correctly makes private to UID 10001.
@@ -11,6 +14,7 @@ set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo), the data directories are private to UID 10001" >&2; exit 2; }
 
 IMAGE="${1:-netzwart:local}"
+PREV_IMAGE="${2:-ghcr.io/pyzyi/netzwart:latest}"
 NET="nwtest-$$"
 OCTET=$((RANDOM % 200 + 20))
 SUBNET="172.31.$OCTET.0/24"
@@ -47,7 +51,7 @@ HARDEN=(--cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-a
 # start NAME [docker run args...] -> prints container IP
 start() {
   local name="$1"; shift
-  docker run -d --name "$name" --network "$NET" "$@" "$IMAGE" >/dev/null
+  docker run -d --name "$name" --network "$NET" "$@" "${START_IMAGE:-$IMAGE}" >/dev/null
   CONTAINERS+=("$name")
   for _ in $(seq 1 60); do
     st="$(docker inspect -f '{{.State.Status}}' "$name")"
@@ -141,6 +145,37 @@ echo "== 7. --user 1000:1000 (no root at all)"
 mkdir -p "$WORK/data7" && chown 1000:1000 "$WORK/data7"
 start nw7-$$ --user 1000:1000 --cap-drop ALL --security-opt no-new-privileges:true --read-only -v "$WORK/data7:/data" >/dev/null \
   && ok "starts as non-root user" || fail "non-root start failed"
+
+echo "== 8. Update from the previous release on the same data"
+if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
+  mkdir -p "$WORK/data8"
+  rm -f "$WORK/jar" "$WORK/csrf"
+  IP8="$(START_IMAGE="$PREV_IMAGE" start nw8old-$$ "${HARDEN[@]}" -v "$WORK/data8:/data")" && ok "previous release started ($PREV_IMAGE)" || fail "previous release did not start"
+  api "$IP8" POST /auth/setup "{\"username\":\"admin\",\"password\":\"$PASS\",\"language\":\"de\",\"timezone\":\"Europe/Berlin\",\"networkName\":\"Updatetest\"}" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["csrf"])' > "$WORK/csrf" && ok "setup on previous release" || fail "setup on previous release"
+  before=0
+  for _ in $(seq 1 30); do
+    before="$(api "$IP8" GET /devices | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+    [ "$before" -ge 4 ] && break
+    sleep 2
+  done
+  docker stop -t 10 nw8old-$$ >/dev/null
+  IP8="$(start nw8new-$$ "${HARDEN[@]}" -v "$WORK/data8:/data")" && ok "this build starts on the old data" || fail "this build did not start on the old data"
+  rm -f "$WORK/jar" "$WORK/csrf"
+  api "$IP8" POST /auth/login "{\"username\":\"admin\",\"password\":\"$PASS\"}" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["csrf"])' > "$WORK/csrf" && ok "old account still logs in" || fail "login after update"
+  after="$(api "$IP8" GET /devices | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+  [ "$after" -ge "$before" ] && ok "devices kept ($before → $after)" || fail "devices lost: $before → $after"
+  name="$(api "$IP8" GET /overview | python3 -c 'import json,sys; print(json.load(sys.stdin)["networkName"])')"
+  [ "$name" = Updatetest ] && ok "settings kept" || fail "network name after update: $name"
+  if ls "$WORK/data8/backup/"pre-update-schema-*.db >/dev/null 2>&1; then
+    ok "backup before migration: $(basename "$(ls "$WORK/data8/backup/"pre-update-schema-*.db | head -1)")"
+  else
+    ok "no schema change, no pre-update backup needed"
+  fi
+else
+  echo "  skip previous image $PREV_IMAGE not available"
+fi
 
 echo
 if [ "$FAILED" -gt 0 ]; then echo "$FAILED check(s) failed"; exit 1; fi

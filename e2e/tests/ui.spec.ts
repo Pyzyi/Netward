@@ -85,6 +85,36 @@ test('keyboard: open detail, escape returns focus to the row', async ({ page }) 
   await expect(page.locator('a.main').nth(2)).toBeFocused();
 });
 
+// 0.1: software and support.
+test('software: outdated devices, explanation and manual version', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/devices?filter=software');
+  const pc = page.locator('a.main', { hasText: 'Gaming-PC' });
+  await expect(pc).toBeVisible();
+  await expect(pc.getByText('Veraltet')).toBeVisible();
+  await expect(page.locator('a.main', { hasText: 'Drucker' })).toHaveCount(0);
+  await pc.click();
+  const detail = page.locator('aside.detail');
+  await expect(detail.getByText('Keine Sicherheitsupdates mehr seit 14. Oktober 2025')).toBeVisible();
+  await expect(detail.getByText('Windows 10 22H2')).toBeVisible();
+  await expect(detail.getByText('Was kannst du tun?')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // iPhones hide their version: the user can enter it, and remove it again.
+  await page.goto('/devices');
+  await page.locator('a.main', { hasText: "Max' iPhone" }).click();
+  await expect(detail.getByText('iPhones und iPads verraten ihre iOS-Version nicht')).toBeVisible();
+  await detail.getByRole('button', { name: 'Systemversion angeben' }).click();
+  await detail.getByLabel('Hauptversion').selectOption('18');
+  await detail.getByRole('button', { name: 'Speichern' }).click();
+  await expect(detail.getByText('das Ende ist absehbar')).toBeVisible();
+  await detail.getByRole('button', { name: 'Angabe ändern' }).click();
+  await detail.getByRole('button', { name: 'Angabe löschen' }).click();
+  await expect(detail.getByText('Software unbekannt')).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('settings: saved values become the new baseline', async ({ page }) => {
   const problems = watch(page);
   await login(page);

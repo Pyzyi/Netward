@@ -4,6 +4,7 @@
   import DeviceIcon from '../lib/components/DeviceIcon.svelte';
   import CopyButton from '../lib/components/CopyButton.svelte';
   import Timeline from '../lib/components/Timeline.svelte';
+  import SoftwareCard from '../lib/components/SoftwareCard.svelte';
   import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api, ApiError } from '../lib/api';
@@ -358,6 +359,13 @@
         {/if}
       </div>
     </div>
+
+    {#if detail}
+      <section class="section">
+        <h3>{t('device.section.software')}</h3>
+        <SoftwareCard device={d} software={detail.software} onchange={(sw) => { if (detail) detail.software = sw; }} />
+      </section>
+    {/if}
 
     <section class="section">
       <div class="sec-head">

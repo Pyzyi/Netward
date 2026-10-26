@@ -26,7 +26,7 @@ func mdnsResponse(t testing.TB) []byte {
 	must(b.PTRResource(rh("_services._dns-sd._udp.local.", dnsmessage.TypePTR), dnsmessage.PTRResource{PTR: name("_raop._tcp.local.")}))
 	must(b.StartAdditionals())
 	must(b.SRVResource(rh("Wohnzimmer._airplay._tcp.local.", dnsmessage.TypeSRV), dnsmessage.SRVResource{Port: 7000, Target: name("Apple-TV.local.")}))
-	must(b.TXTResource(rh("Wohnzimmer._airplay._tcp.local.", dnsmessage.TypeTXT), dnsmessage.TXTResource{TXT: []string{"model=AppleTV11,1", "flags=0x4"}}))
+	must(b.TXTResource(rh("Wohnzimmer._airplay._tcp.local.", dnsmessage.TypeTXT), dnsmessage.TXTResource{TXT: []string{"model=AppleTV11,1", "flags=0x4", "osvers=26.1", "deviceid=AA:BB:CC:DD:EE:FF"}}))
 	must(b.AResource(rh("Apple-TV.local.", dnsmessage.TypeA), dnsmessage.AResource{A: [4]byte{192, 168, 1, 40}}))
 	must(b.AResource(rh("Other.local.", dnsmessage.TypeA), dnsmessage.AResource{A: [4]byte{192, 168, 1, 99}}))
 	msg, err := b.Finish()
@@ -47,6 +47,11 @@ func TestParseMDNS(t *testing.T) {
 	}
 	if !slices.Contains(info.ServiceTypes, "_raop._tcp") || !slices.Contains(info.ServiceTypes, "_airplay._tcp") {
 		t.Fatalf("unexpected service types %v", info.ServiceTypes)
+	}
+	// Only whitelisted version keys are kept, never device IDs.
+	if len(info.TXT) != 1 || info.TXT[0].Service != "_airplay._tcp" || len(info.TXT[0].KV) != 2 ||
+		info.TXT[0].KV["osvers"] != "26.1" || info.TXT[0].KV["model"] != "AppleTV11,1" {
+		t.Fatalf("unexpected TXT %+v", info.TXT)
 	}
 	// A records for other addresses must not name the sender (sleep proxies).
 	other, _ := ParseMDNS(mdnsResponse(t), netip.MustParseAddr("192.168.1.50"))

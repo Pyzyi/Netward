@@ -18,6 +18,17 @@
   const devices = $derived([...store.devices.values()]);
   const online = $derived(devices.filter((d) => d.online).length);
   const fresh = $derived(devices.filter((d) => d.new).sort((a, b) => b.firstSeen - a.firstSeen));
+  // Devices whose software needs attention, the worst first.
+  const swRank: Record<string, number> = { outdated: 0, update: 1, aging: 2 };
+  const swList = $derived(
+    devices.filter((d) => d.software && d.software.status in swRank)
+      .sort((a, b) => swRank[a.software!.status] - swRank[b.software!.status] || displayName(a).localeCompare(displayName(b))),
+  );
+  const swCounts = $derived.by(() => {
+    const c = { outdated: 0, update: 0, aging: 0, supported: 0, unknown: 0 };
+    for (const d of devices) c[d.software?.status ?? 'unknown']++;
+    return c;
+  });
   const ov = $derived(store.overview);
   const scanner = $derived(ov?.scanner);
   const active = $derived(scanner?.interfaces?.filter((i) => i.active) ?? []);
@@ -223,6 +234,42 @@
           {#if fresh.length > 6}
             <a class="more" href="/devices?filter=new" use:link>{t('common.showAll')} ({fresh.length}) <Icon name="caret-right" size={14} /></a>
           {/if}
+        {/if}
+      </section>
+
+      <section class="section" aria-labelledby="sw">
+        <div class="section-head">
+          <h2 id="sw">{t('overview.software')}</h2>
+          {#if swList.length > 5}<a class="small" href="/devices?filter=software" use:link>{t('common.showAll')}</a>{/if}
+        </div>
+        {#if store.loading}
+          <div class="skeleton sk-row"></div>
+        {:else if swList.length === 0}
+          <p class="empty"><Icon name="check-circle" size={18} /> {t('overview.software.none')}</p>
+        {:else}
+          <ul class="swl">
+            {#each swList.slice(0, 5) as d (d.id)}
+              <li>
+                <a href="/devices/{d.id}" use:link>
+                  <DeviceIcon type={d.type} online={d.online} size={34} />
+                  <span class="fresh-text">
+                    <span class="fresh-name">{displayName(d)}</span>
+                    <span class="sub">{d.software?.name}</span>
+                  </span>
+                  <span class="badge {d.software?.status === 'outdated' ? 'danger' : 'warn'}">{t(`overview.software.state.${d.software?.status}`)}</span>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        <p class="sw-tally faint small">
+          {t('overview.software.tally', { outdated: swCounts.outdated, update: swCounts.update + swCounts.aging, ok: swCounts.supported, unknown: swCounts.unknown })}
+        </p>
+        {#if swCounts.unknown > 0}
+          <details class="sw-why">
+            <summary>{t('overview.software.why')}</summary>
+            <p class="small">{t('overview.software.whyText')}</p>
+          </details>
         {/if}
       </section>
 
@@ -486,6 +533,37 @@
     margin: 4px 0;
   }
 
+  .swl {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .swl a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    color: inherit;
+    text-decoration: none;
+  }
+  .swl a:hover .fresh-name {
+    text-decoration: underline;
+  }
+  .sw-tally {
+    margin-top: 2px;
+  }
+  .sw-why summary {
+    font-size: 13px;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .sw-why p {
+    margin-top: 6px;
+    color: var(--text-2);
+    max-width: 62ch;
+  }
   .fresh {
     list-style: none;
     margin: 0;

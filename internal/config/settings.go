@@ -56,6 +56,7 @@ type Settings struct {
 	InternetCheck      bool     `json:"internetCheck"`
 	InternetTargets    []string `json:"internetTargets"`
 	SecurityScanDays   int      `json:"securityScanDays"` // 0 = only on demand
+	UpdateCheck        bool     `json:"updateCheck"`      // ask GitHub daily for a new release (off by default)
 	MQTT               MQTT     `json:"mqtt"`
 	FritzBox           FritzBox `json:"fritzbox"`
 }

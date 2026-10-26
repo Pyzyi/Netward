@@ -26,6 +26,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/security"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -513,5 +514,61 @@ func TestPresenceStripsEdges(t *testing.T) {
 	want := strings.Repeat("-", 10) + strings.Repeat("1", 10) + "00" + "---" + strings.Repeat("0", 5) + strings.Repeat("1", 18)
 	if got := r.Strips[itoa(id)]; got != want {
 		t.Fatalf("strip\n got %s\nwant %s", got, want)
+	}
+}
+
+func TestSoftwareFindingsAndManual(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	h.mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0x04, 0x42, 0x1a, 0, 0, 1}, IP: netip.MustParseAddr("192.168.1.42"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	id := h.mon.Devices()[0].ID
+	h.mon.AddSoftware(id, software.FromNTLMVersion(10, 0, 19045))
+	sec := h.srv.d.Security
+	sec.EvaluateSoftware(ctx)
+	fs, _ := h.st.ListFindings(ctx)
+	if len(fs) != 1 || fs[0].CheckID != security.CheckSoftwareOutdated || fs[0].DeviceID != id || fs[0].Severity != "warning" {
+		t.Fatalf("findings %+v", fs)
+	}
+	// A different build with the same verdict is the same finding.
+	h.mon.AddSoftware(id, software.FromNTLMVersion(10, 0, 19044))
+	sec.EvaluateSoftware(ctx)
+	if fs2, _ := h.st.ListFindings(ctx); len(fs2) != 1 || fs2[0].ID != fs[0].ID {
+		t.Fatalf("version change created a new finding: %+v", fs2)
+	}
+	// Marking the PC as LTSC makes 19044 supported and clears the finding.
+	rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
+		body: map[string]any{"edition": "extended"}})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"status":"supported"`) {
+		t.Fatalf("edition: %d %s", rec.Code, rec.Body)
+	}
+	sec.EvaluateSoftware(ctx)
+	if fs3, _ := h.st.ListFindings(ctx); len(fs3) != 0 {
+		t.Fatalf("finding not cleared: %+v", fs3)
+	}
+	// Manual input is validated.
+	for _, body := range []map[string]any{
+		{"manual": map[string]any{"product": "windows", "version": "11"}},
+		{"manual": map[string]any{"product": "ios", "version": "18<script>"}},
+		{"edition": "server2025"},
+	} {
+		if rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf, body: body}); rec.Code != 400 {
+			t.Fatalf("accepted %v: %d", body, rec.Code)
+		}
+	}
+	rec = h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
+		body: map[string]any{"manual": map[string]any{"product": "ios", "version": "16"}}})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"source":"manual"`) {
+		t.Fatalf("manual: %d %s", rec.Code, rec.Body)
+	}
+	// The detail view carries the full assessment, the list the summary.
+	rec = h.do(req{method: "GET", path: "/api/v1/devices/" + itoa(id), cookie: s.cookie})
+	if !strings.Contains(rec.Body.String(), `"software":{"status":"outdated","product":"ios"`) {
+		t.Fatalf("detail: %s", rec.Body)
+	}
+	if rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie,
+		body: map[string]any{"edition": ""}}); rec.Code != 403 {
+		t.Fatalf("missing CSRF accepted: %d", rec.Code)
 	}
 }

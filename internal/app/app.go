@@ -36,7 +36,9 @@ import (
 	"github.com/Pyzyi/netzwart/internal/privdrop"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/security"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/update"
 )
 
 // DBPath returns the database file inside the data directory.
@@ -146,6 +148,27 @@ func Run(ctx context.Context, o Options) error {
 		}
 		mon.ApplyRouterHosts(ctx, rh, at.UnixMilli())
 	}, log)
+	fritz.OnFirmware(func(ctx context.Context, host string, fw fritzbox.Firmware) {
+		// The router is the configured host if that is an address, else the gateway.
+		var id int64
+		if ip, err := netip.ParseAddr(host); err == nil {
+			if d, ok := mon.DeviceByIP(ip); ok {
+				id = d.ID
+			}
+		}
+		if id == 0 {
+			for _, d := range mon.Devices() {
+				if d.IsGateway {
+					id = d.ID
+					break
+				}
+			}
+		}
+		mon.AddSoftware(id, software.FromFritzBox(fw.Version, fw.UpgradeAvailable, fw.NewVersion))
+	})
+	mon.SetSoftwareHook(sec.TriggerSoftware)
+	upd := update.New(policy.HTTPClient(15*time.Second, 0), o.Version)
+	upd.Configure(settings.UpdateCheck)
 	if !env.Demo {
 		fritz.Configure(ctx, settings.FritzBox)
 	}
@@ -174,6 +197,7 @@ func Run(ctx context.Context, o Options) error {
 		disp.SetLocale(s.Language, s.Timezone)
 		inet.Configure(s.InternetCheck && !env.Demo, s.InternetTargets)
 		bridge.Configure(s.MQTT, s.Language)
+		upd.Configure(s.UpdateCheck)
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)
 		}
@@ -183,7 +207,8 @@ func Run(ctx context.Context, o Options) error {
 
 	srv := api.New(api.Deps{
 		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, FritzBox: fritz, Hub: h,
-		Env: env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
+		Update: upd,
+		Env:    env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
 		Settings: getSettings, ApplySettings: apply, LocalPrefixes: api.LocalPrefixes, RawSockets: len(o.Priv.Links) > 0,
 	})
 	httpSrv := &http.Server{
@@ -225,6 +250,8 @@ func Run(ctx context.Context, o Options) error {
 		sec.Schedule(ctx, func() int { return getSettings().SecurityScanDays })
 		return nil
 	})
+	start("software", func(ctx context.Context) error { sec.WatchSoftware(ctx); return nil })
+	start("update", func(ctx context.Context) error { upd.Run(ctx); return nil })
 	start("mqtt", func(ctx context.Context) error { bridge.Run(ctx); return nil })
 	start("fritzbox", func(ctx context.Context) error { fritz.Run(ctx); return nil })
 	start("maintenance", func(ctx context.Context) error { maintenance(ctx, env, st, mon, log); return nil })

@@ -28,6 +28,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/update"
 )
 
 // SetupWindow is how long after start the initial account can be created.
@@ -43,6 +44,7 @@ type Deps struct {
 	Notify    *notify.Dispatcher
 	MQTT      *mqtt.Bridge
 	FritzBox  *fritzbox.Poller
+	Update    *update.Checker // nil in tests
 	Hub       *hub.Hub
 	Env       config.Env
 	Log       *slog.Logger
@@ -149,6 +151,7 @@ func (s *Server) Handler() http.Handler {
 	authed("GET /api/v1/devices/{id}", s.handleDevice)
 	authed("PATCH /api/v1/devices/{id}", s.handlePatchDevice)
 	authed("DELETE /api/v1/devices/{id}", s.handleDeleteDevice)
+	authed("PUT /api/v1/devices/{id}/software", s.handleDeviceSoftware)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)
 	authed("GET /api/v1/presence/strips", s.handlePresenceStrips)

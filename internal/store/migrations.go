@@ -163,4 +163,18 @@ CREATE TABLE channels (
 	// 2: the presence strips read every span overlapping the last 24 hours;
 	// without this index that is a full scan of the presence table.
 	`CREATE INDEX presence_ended ON presence(ended_at);`,
+	// 3: what devices reveal about their software (docs/08). One row per
+	// device and source; "manual" and "edition" rows are set by the user.
+	`
+CREATE TABLE software (
+	device_id        INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	source           TEXT NOT NULL,
+	product          TEXT NOT NULL,
+	version          TEXT NOT NULL DEFAULT '',
+	evidence         TEXT NOT NULL DEFAULT '',
+	update_available INTEGER NOT NULL DEFAULT 0,
+	seen_at          INTEGER NOT NULL,
+	PRIMARY KEY (device_id, source)
+);
+`,
 }

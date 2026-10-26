@@ -303,14 +303,17 @@ func (s *Store) UpsertFinding(ctx context.Context, f Finding) (bool, error) {
 // PruneFindings deletes findings the run that started at runStart did not
 // confirm. Device findings are only pruned for devices the run checked (an
 // offline device proves nothing), and dismissed findings are kept for 30 days
-// so a port that is briefly unreachable does not resurrect them.
-func (s *Store) PruneFindings(ctx context.Context, runStart int64, checked []int64) error {
+// so a port that is briefly unreachable does not resurrect them. Only the
+// given check IDs are touched: each job prunes its own findings.
+func (s *Store) PruneFindings(ctx context.Context, runStart int64, checked []int64, checks []string) error {
 	ids, _ := json.Marshal(checked)
+	cids, _ := json.Marshal(checks)
 	_, err := s.db.ExecContext(ctx, `DELETE FROM security_findings
 		WHERE last_seen < ?
+		  AND check_id IN (SELECT value FROM json_each(?))
 		  AND (device_id IS NULL OR device_id IN (SELECT value FROM json_each(?)))
 		  AND (dismissed = 0 OR last_seen < ?)`,
-		runStart, string(ids), runStart-30*24*3600*1000)
+		runStart, string(cids), string(ids), runStart-30*24*3600*1000)
 	return err
 }
 

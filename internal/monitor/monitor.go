@@ -25,6 +25,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/oui"
 	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 	"github.com/Pyzyi/netzwart/internal/textutil"
 )
@@ -66,6 +67,7 @@ type entry struct {
 	upnpMaker  string
 	ports      []int
 	probing    bool
+	sw         map[string]store.Software // source -> what the device revealed about its software
 }
 
 type stash struct {
@@ -107,6 +109,9 @@ type Monitor struct {
 	prober   Prober
 	enricher Enricher
 	probeSem chan struct{}
+
+	swHook    func() // see SetSoftwareHook
+	swChanged bool
 }
 
 // New loads the device table and prepares the monitor.
@@ -192,8 +197,15 @@ func (m *Monitor) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	sw, err := m.st.ListSoftware(ctx)
+	if err != nil {
+		return err
+	}
 	for _, d := range devs {
 		e := newEntry(d)
+		for _, row := range sw[d.ID] {
+			e.sw[row.Source] = row
+		}
 		names, err := m.st.ListNames(ctx, d.ID)
 		if err != nil {
 			return err
@@ -236,7 +248,7 @@ func (m *Monitor) load(ctx context.Context) error {
 
 func newEntry(d store.Device) *entry {
 	return &entry{d: d, names: map[string]string{}, addrs: map[netip.Addr]int64{},
-		addrWrites: map[netip.Addr]int64{}, instances: map[string]string{}}
+		addrWrites: map[netip.Addr]int64{}, instances: map[string]string{}, sw: map[string]store.Software{}}
 }
 
 func (m *Monitor) index(e *entry) {
@@ -306,8 +318,9 @@ func (m *Monitor) identFor(mac string, ip netip.Addr) (string, bool) {
 // Observe processes one sighting.
 func (m *Monitor) Observe(ctx context.Context, s l2.Sighting) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	m.observeLocked(ctx, s)
+	m.mu.Unlock()
+	m.softwareChanged()
 }
 
 // presence-proving sources: the device itself sent something.
@@ -454,6 +467,11 @@ func (m *Monitor) create(ctx context.Context, s l2.Sighting) *entry {
 	e.addrs[s.IP] = now
 	e.addrWrites[s.IP] = now
 	m.index(e)
+	for _, row := range e.sw { // observed before the device had an ID
+		row.DeviceID = e.d.ID
+		e.sw[row.Source] = row
+		_ = m.st.UpsertSoftware(ctx, row)
+	}
 	_ = m.st.TouchAddress(ctx, e.d.ID, e.d.IP, s.Iface, now)
 	_ = m.st.OpenPresence(ctx, e.d.ID, now)
 	m.persistNames(ctx, e)
@@ -552,6 +570,9 @@ func (m *Monitor) applyDHCP(e *entry, d *proto.DHCP) bool {
 		e.names["dhcp"] = host
 		changed = true
 	}
+	if d.Op == 1 && d.VendorClass != "" {
+		m.observeSoftware(e, software.FromDHCPVendor(d.VendorClass))
+	}
 	if d.Op == 1 {
 		if fp := proto.ParamListString(d.ParamList); fp != "" && fp != e.d.DHCPFingerprint && len(fp) <= 256 {
 			e.d.DHCPFingerprint = fp
@@ -572,6 +593,9 @@ var instancePriority = []string{"_companion-link._tcp", "_airplay._tcp", "_raop.
 	"_smb._tcp", "_afpovertcp._tcp", "_workstation._tcp", "_ssh._tcp", "_http._tcp"}
 
 func (m *Monitor) applyMDNS(e *entry, info *proto.MDNSInfo) bool {
+	for _, t := range info.TXT {
+		m.observeSoftware(e, software.FromTXT(t.Service, t.KV))
+	}
 	changed := false
 	if h := textutil.Hostname(info.Hostname); h != "" && e.names["mdns"] != h {
 		e.names["mdns"] = h
@@ -709,6 +733,9 @@ func (m *Monitor) persistNames(ctx context.Context, e *entry) {
 func (m *Monitor) view(e *entry) store.Device {
 	d := e.d
 	d.New = !d.Known && m.baselineAt != 0 && d.FirstSeen > m.baselineAt
+	if a := m.assess(e); a.Status != software.StatusUnknown || a.Name != "" {
+		d.Software = &store.SoftwareSummary{Status: a.Status, Name: a.Name}
+	}
 	return d
 }
 

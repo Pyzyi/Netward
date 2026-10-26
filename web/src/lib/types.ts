@@ -36,6 +36,38 @@ export interface Device {
   enrichedAt: number;
   portsScannedAt: number;
   new: boolean;
+  /** Short software verdict; missing when nothing is known. */
+  software?: { status: SoftwareStatus; name: string };
+}
+
+export type SoftwareStatus = 'supported' | 'aging' | 'outdated' | 'update' | 'unknown';
+
+export interface SoftwareObservation {
+  source: string;
+  product: string;
+  version: string;
+  evidence: string;
+  seenAt: number;
+  updateAvailable?: boolean;
+}
+
+/** What Netzwart knows about the software of a device (internal/software). */
+export interface SoftwareAssessment {
+  status: SoftwareStatus;
+  product: string;
+  name: string;
+  version: string;
+  since?: string;
+  until?: string;
+  maxOs?: string;
+  note?: string;
+  edition?: string;
+  conflict?: boolean;
+  lastSeen?: number;
+  source?: string;
+  evidence?: string;
+  observations: SoftwareObservation[];
+  dataAsOf: string;
 }
 
 export interface Port {
@@ -67,6 +99,7 @@ export interface DeviceResponse {
   details: DeviceDetails;
   addresses: Address[];
   ports: Port[];
+  software: SoftwareAssessment;
 }
 
 export interface PresenceSpan { start: number; end: number }
@@ -121,14 +154,15 @@ export interface Overview {
   security: { critical: number; warning: number; info: number; lastRunAt: number; running: boolean };
   baseline: number;
   types: Record<string, number>;
+  software: Record<SoftwareStatus, number>;
 }
 
 export interface Finding {
   id: number;
-  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices';
+  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update';
   deviceId?: number;
   severity: 'info' | 'warning' | 'critical';
-  data: { port?: number; service?: string; ip?: string };
+  data: { port?: number; service?: string; ip?: string; product?: string; status?: string };
   firstSeen: number;
   lastSeen: number;
   dismissed: boolean;
@@ -162,6 +196,7 @@ export interface Settings {
   internetCheck: boolean;
   internetTargets: string[];
   securityScanDays: number;
+  updateCheck: boolean;
   mqtt: MQTTSettings;
   fritzbox: FritzBoxSettings;
 }
@@ -242,4 +277,16 @@ export interface SystemInfo {
   fritzbox: { state: string; error?: string; hosts: number; lastSync: number } | null;
   https: boolean;
   streams: number;
+  softwareDataAsOf: string;
+  update: UpdateStatus | null;
+}
+
+export interface UpdateStatus {
+  enabled: boolean;
+  current: string;
+  latest?: string;
+  url?: string;
+  available: boolean;
+  checkedAt?: number;
+  error?: string;
 }

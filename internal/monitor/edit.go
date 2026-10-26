@@ -8,6 +8,7 @@ import (
 
 	"github.com/Pyzyi/netzwart/internal/classify"
 	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 	"github.com/Pyzyi/netzwart/internal/textutil"
 )
@@ -168,11 +169,17 @@ type Enrichment struct {
 	MDNS         *proto.MDNSInfo
 	UPnP         *proto.UPnPDevice
 	FritzBoxName string
+	SSDPServer   string // SERVER header of an SSDP response
 	At           int64
 }
 
 // ApplyEnrichment merges resolved names and services into a device.
 func (m *Monitor) ApplyEnrichment(ctx context.Context, id int64, en Enrichment) {
+	m.applyEnrichment(ctx, id, en)
+	m.softwareChanged()
+}
+
+func (m *Monitor) applyEnrichment(ctx context.Context, id int64, en Enrichment) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.byID[id]
@@ -189,6 +196,9 @@ func (m *Monitor) ApplyEnrichment(ctx context.Context, id int64, en Enrichment) 
 	set("fritzbox", textutil.Clean(en.FritzBoxName, 64))
 	if en.MDNS != nil {
 		m.applyMDNS(e, en.MDNS)
+	}
+	if en.SSDPServer != "" {
+		m.observeSoftware(e, software.FromSSDPServer(en.SSDPServer))
 	}
 	if en.UPnP != nil {
 		set("ssdp", textutil.Clean(en.UPnP.FriendlyName, 64))

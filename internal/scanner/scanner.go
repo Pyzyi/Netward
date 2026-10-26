@@ -511,6 +511,14 @@ func (s *Scanner) discover(ctx context.Context, i netinfo.Interface) {
 		if ip == i.Addr {
 			continue
 		}
+		if d, ok := s.mon.DeviceByIP(ip); ok {
+			for _, r := range rs {
+				if r.Server != "" {
+					s.mon.ApplyEnrichment(ctx, d.ID, monitor.Enrichment{SSDPServer: r.Server})
+					break
+				}
+			}
+		}
 		for _, r := range rs {
 			u, ok := proto.SafeLocation(r.Location, ip)
 			if !ok {

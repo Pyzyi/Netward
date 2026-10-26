@@ -1,6 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus,
+  InternetStatus, SoftwareAssessment,
 } from './types';
 
 export class ApiError extends Error {
@@ -69,6 +69,8 @@ export const api = {
   overview: () => request<Overview>('GET', '/overview'),
   devices: () => request<Device[]>('GET', '/devices'),
   device: (id: number) => request<DeviceResponse>('GET', `/devices/${id}`),
+  setSoftware: (id: number, body: { manual?: { product: string; version: string }; edition?: string }) =>
+    request<SoftwareAssessment>('PUT', `/devices/${id}/software`, body),
   patchDevice: (id: number, patch: Partial<Record<'name' | 'type' | 'location' | 'notes', string> & Record<'known' | 'favorite' | 'watch', boolean>>) =>
     request<Device>('PATCH', `/devices/${id}`, patch),
   deleteDevice: (id: number) => request<void>('DELETE', `/devices/${id}`),

@@ -3,12 +3,14 @@ package api
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/scanner"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -36,6 +38,7 @@ type overviewResponse struct {
 	Security    securitySummary `json:"security"`
 	Baseline    int64           `json:"baseline"`
 	Types       map[string]int  `json:"types"`
+	Software    map[string]int  `json:"software"` // status -> device count
 }
 
 func (s *Server) scannerStatus() scanner.Status {
@@ -53,7 +56,9 @@ func (s *Server) scannerStatus() scanner.Status {
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
 	devs := s.d.Monitor.Devices()
 	resp := overviewResponse{NetworkName: s.d.Settings().NetworkName, Scanner: s.scannerStatus(),
-		Internet: s.d.Internet.Status(), Baseline: s.d.Monitor.Baseline(), Types: map[string]int{}}
+		Internet: s.d.Internet.Status(), Baseline: s.d.Monitor.Baseline(), Types: map[string]int{},
+		Software: map[string]int{software.StatusOutdated: 0, software.StatusAging: 0, software.StatusUpdate: 0,
+			software.StatusSupported: 0, software.StatusUnknown: 0}}
 	for _, d := range devs {
 		resp.Counts.Total++
 		if d.Online {
@@ -68,6 +73,11 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request, _ *sessi
 			resp.Counts.Unreviewed++
 		}
 		resp.Types[d.Type]++
+		if d.Software != nil {
+			resp.Software[d.Software.Status]++
+		} else {
+			resp.Software[software.StatusUnknown]++
+		}
 	}
 	findings, err := s.d.Store.ListFindings(r.Context())
 	if err != nil {
@@ -97,10 +107,11 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request, _ *sessio
 }
 
 type deviceResponse struct {
-	Device    store.Device    `json:"device"`
-	Details   monitor.Details `json:"details"`
-	Addresses []store.Address `json:"addresses"`
-	Ports     []store.Port    `json:"ports"`
+	Device    store.Device        `json:"device"`
+	Details   monitor.Details     `json:"details"`
+	Addresses []store.Address     `json:"addresses"`
+	Ports     []store.Port        `json:"ports"`
+	Software  software.Assessment `json:"software"`
 }
 
 func (s *Server) handleDevice(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
@@ -129,7 +140,64 @@ func (s *Server) handleDevice(w http.ResponseWriter, r *http.Request, _ *session
 	if p == nil {
 		p = []store.Port{}
 	}
-	writeJSON(w, http.StatusOK, deviceResponse{Device: d, Details: det, Addresses: addrs, Ports: p})
+	sw, _ := s.d.Monitor.Software(id)
+	writeJSON(w, http.StatusOK, deviceResponse{Device: d, Details: det, Addresses: addrs, Ports: p, Software: sw})
+}
+
+// softwareRequest sets what the user knows about a device's software.
+// Manual names a system and major version the network cannot see (iPhones);
+// Edition marks a Windows device as Enterprise/LTSC/Server. Empty clears.
+type softwareRequest struct {
+	Manual *struct {
+		Product string `json:"product"`
+		Version string `json:"version"`
+	} `json:"manual"`
+	Edition *string `json:"edition"`
+}
+
+var manualVersionRe = regexp.MustCompile(`^[0-9]{1,2}(\.[0-9]{1,2})?$`)
+
+func (s *Server) handleDeviceSoftware(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
+	id, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_id", "")
+		return
+	}
+	var req softwareRequest
+	if !readJSON(w, r, &req) {
+		return
+	}
+	if req.Manual != nil {
+		p, v := req.Manual.Product, req.Manual.Version
+		switch {
+		case p == "" && v == "":
+		case (p == software.IOS || p == software.IPadOS || p == software.MacOS || p == software.TvOS || p == software.Android) &&
+			manualVersionRe.MatchString(v):
+		default:
+			writeError(w, http.StatusBadRequest, "invalid_input", "manual")
+			return
+		}
+		if err := s.d.Monitor.SetSoftwareManual(r.Context(), id, p, v); err != nil {
+			s.fail(w, r, err)
+			return
+		}
+	}
+	if req.Edition != nil {
+		if *req.Edition != "" && *req.Edition != software.EditionExtended {
+			writeError(w, http.StatusBadRequest, "invalid_input", "edition")
+			return
+		}
+		if err := s.d.Monitor.SetEdition(r.Context(), id, *req.Edition); err != nil {
+			s.fail(w, r, err)
+			return
+		}
+	}
+	sw, ok := s.d.Monitor.Software(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "not_found", "")
+		return
+	}
+	writeJSON(w, http.StatusOK, sw)
 }
 
 func (s *Server) handlePatchDevice(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {

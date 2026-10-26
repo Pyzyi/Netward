@@ -136,6 +136,17 @@ func Merge(a *proto.MDNSInfo, b proto.MDNSInfo) {
 			a.Instances = append(a.Instances, in)
 		}
 	}
+	for _, t := range b.TXT {
+		replaced := false
+		for i := range a.TXT {
+			if a.TXT[i].Service == t.Service {
+				a.TXT[i], replaced = t, true
+			}
+		}
+		if !replaced && len(a.TXT) < 8 {
+			a.TXT = append(a.TXT, t)
+		}
+	}
 	a.Response = a.Response || b.Response
 }
 
@@ -218,7 +229,8 @@ func MDNSBrowse(ctx context.Context, ifi *net.Interface, prefix netip.Prefix) ma
 	// Commonly announced types that some devices do not list under _services.
 	for _, s := range []string{"_airplay._tcp", "_googlecast._tcp", "_ipp._tcp", "_printer._tcp", "_hap._tcp",
 		"_raop._tcp", "_spotify-connect._tcp", "_smb._tcp", "_device-info._tcp", "_companion-link._tcp",
-		"_sonos._tcp", "_hue._tcp", "_esphomelib._tcp", "_shelly._tcp", "_home-assistant._tcp", "_amzn-wplay._tcp"} {
+		"_sonos._tcp", "_hue._tcp", "_esphomelib._tcp", "_shelly._tcp", "_home-assistant._tcp", "_amzn-wplay._tcp",
+		"_http._tcp"} {
 		types[s] = true
 	}
 	var names []string

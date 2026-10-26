@@ -43,10 +43,22 @@ type Poller struct {
 	apply ApplyFunc
 	log   *slog.Logger
 
-	mu      sync.Mutex
-	cfg     config.FritzBox
-	status  Status
-	trigger chan struct{}
+	mu       sync.Mutex
+	cfg      config.FritzBox
+	status   Status
+	trigger  chan struct{}
+	firmware func(ctx context.Context, host string, fw Firmware)
+	fwAt     time.Time
+}
+
+// firmwareEvery: FRITZ!OS updates are rare; asking every few hours is plenty.
+const firmwareEvery = 6 * time.Hour
+
+// OnFirmware registers fn to receive the router's firmware state.
+func (p *Poller) OnFirmware(fn func(ctx context.Context, host string, fw Firmware)) {
+	p.mu.Lock()
+	p.firmware = fn
+	p.mu.Unlock()
 }
 
 // NewPoller creates a disabled poller.
@@ -61,6 +73,9 @@ func (p *Poller) Configure(ctx context.Context, cfg config.FritzBox) {
 	p.mu.Lock()
 	changed := cfg != p.cfg
 	p.cfg = cfg
+	if changed {
+		p.fwAt = time.Time{}
+	}
 	if !cfg.Enabled {
 		p.status = Status{State: "disabled"}
 	} else if changed {
@@ -154,6 +169,19 @@ func (p *Poller) Sync(ctx context.Context) error {
 	}
 	now := time.Now()
 	p.apply(ctx, hosts, now)
+	p.mu.Lock()
+	fwFn, fwDue := p.firmware, now.Sub(p.fwAt) >= firmwareEvery
+	if fwDue {
+		p.fwAt = now
+	}
+	p.mu.Unlock()
+	if fwFn != nil && fwDue {
+		if fw, err := c.Firmware(cctx); err == nil && fw.Version != "" {
+			fwFn(ctx, cfg.Host, fw)
+		} else if err != nil {
+			p.log.Info("FRITZ!Box firmware query failed", "err", err)
+		}
+	}
 	p.setStatus(ctx, cfg, Status{State: "connected", Hosts: len(hosts), LastSync: now.UnixMilli()})
 	return nil
 }

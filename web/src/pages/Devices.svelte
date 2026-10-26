@@ -10,7 +10,7 @@
   import { t } from '../lib/i18n.svelte';
   import type { Device } from '../lib/types';
 
-  type Filter = 'all' | 'online' | 'offline' | 'new' | 'unreviewed' | 'favorites';
+  type Filter = 'all' | 'online' | 'offline' | 'new' | 'unreviewed' | 'software' | 'favorites';
   type Group = 'none' | 'type' | 'location';
   type Sort = 'status' | 'name' | 'ip' | 'lastSeen' | 'firstSeen';
 
@@ -31,7 +31,9 @@
     }
   }
 
-  const filters: Filter[] = ['all', 'online', 'offline', 'new', 'unreviewed', 'favorites'];
+  const filters: Filter[] = ['all', 'online', 'offline', 'new', 'unreviewed', 'software', 'favorites'];
+  // "Updates nötig": no security updates any more, or an update is waiting.
+  const needsUpdate = (d: Device) => d.software?.status === 'outdated' || d.software?.status === 'update';
   let query = $state('');
   let filter = $state<Filter>((router.query.get('filter') as Filter) ?? 'all');
   let typeFilter = $state<string>(router.query.get('type') ?? '');
@@ -54,6 +56,7 @@
     offline: all.filter((d) => !d.online).length,
     new: all.filter((d) => d.new).length,
     unreviewed: all.filter((d) => !d.known && !d.isSelf).length,
+    software: all.filter(needsUpdate).length,
     favorites: all.filter((d) => d.favorite).length,
   });
 
@@ -67,6 +70,8 @@
         return d.new;
       case 'unreviewed':
         return !d.known && !d.isSelf;
+      case 'software':
+        return needsUpdate(d);
       case 'favorites':
         return d.favorite;
     }

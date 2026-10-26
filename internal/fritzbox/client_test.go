@@ -78,6 +78,11 @@ func newFakeBox(t *testing.T, listAction bool) *fakeBox {
 		switch {
 		case strings.HasSuffix(action, "#X_AVM-DE_GetHostListPath") && f.listAction:
 			io.WriteString(w, soapResponse("X_AVM-DE_GetHostListPath", map[string]string{"NewX_AVM-DE_HostListPath": "/devicehostlist.lua?sid=abc"}))
+		case strings.HasSuffix(action, "#GetInfo") && strings.Contains(action, "DeviceInfo"):
+			io.WriteString(w, soapResponse("GetInfo", map[string]string{"NewSoftwareVersion": "154.07.57",
+				"NewSerialNumber": "SECRET-SERIAL", "NewDeviceLog": "secret log"}))
+		case strings.HasSuffix(action, "#GetInfo") && strings.Contains(action, "UserInterface"):
+			io.WriteString(w, soapResponse("GetInfo", map[string]string{"NewUpgradeAvailable": "1", "NewX_AVM-DE_Version": "154.08.25"}))
 		case strings.HasSuffix(action, "#GetHostNumberOfEntries"):
 			io.WriteString(w, soapResponse("GetHostNumberOfEntries", map[string]string{"NewHostNumberOfEntries": "1"}))
 		case strings.HasSuffix(action, "#GetGenericHostEntry") && strings.Contains(string(body), "<NewIndex>0</NewIndex>"):
@@ -227,4 +232,18 @@ func mustURL(s string) *url.URL {
 		panic(err)
 	}
 	return u
+}
+
+func TestFirmware(t *testing.T) {
+	f := newFakeBox(t, true)
+	fw, err := f.client(pass, nil).Firmware(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fw.Version != "154.07.57" || !fw.UpgradeAvailable || fw.NewVersion != "154.08.25" {
+		t.Fatalf("unexpected firmware %+v", fw)
+	}
+	if strings.Contains(fmt.Sprintf("%+v", fw), "SECRET") {
+		t.Fatal("serial number kept")
+	}
 }
