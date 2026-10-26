@@ -33,7 +33,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 
 ### Geändert
 - Image-Tags: `latest` nur noch aus Releases, `edge` für `main`, kein `:0`-Tag.
-- GitHub-Release entsteht im CI aus `docs/releases/<tag>.md`.
+- Releases entstehen im CI: Die Datei `VERSION` auf `main` bestimmt die Version, die CI legt Tag, Image und GitHub-Release (aus `docs/releases/<tag>.md`) an.
 - Container-Test prüft das Update vom letzten Release auf denselben Daten.
 - Lizenzhinweis nennt die tatsächlich verwendeten Icons und Schriften.
 

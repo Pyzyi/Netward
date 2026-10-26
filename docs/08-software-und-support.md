@@ -113,7 +113,7 @@ Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit n
 
 ## 6. Versionen und Updates
 
-- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netzwart:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`.
+- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netzwart:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`. Ausgelöst wird ein Release durch die Datei `VERSION` auf `main`: Nennt sie eine Version ohne Tag, veröffentlicht die CI das Image als diese Version und `latest`, legt das Tag an und erstellt das Release (ein von Hand gepushtes `v*`-Tag funktioniert ebenfalls).
 - **Update ohne Neuinstallation**: Die Daten liegen im Volume, Datenbank-Migrationen laufen beim Start automatisch. Update = neues Image ziehen und Container neu erstellen (ZimaOS-Oberfläche oder `docker compose pull && docker compose up -d`). Konten, Geräte, Namen, Verlauf und Einstellungen bleiben erhalten.
 - Zurück auf eine ältere Version verweigert Netzwart bewusst (Schema-Schutz). Der Rückweg ist dokumentiert: Backup des Volumes vor dem Update.
 - **Release-Notizen** auf GitHub (Deutsch) und `CHANGELOG.md`.
