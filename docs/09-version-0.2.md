@@ -1,6 +1,6 @@
 # 09 · Version 0.2
 
-Stand: 26.10.2026 · Status: Plan, zur Prüfung
+Stand: 26.10.2026 · Status: Plan, geprüft (Review 7, Entscheidungen im letzten Abschnitt)
 
 Sechs Funktionen, **einzeln** umgesetzt: jede mit eigenen Tests, eigenem Commit und grüner CI, bevor die nächste beginnt. Reihenfolge nach Größe und Abhängigkeit.
 
@@ -78,3 +78,44 @@ Anzeige im Gerätedetail (Abschnitt „WLAN“) und eine Übersicht „WLAN“ m
 ## Abnahme je Funktion
 
 Unit-Tests (Parser mit echten Beispielen, Fake-FRITZ!Box für Mesh und Leitung), API-Test, UI-Test in der Demo, Demo-Daten für jede Funktion, CI grün. Am Ende Code- und Security-Review über alles, dann Release 0.2.0 über `VERSION`.
+
+## Entscheidungen nach dem Plan-Review (Review 7)
+
+Die Abschnitte oben bleiben als ursprünglicher Plan stehen; wo sie abweichen, gilt diese Liste.
+
+**Reihenfolge:** F1a (Router-MAC, DHCP passiv) → F1b (aktive DHCP-Anfrage) → F3 → F5 → F6 → F4 → F2. Jede Funktion bringt ihre Migration (fortlaufend nummeriert in dieser Reihenfolge), deutsche und englische Texte, Schalter, Benachrichtigungsart und Demo-Daten selbst mit.
+
+**F1**
+- Router-MAC über die vorhandene Konfliktlogik (`detectConflicts`): Repeater mit Proxy-ARP/MAC-NAT bleiben ausgenommen, zwei Sweeps in Folge sind nötig. Zwei MACs gleichzeitig auf der Router-Adresse werden als *ein* verschärfter Befund gemeldet, nicht zusätzlich zum IP-Konflikt.
+- MAC-Adressen sind nie Teil der Befund-Identität (keine Meldungsflut bei wechselnden Fälschungen).
+- Hersteller zählt: AVM → AVM und alte MAC verschwunden = „Neuer Router?“ (Hinweis); anderer Hersteller oder alte MAC weiterhin aktiv = Warnung bzw. kritisch.
+- Gibt es keinen eindeutigen Referenz-Server (z. B. nur ein Pi-hole), fragt Netzwart „Welcher Server ist deiner?“ statt zu alarmieren.
+- Passive Erkennung sieht wenig (DHCP-Antworten gehen meist gezielt an den Client); die aktive Anfrage (F1b) ist der verlässliche Weg. Sie fragt Router, DNS und Server-ID ab (Option 55), prüft die Transaktions-ID, nutzt **eine feste MAC pro Installation** (nicht jedes Mal eine neue) und erzeugt nie ein Gerät. Abschaltbar. Nur IPv4.
+
+**F3**
+- Signal aus RCPI umrechnen (dBm = RCPI/2 − 110, 255 = unbekannt); Testdaten mit `schema_version`.
+- Regel „niedrige Datenrate“ entfällt. 5 GHz gilt nur bei `a`/`ac` in den Fähigkeiten als möglich.
+- Hinweise erst nach drei Abfragen in Folge, keine Benachrichtigungen.
+- Fehlende Rechte für die Mesh-Liste betreffen nur diese Funktion, nicht die ganze FRITZ!Box-Anbindung. Ersatzweise die WLAN-Geräteliste ohne Repeater-Zuordnung.
+
+**F5**
+- Neue Tabellen für Latenz (je 5 Minuten: Median, Maximum, Verlust) und Art des Ausfalls (Router, Internet, DNS). Router-Ausfälle und Messlücken von Netzwart zählen im Bericht nicht gegen den Provider.
+- Leitungsdaten jede Minute lesen, nur bei Änderung speichern; Resyncs über die Verbindungsdauer erkennen. Sync-Raten-Diagramm nur bei DSL; der Bericht funktioniert auch ohne FRITZ!Box.
+- Vertragswerte: maximal, normalerweise verfügbar, minimal („Was steht in deinem Vertrag?“). Hinweis: Sync-Rate ist nicht Durchsatz.
+- PDF: Texte als Hex-Strings, Prüfung mit `qpdf --check` im CI, Rohdaten als CSV mit SHA-256 im Anhang. Optional Name/Kundennummer/Anschrift nur für den Bericht, nicht gespeichert. Kein WLAN-Name.
+
+**F6**
+- Abgleich je Versionszweig (ältere Zweige haben eigene „behoben in“-Angaben); „17.1“ steht für 17.1.x.
+- Produktnamen normalisieren (iOS and iPadOS, macOS-Namen, visionOS).
+- Manuelle Angaben: 90-Tage-Regel; statt eines kritischen Befunds die Bitte, die Version zu bestätigen.
+- `kev.json` enthält KEV-`catalogVersion` und den festen Commit des CVE-Repos; die CI erzeugt die Datei neu und vergleicht. Datum in der Oberfläche, Warnung ab 90 Tagen; nie „keine Lücken bekannt“.
+
+**F4**
+- Standard: nur „zu Hause seit …“. „Zeit im Heimnetz je Tag“ pro Person einschaltbar, mit Bestätigung, dass die Person Bescheid weiß.
+- Keine Kommen/Gehen-Benachrichtigungen per Voreinstellung. MQTT-IDs aus der Personen-ID, nie aus dem Namen; Löschen entfernt alles.
+- Hinweis zu iOS-„rotierenden“ privaten WLAN-Adressen (für Anwesenheit „fest“ wählen) und dass Home Assistant den Verlauf selbst speichert.
+
+**F2 (zuletzt, verkleinert)**
+- Keine Hersteller-Abgleiche aus mDNS/UPnP (Docker-, NAS- und Medien-Apps melden fremde Hersteller).
+- Identität: nur Wechsel der DHCP-Systemfamilie bei bekannten Geräten, die mindestens 7 Tage bekannt sind und zweimal per DHCP gesehen wurden; Buttons „neu eingerichtet“ / „kenne ich nicht“.
+- Neue Ports nur mit gespeichertem Scan-Umfang und erst, wenn zwei Scans übereinstimmen; sonst nur Ereignisse.

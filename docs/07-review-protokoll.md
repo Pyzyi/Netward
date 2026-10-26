@@ -260,3 +260,15 @@ Ergebnis: nichts Kritisches oder Hohes. Ohne Befund geprüft:
 | FRITZ!OS-Laborversionen, Ubuntu 26.04 fehlten | niedrig | Ergänzt (OpenSSH 10.2p1 ⇒ 26.04) |
 
 Nachweis: `go vet`, `go test -race ./...`, `svelte-check` 0/0, UI-Tests, Fuzzing der neuen Parser im CI.
+
+## Review 7 · Plan-Review Version 0.2
+
+Ein unabhängiger Reviewer hat den Plan [09 · Version 0.2](09-version-0.2.md) gegen den bestehenden Code geprüft. **Urteil:** freigegeben mit Änderungen.
+
+Die Pflichtänderungen und ihre Umsetzung stehen im Abschnitt „Entscheidungen nach dem Plan-Review“. Die wichtigsten:
+- **Bericht:** Für den Provider-Bericht fehlten gespeicherte Latenzwerte und die Art des Ausfalls.
+- **Router-MAC:** Die Prüfung nutzt die vorhandene Konfliktlogik, und MACs sind nie Teil der Befund-Identität.
+- **WLAN:** Die FRITZ!Box meldet Signal als RCPI. Die Regel „niedrige Datenrate“ hätte dauernd angeschlagen und entfällt.
+- **Lücken-Abgleich:** Er läuft je Versionszweig.
+- **Personen:** Die Funktion bleibt bei der Anwesenheit; die Zeit pro Tag ist nur nach Zustimmung einschaltbar.
+- **Verhaltens-Baseline:** Sie wurde verkleinert, um Fehlalarme zu vermeiden.
