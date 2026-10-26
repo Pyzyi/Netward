@@ -5,7 +5,7 @@
   import ScanButton from '../lib/components/ScanButton.svelte';
   import DeviceDetail from './DeviceDetail.svelte';
   import { store } from '../lib/state.svelte';
-  import { navigate, router } from '../lib/router.svelte';
+  import { link, navigate, router } from '../lib/router.svelte';
   import { deviceTypes, displayName, ipKey, matches, typeLabel } from '../lib/devices';
   import { t } from '../lib/i18n.svelte';
   import type { Device } from '../lib/types';
@@ -153,7 +153,10 @@
         <h1>{t('nav.devices')} <span class="total num">{counts.all}</span></h1>
         <p class="lead">{t('devices.lead', { online: counts.online, offline: counts.offline })}</p>
       </div>
-      <ScanButton />
+      <div class="head-actions">
+        <a class="btn" href="/wlan" use:link><Icon name="wifi-high" size={16} /> {t('devices.wlanLink')}</a>
+        <ScanButton />
+      </div>
     </header>
 
     <div class="toolbar">
@@ -403,5 +406,11 @@
       mask-image: linear-gradient(to right, #000 82%, transparent);
       padding-right: 28px;
     }
+  }
+  .head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
   }
 </style>

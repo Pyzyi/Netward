@@ -25,6 +25,9 @@ type Status struct {
 	Error    string `json:"error,omitempty"` // auth | cert | unreachable | protocol
 	Hosts    int    `json:"hosts"`
 	LastSync int64  `json:"lastSync"`
+	// WLAN is the state of the Wi-Fi diagnosis, which needs more rights
+	// than the host list: "" (not yet), mesh, wlanlist, auth or error.
+	WLAN string `json:"wlan,omitempty"`
 }
 
 // ApplyFunc receives the host table after every successful sync.
@@ -49,6 +52,20 @@ type Poller struct {
 	trigger  chan struct{}
 	firmware func(ctx context.Context, host string, fw Firmware)
 	fwAt     time.Time
+	wlan     func(ctx context.Context, st WLANState, at time.Time)
+	wlanAt   time.Time
+	wlanStat string
+}
+
+// wlanEvery: the Wi-Fi diagnosis shows the current state; five minutes is
+// fresh enough and keeps the router's load low.
+const wlanEvery = 5 * time.Minute
+
+// OnWLAN registers fn to receive the Wi-Fi state (docs/09, F3).
+func (p *Poller) OnWLAN(fn func(ctx context.Context, st WLANState, at time.Time)) {
+	p.mu.Lock()
+	p.wlan = fn
+	p.mu.Unlock()
 }
 
 // firmwareEvery: FRITZ!OS updates are rare; asking every few hours is plenty.
@@ -74,7 +91,7 @@ func (p *Poller) Configure(ctx context.Context, cfg config.FritzBox) {
 	changed := cfg != p.cfg
 	p.cfg = cfg
 	if changed {
-		p.fwAt = time.Time{}
+		p.fwAt, p.wlanAt, p.wlanStat = time.Time{}, time.Time{}, ""
 	}
 	if !cfg.Enabled {
 		p.status = Status{State: "disabled"}
@@ -182,8 +199,42 @@ func (p *Poller) Sync(ctx context.Context) error {
 			p.log.Info("FRITZ!Box firmware query failed", "err", err)
 		}
 	}
-	p.setStatus(ctx, cfg, Status{State: "connected", Hosts: len(hosts), LastSync: now.UnixMilli()})
+	p.syncWLAN(ctx, cctx, c, now)
+	p.mu.Lock()
+	wlanStat := p.wlanStat
+	p.mu.Unlock()
+	p.setStatus(ctx, cfg, Status{State: "connected", Hosts: len(hosts), LastSync: now.UnixMilli(), WLAN: wlanStat})
 	return nil
+}
+
+// syncWLAN reads the Wi-Fi state when it is due. A missing right only
+// affects this feature, never the host list.
+func (p *Poller) syncWLAN(ctx, cctx context.Context, c *Client, now time.Time) {
+	p.mu.Lock()
+	fn, due := p.wlan, now.Sub(p.wlanAt) >= wlanEvery
+	if fn != nil && due {
+		p.wlanAt = now
+	}
+	p.mu.Unlock()
+	if fn == nil || !due {
+		return
+	}
+	st, err := c.WLAN(cctx)
+	stat := st.Source
+	switch {
+	case errors.Is(err, ErrAuth):
+		stat = "auth"
+	case err != nil:
+		stat = "error"
+	}
+	p.mu.Lock()
+	p.wlanStat = stat
+	p.mu.Unlock()
+	if err != nil {
+		p.log.Info("FRITZ!Box Wi-Fi query failed", "err", err)
+		return
+	}
+	fn(ctx, st, now)
 }
 
 // setStatus stores st unless the settings changed during the sync.

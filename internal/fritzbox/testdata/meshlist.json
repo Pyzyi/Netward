@@ -1,0 +1,47 @@
+{
+  "schema_version": "5.6",
+  "nodes": [
+    {
+      "uid": "n-1", "device_name": "fritz.box", "device_model": "FRITZ!Box 7590 AX", "device_manufacturer": "AVM",
+      "device_mac_address": "3C:A6:2F:5E:11:01", "is_meshed": true, "mesh_role": "master",
+      "node_interfaces": [
+        {"uid": "ni-1-2g", "name": "AP:2G:0", "type": "WLAN", "mac_address": "3C:A6:2F:5E:11:02", "opmode": "AP", "current_channel": 6, "phymodes": ["b", "g", "n", "ax"],
+         "node_links": []},
+        {"uid": "ni-1-5g", "name": "AP:5G:0", "type": "WLAN", "mac_address": "3C:A6:2F:5E:11:03", "opmode": "AP", "current_channel": 36, "phymodes": ["a", "n", "ac", "ax"],
+         "node_links": [
+           {"uid": "nl-1", "type": "WLAN", "state": "CONNECTED", "node_1_uid": "n-1", "node_2_uid": "n-2", "node_interface_1_uid": "ni-1-5g", "node_interface_2_uid": "ni-2-up",
+            "max_data_rate_rx": 866000, "max_data_rate_tx": 866000, "cur_data_rate_rx": 86000, "cur_data_rate_tx": 97000, "rx_rcpi": 66, "tx_rcpi": 255},
+           {"uid": "nl-2", "type": "WLAN", "state": "CONNECTED", "node_1_uid": "n-1", "node_2_uid": "n-3", "node_interface_1_uid": "ni-1-5g", "node_interface_2_uid": "ni-3",
+            "max_data_rate_rx": 1201000, "max_data_rate_tx": 1201000, "cur_data_rate_rx": 864000, "cur_data_rate_tx": 720000, "rx_rcpi": 104, "tx_rcpi": 255},
+           {"uid": "nl-old", "type": "WLAN", "state": "DISCONNECTED", "node_1_uid": "n-1", "node_2_uid": "n-5", "node_interface_1_uid": "ni-1-5g", "node_interface_2_uid": "ni-5",
+            "max_data_rate_rx": 0, "max_data_rate_tx": 0, "cur_data_rate_rx": 0, "cur_data_rate_tx": 0, "rx_rcpi": 255, "tx_rcpi": 255}
+         ]},
+        {"uid": "ni-1-lan", "name": "LAN:1", "type": "LAN", "mac_address": "3C:A6:2F:5E:11:01", "node_links": [
+           {"uid": "nl-3", "type": "LAN", "state": "CONNECTED", "node_1_uid": "n-1", "node_2_uid": "n-6", "node_interface_1_uid": "ni-1-lan", "node_interface_2_uid": "ni-6",
+            "max_data_rate_rx": 1000000, "max_data_rate_tx": 1000000, "cur_data_rate_rx": 0, "cur_data_rate_tx": 0}
+        ]}
+      ]
+    },
+    {
+      "uid": "n-2", "device_name": "Repeater OG", "device_model": "FRITZ!Repeater 2400", "device_manufacturer": "AVM",
+      "device_mac_address": "E0:28:6D:44:10:01", "is_meshed": true, "mesh_role": "slave",
+      "node_interfaces": [
+        {"uid": "ni-2-up", "name": "UPLINK:5G:0", "type": "WLAN", "mac_address": "E0:28:6D:44:10:02", "opmode": "REPEATER", "current_channel": 36, "phymodes": ["a", "n", "ac"], "node_links": []},
+        {"uid": "ni-2-2g", "name": "AP:2G:0", "type": "WLAN", "mac_address": "E0:28:6D:44:10:03", "opmode": "AP", "current_channel": 11, "phymodes": ["b", "g", "n"],
+         "node_links": [
+           {"uid": "nl-4", "type": "WLAN", "state": "CONNECTED", "node_1_uid": "n-2", "node_2_uid": "n-4", "node_interface_1_uid": "ni-2-2g", "node_interface_2_uid": "ni-4",
+            "max_data_rate_rx": 144000, "max_data_rate_tx": 144000, "cur_data_rate_rx": 26000, "cur_data_rate_tx": 39000, "rx_rcpi": 62, "tx_rcpi": 255}
+         ]},
+        {"uid": "ni-2-5g", "name": "AP:5G:0", "type": "WLAN", "mac_address": "E0:28:6D:44:10:04", "opmode": "AP", "current_channel": 36, "phymodes": ["a", "n", "ac"], "node_links": []}
+      ]
+    },
+    {"uid": "n-3", "device_name": "Annas-iPhone", "device_mac_address": "AA:BB:CC:00:00:01", "is_meshed": false, "mesh_role": "unknown",
+     "node_interfaces": [{"uid": "ni-3", "name": "", "type": "WLAN", "mac_address": "AA:BB:CC:00:00:01", "phymodes": ["b", "g", "n", "a", "ac", "ax"], "node_links": []}]},
+    {"uid": "n-4", "device_name": "Laptop", "device_mac_address": "AA:BB:CC:00:00:02", "is_meshed": false, "mesh_role": "unknown",
+     "node_interfaces": [{"uid": "ni-4", "name": "", "type": "WLAN", "mac_address": "AA:BB:CC:00:00:02", "phymodes": ["b", "g", "n", "a", "ac"], "node_links": []}]},
+    {"uid": "n-5", "device_name": "Altes Tablet", "device_mac_address": "AA:BB:CC:00:00:05", "is_meshed": false, "mesh_role": "unknown",
+     "node_interfaces": [{"uid": "ni-5", "name": "", "type": "WLAN", "mac_address": "AA:BB:CC:00:00:05", "phymodes": ["b", "g", "n"], "node_links": []}]},
+    {"uid": "n-6", "device_name": "NAS", "device_mac_address": "AA:BB:CC:00:00:06", "is_meshed": false, "mesh_role": "unknown",
+     "node_interfaces": [{"uid": "ni-6", "name": "eth0", "type": "LAN", "mac_address": "AA:BB:CC:00:00:06", "node_links": []}]}
+  ]
+}

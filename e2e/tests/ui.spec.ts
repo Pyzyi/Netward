@@ -156,13 +156,29 @@ test('second DHCP server is explained with its device', async ({ page }) => {
   // Demo mode is read-only.
   await expect(item.getByRole('button', { name: 'Diesen Server kenne ich' })).toBeDisabled();
   await page.goto('/activity');
+  await page.getByRole('button', { name: 'Sicherheit' }).click(); // logins of other tests fill the first page
   await expect(page.getByText('Adressverteiler (DHCP-Server) entdeckt: 192.168.178.80')).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
+test('Wi-Fi diagnosis names the problem and the device', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/devices');
+  await page.getByRole('link', { name: 'WLAN-Diagnose' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'WLAN' })).toBeVisible();
+  await expect(page.getByText('Laptop Kinder hängt im 2,4-GHz-Band am Repeater „Repeater OG“, obwohl es 5 GHz kann.')).toBeVisible();
+  await expect(page.getByText(/Der Repeater „Repeater OG“ ist selbst nur schwach angebunden/)).toBeVisible();
+  await page.getByRole('link', { name: 'Laptop Kinder' }).click();
+  const detail = page.locator('section', { has: page.getByRole('heading', { name: 'WLAN' }) });
+  await expect(detail.getByText('Repeater OG', { exact: true })).toBeVisible();
+  await expect(detail.locator('dd', { hasText: 'Schwaches Signal' })).toBeVisible();
   expect(problems).toEqual([]);
 });
 
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
-  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/settings/scanning']) {
+  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning']) {
     await page.goto(path);
     await page.waitForTimeout(400);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

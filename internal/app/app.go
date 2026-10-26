@@ -39,6 +39,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 	"github.com/Pyzyi/netzwart/internal/update"
+	"github.com/Pyzyi/netzwart/internal/wlan"
 )
 
 // DBPath returns the database file inside the data directory.
@@ -155,6 +156,11 @@ func Run(ctx context.Context, o Options) error {
 		}
 		mon.ApplyRouterHosts(ctx, rh, at.UnixMilli())
 	}, log)
+	wifi := wlan.New(mon)
+	fritz.OnWLAN(func(_ context.Context, st fritzbox.WLANState, at time.Time) { wifi.Apply(st, at) })
+	if env.Demo {
+		wifi.SeedDemo(DemoWLAN(), time.Now())
+	}
 	fritz.OnFirmware(func(ctx context.Context, host string, fw fritzbox.Firmware) {
 		// The router is the configured host if that is an address, else an
 		// AVM gateway, else the only AVM router; never a guess.
@@ -225,8 +231,8 @@ func Run(ctx context.Context, o Options) error {
 
 	srv := api.New(api.Deps{
 		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, FritzBox: fritz, Hub: h,
-		Update: upd,
-		Env:    env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
+		Update: upd, WLAN: wifi,
+		Env: env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
 		Settings: getSettings, ApplySettings: apply, LocalPrefixes: api.LocalPrefixes, RawSockets: len(o.Priv.Links) > 0,
 	})
 	httpSrv := &http.Server{

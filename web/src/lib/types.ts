@@ -191,6 +191,41 @@ export interface NetworkState {
   probe?: { at: number; answers: number };
 }
 
+/** Wi-Fi diagnosis from the FRITZ!Box (docs/09, F3). */
+export type WlanHint = 'weak' | 'very_weak' | 'band24' | 'backhaul_weak' | 'weak_repeater';
+export interface WlanClient {
+  mac: string;
+  apMac: string;
+  band: '2.4' | '5' | '6' | '';
+  channel?: number;
+  signalDbm?: number;
+  signalPct?: number;
+  rateRx?: number;
+  rateTx?: number;
+  maxRate?: number;
+  can5ghz?: boolean;
+  deviceId?: number;
+  hints: WlanHint[];
+}
+export interface WlanAccessPoint {
+  mac: string;
+  name: string;
+  model?: string;
+  master: boolean;
+  bands?: string[];
+  backhaul?: { type: 'wlan' | 'lan'; band?: string; signalDbm?: number; rate?: number };
+  deviceId?: number;
+  hints: WlanHint[];
+  clients: WlanClient[];
+}
+export interface WlanView {
+  at: number;
+  source?: 'mesh' | 'wlanlist';
+  aps: WlanAccessPoint[];
+  fritzbox: 'disabled' | 'connecting' | 'connected' | 'error';
+  status?: '' | 'mesh' | 'wlanlist' | 'auth' | 'error';
+}
+
 export interface MQTTSettings {
   enabled: boolean;
   host: string;

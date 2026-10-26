@@ -5,6 +5,7 @@ export type Route =
   | { name: 'devices'; id?: number }
   | { name: 'activity' }
   | { name: 'security' }
+  | { name: 'wlan' }
   | { name: 'settings'; section: string };
 
 function parse(path: string): Route {
@@ -18,6 +19,8 @@ function parse(path: string): Route {
       return { name: 'activity' };
     case 'security':
       return { name: 'security' };
+    case 'wlan':
+      return { name: 'wlan' };
     case 'settings':
       return { name: 'settings', section: parts[1] ?? 'general' };
     default:

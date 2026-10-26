@@ -5,19 +5,34 @@
   import CopyButton from '../lib/components/CopyButton.svelte';
   import Timeline from '../lib/components/Timeline.svelte';
   import SoftwareCard from '../lib/components/SoftwareCard.svelte';
+  import SignalBars from '../lib/components/SignalBars.svelte';
+  import { apName, bandLabel, hintText, hintTodo, rateText, signalLevel, signalText } from '../lib/wlan';
   import Dialog from '../lib/components/Dialog.svelte';
   import { toast } from '../lib/components/toast.svelte';
   import { api, ApiError } from '../lib/api';
   import { clock, store } from '../lib/state.svelte';
   import { deviceTypes, displayName, modelName, typeLabel, vendorName } from '../lib/devices';
-  import { navigate } from '../lib/router.svelte';
+  import { link, navigate } from '../lib/router.svelte';
   import { eventText } from '../lib/events';
   import { dateTime, durationSince, relTime, t } from '../lib/i18n.svelte';
-  import type { DeviceResponse, EventItem, Presence } from '../lib/types';
+  import type { DeviceResponse, EventItem, Presence, WlanAccessPoint, WlanClient } from '../lib/types';
 
   let { id, onclose }: { id: number; onclose: () => void } = $props();
 
   let detail = $state<DeviceResponse | null>(null);
+  // Wi-Fi details from the FRITZ!Box, if the device is connected over Wi-Fi.
+  let wifi = $state<{ c: WlanClient; ap: WlanAccessPoint } | null>(null);
+  $effect(() => {
+    const myId = id;
+    wifi = null;
+    api.wlan().then((v) => {
+      if (myId !== id) return;
+      for (const ap of v.aps) {
+        const c = ap.clients.find((x) => x.deviceId === myId);
+        if (c) wifi = { c, ap };
+      }
+    }, () => {});
+  });
   let notFound = $state(false);
   let presence = $state<Presence | null>(null);
   let range = $state<'24h' | '7d' | '30d'>('24h');
@@ -364,6 +379,36 @@
       <section class="section">
         <h3>{t('device.section.software')}</h3>
         <SoftwareCard device={d} software={detail.software} onchange={(sw) => { if (detail) detail.software = sw; }} />
+      </section>
+    {/if}
+
+    {#if wifi}
+      {@const lvl = signalLevel(wifi.c)}
+      <section class="section">
+        <h3>{t('device.section.wlan')}</h3>
+        <dl class="dl">
+          <dt>{t('wlan.ap')}</dt>
+          <dd>{apName(wifi.ap, store.devices)}</dd>
+          <dt>{t('wlan.col.band')}</dt>
+          <dd>{bandLabel(wifi.c.band)}{#if wifi.c.channel}{' '}<span class="faint">· {t('wlan.channel', { n: wifi.c.channel })}</span>{/if}</dd>
+          {#if lvl !== 'unknown'}
+            <dt>{t('wlan.col.signal')}</dt>
+            <dd class="wifi-signal {lvl}"><SignalBars level={lvl} /> {t(`wlan.signal.${lvl}`)} <span class="mono faint">{signalText(wifi.c)}</span></dd>
+          {/if}
+          {#if rateText(wifi.c)}
+            <dt>{t('wlan.col.rate')}</dt>
+            <dd class="mono">{rateText(wifi.c)}</dd>
+          {/if}
+        </dl>
+        {#each wifi.c.hints as h (h)}
+          <div class="notice warn wifi-hint">
+            <div>
+              <p><strong>{hintText(h, wifi.c, wifi.ap, store.devices)}</strong></p>
+              <p class="small">{hintTodo(h)}</p>
+            </div>
+          </div>
+        {/each}
+        <a class="small" href="/wlan" use:link>{t('wlan.all')}</a>
       </section>
     {/if}
 
@@ -799,5 +844,20 @@
       padding-left: 16px;
       padding-right: 16px;
     }
+  }
+  .wifi-signal {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wifi-signal.weak,
+  .wifi-signal.very_weak {
+    color: var(--warn);
+  }
+  .wifi-hint {
+    margin-top: 10px;
+  }
+  .wifi-hint p + p {
+    margin-top: 4px;
   }
 </style>

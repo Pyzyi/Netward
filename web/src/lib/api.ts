@@ -1,6 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, NetworkState, SoftwareAssessment,
+  InternetStatus, NetworkState, SoftwareAssessment, WlanView,
 } from './types';
 
 export class ApiError extends Error {
@@ -105,6 +105,7 @@ export const api = {
   runSecurity: () => request<void>('POST', '/security/run'),
   dismissFinding: (id: number, dismissed: boolean) => request<void>('POST', `/security/findings/${id}/dismiss`, { dismissed }),
   network: () => request<NetworkState>('GET', '/network'),
+  wlan: () => request<WlanView>('GET', '/wlan'),
   acceptNetwork: (b: { ip: string } | { server: string }) => request<NetworkState>('POST', '/network/accept', b),
 
   internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number }[] }>('GET', '/internet'),

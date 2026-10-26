@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/Pyzyi/netzwart/internal/config"
 	"github.com/Pyzyi/netzwart/internal/egress"
+	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/internet"
 	"github.com/Pyzyi/netzwart/internal/l2"
@@ -29,6 +31,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/wlan"
 )
 
 const testHost = "192.168.1.5:8840"
@@ -619,5 +622,47 @@ func TestRogueDHCPFindingAndAccept(t *testing.T) {
 	}
 	if rec := h.do(req{method: "GET", path: "/api/v1/network", cookie: s.cookie}); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"accepted":true`) {
 		t.Fatalf("network: %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestWLANEndpoint(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	if rec := h.do(req{method: "GET", path: "/api/v1/wlan"}); rec.Code != 401 {
+		t.Fatalf("unauthenticated: %d", rec.Code)
+	}
+	rec := h.do(req{method: "GET", path: "/api/v1/wlan", cookie: s.cookie})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"fritzbox":"disabled"`) || !strings.Contains(rec.Body.String(), `"aps":[]`) {
+		t.Fatalf("without FRITZ!Box: %d %s", rec.Code, rec.Body)
+	}
+	h.mon.Observe(context.Background(), l2.Sighting{MAC: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0, 0, 2}, IP: netip.MustParseAddr("192.168.1.44"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	data, err := os.ReadFile("../fritzbox/testdata/meshlist.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := fritzbox.ParseMeshList(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := wlan.New(h.mon)
+	tr.SeedDemo(st, time.Now())
+	h.srv.d.WLAN = tr
+	rec = h.do(req{method: "GET", path: "/api/v1/wlan", cookie: s.cookie})
+	var v struct {
+		APs []struct {
+			Clients []struct {
+				MAC      string   `json:"mac"`
+				DeviceID int64    `json:"deviceId"`
+				Hints    []string `json:"hints"`
+			} `json:"clients"`
+		} `json:"aps"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &v); err != nil || len(v.APs) != 2 {
+		t.Fatalf("view: %v %s", err, rec.Body)
+	}
+	laptop := v.APs[1].Clients[0]
+	if laptop.MAC != "aa:bb:cc:00:00:02" || laptop.DeviceID == 0 || len(laptop.Hints) != 3 {
+		t.Fatalf("laptop %+v", laptop)
 	}
 }

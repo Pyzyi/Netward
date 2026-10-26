@@ -11,6 +11,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 - Aktive DHCP-Prüfung im Sicherheitscheck: ein einzelner DHCPDISCOVER (Broadcast, feste lokale Kennung je Installation, kein REQUEST, nur IPv4) findet auch DHCP-Server, die passiv nicht auffallen. Antworten zählen nur mit passender Transaktions-ID. Abschaltbar unter Einstellungen → Scannen.
 - Sicherheitsseite: Übersicht „Router und Adressvergabe“ mit Router-Kennung, bekannten DHCP-Servern und letzter aktiver Prüfung.
 - Bestätigungen erscheinen im Aktivitätsprotokoll.
+- WLAN-Diagnose aus der FRITZ!Box (Mesh-Liste über TR-064, alle 5 Minuten): Zugangspunkt, Band, Kanal, Signal in dBm und Datenrate je Gerät, Anbindung der Repeater. Hinweise wie „Laptop hängt im 2,4-GHz-Band am Repeater, obwohl es 5 GHz kann“, schwaches Signal oder schwach angebundener Repeater erscheinen erst nach drei Abfragen in Folge und benachrichtigen nicht. Neue Seite „WLAN“ (über Geräte) und Abschnitt „WLAN“ im Gerätedetail. Ohne Recht für die Mesh-Liste dient die einfache WLAN-Liste als Ersatz; die Geräteliste der FRITZ!Box ist davon nicht betroffen.
 
 ## 0.1.0 – 2026-10-26
 

@@ -21,6 +21,9 @@
   const scanner = $derived(store.overview?.scanner);
   const iface = $derived(scanner?.interfaces?.find((i) => i.active));
 
+  // The Wi-Fi view belongs to the devices.
+  const active = (name: string) => router.route.name === name || (name === 'devices' && router.route.name === 'wlan');
+
   function badgeFor(name: string): number {
     if (name === 'devices') return newCount;
     if (name === 'security') return secCount;
@@ -45,7 +48,7 @@
       <nav class="tabs" aria-label="Navigation">
         {#each nav as item (item.name)}
           {@const badge = badgeFor(item.name)}
-          <a href={item.href} use:link aria-current={router.route.name === item.name ? 'page' : undefined}>
+          <a href={item.href} use:link aria-current={active(item.name) ? 'page' : undefined}>
             {t(item.label)}
             {#if badge > 0}<span class="count" class:danger={item.name === 'security'}>{badge}</span>{/if}
           </a>
@@ -80,7 +83,7 @@
   <nav class="tabbar" aria-label="Navigation">
     {#each nav as item (item.name)}
       {@const badge = badgeFor(item.name)}
-      <a href={item.href} use:link aria-current={router.route.name === item.name ? 'page' : undefined}>
+      <a href={item.href} use:link aria-current={active(item.name) ? 'page' : undefined}>
         <span class="tab-icon">
           <Icon name={item.icon} size={22} />
           {#if badge > 0}<span class="tab-badge" class:danger={item.name === 'security'}>{badge}</span>{/if}

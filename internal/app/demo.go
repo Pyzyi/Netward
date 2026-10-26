@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -229,4 +230,37 @@ func firstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+// DemoWLAN is the Wi-Fi of the demo home: the FRITZ!Box downstairs and a
+// repeater upstairs whose own link is weak, so the children's laptop ends
+// up on 2.4 GHz behind it (docs/09, F3).
+func DemoWLAN() fritzbox.WLANState {
+	const box, rep = "3c:a6:2f:5e:11:01", "3c:a6:2f:5e:22:02"
+	c := func(mac, ap, band string, ch, dbm, rate, maxRate int, can5 bool) fritzbox.WLANClient {
+		return fritzbox.WLANClient{MAC: mac, APMAC: ap, Band: band, Channel: ch, SignalDBm: dbm, RateRx: rate, RateTx: rate * 9 / 10, MaxRate: maxRate, Can5GHz: can5}
+	}
+	return fritzbox.WLANState{
+		Source: "mesh",
+		APs: []fritzbox.WLANAccessPoint{
+			{MAC: box, Name: "FRITZ!Box", Model: "FRITZ!Box 7590 AX", Master: true, Bands: []string{"2.4", "5"}},
+			{MAC: rep, Name: "Repeater OG", Model: "FRITZ!Repeater 2400", Bands: []string{"2.4", "5"},
+				Backhaul: &fritzbox.WLANBackhaul{Type: "wlan", Band: "5", SignalDBm: -77, Rate: 86}},
+		},
+		Clients: []fritzbox.WLANClient{
+			c("6e:41:0a:93:21:5c", box, "5", 36, -54, 864, 1201, true),
+			c("f0:2f:4b:12:7a:33", box, "5", 36, -61, 702, 1201, true),
+			c("8c:79:f5:21:9a:5b", box, "5", 36, -57, 433, 866, true),
+			c("a8:9c:ed:4f:3e:71", box, "2.4", 6, -70, 72, 286, true),
+			c("44:00:49:ab:cc:02", box, "2.4", 6, -68, 65, 72, false),
+			c("48:a6:b8:aa:31:10", box, "2.4", 6, -55, 72, 72, false),
+			c("ec:71:db:12:40:3e", box, "2.4", 6, -73, 58, 144, false),
+			c("c4:5b:be:61:7e:20", box, "2.4", 6, -84, 6, 72, false),
+			c("c4:5b:be:61:7e:8a", box, "2.4", 6, -66, 39, 72, false),
+			c("50:ec:50:55:a1:2c", box, "2.4", 6, -62, 52, 72, false),
+			c("5a:8e:13:c0:77:e2", box, "5", 36, -66, 390, 866, true),
+			c("30:5a:3a:61:0b:2d", rep, "2.4", 11, -79, 26, 144, true),
+			c("86:2c:10:5f:a4:93", rep, "5", 36, -66, 270, 866, true),
+		},
+	}
 }
