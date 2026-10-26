@@ -137,6 +137,7 @@ const de = {
   'internet.unknown': 'Wird geprüft …',
   'internet.latency': '{ms} ms',
   'internet.outages': '{n} Ausfälle in 30 Tagen',
+  'internet.kind.router': 'Router antwortete nicht',
   'internet.noOutages': 'Keine Ausfälle in 30 Tagen',
 
   'devices.search': 'Name, IP, MAC oder Hersteller',
@@ -911,6 +912,7 @@ const en: Record<Key, string> = {
   'internet.unknown': 'Checking …',
   'internet.latency': '{ms} ms',
   'internet.outages': '{n} outages in 30 days',
+  'internet.kind.router': 'router did not answer',
   'internet.noOutages': 'No outages in 30 days',
 
   'devices.search': 'Name, IP, MAC or vendor',

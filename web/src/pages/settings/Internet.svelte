@@ -63,7 +63,10 @@
       <p class="label">{data.outages.length ? t('internet.outages', { n: data.outages.length }) : t('internet.noOutages')}</p>
       <ul class="outages">
         {#each data.outages.slice(0, 8) as o (o.id)}
-          <li><span>{dateTime(o.start)}</span><span class="muted">{o.end ? duration(o.end - o.start) : '…'}</span></li>
+          <li>
+            <span>{dateTime(o.start)}{#if o.kind === 'router'}{' '}<span class="faint">· {t('internet.kind.router')}</span>{/if}</span>
+            <span class="muted">{o.end ? duration(o.end - o.start) : '…'}</span>
+          </li>
         {/each}
       </ul>
     </div>

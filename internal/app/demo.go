@@ -205,8 +205,11 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "unknown_devices", Severity: "info", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
 	_ = st.SetSetting(ctx, "security_last_run", now.Add(-3*time.Hour).UnixMilli())
 	out := now.Add(-20 * time.Hour)
-	if _, err := st.OpenOutage(ctx, out.UnixMilli()); err == nil {
+	if _, err := st.OpenOutage(ctx, out.UnixMilli(), store.OutageInternet); err == nil {
 		_ = st.CloseOutages(ctx, out.Add(23*time.Minute).UnixMilli())
+	}
+	if err := seedLineHistory(ctx, st, now, rnd); err != nil {
+		return err
 	}
 	data, _ := json.Marshal(map[string]any{"durationMs": int64(23 * time.Minute / time.Millisecond)})
 	events = append(events, store.Event{TS: out.UnixMilli(), Kind: "internet_down", Severity: "warning", Data: json.RawMessage(`{"state":"offline"}`)})
@@ -263,4 +266,52 @@ func DemoWLAN() fritzbox.WLANState {
 			c("86:2c:10:5f:a4:93", rep, "5", 36, -66, 270, 866, true),
 		},
 	}
+}
+
+// seedLineHistory fills 30 days of latency and a handful of outages of each
+// kind, so the provider report (docs/09, F5) has something to show.
+func seedLineHistory(ctx context.Context, st *store.Store, now time.Time, rnd *rand.Rand) error {
+	type spell struct {
+		daysAgo, hour, minutes int
+		kind                   string
+	}
+	spells := []spell{
+		{27, 3, 4, store.OutageInternet}, {21, 20, 41, store.OutageInternet}, {14, 2, 2, store.OutageRouter},
+		{9, 19, 12, store.OutageInternet}, {6, 21, 7, store.OutageDNS}, {3, 1, 3, store.OutageInternet},
+	}
+	down := func(t time.Time) bool {
+		for _, s := range spells {
+			start := time.Date(now.Year(), now.Month(), now.Day()-s.daysAgo, s.hour, 10, 0, 0, now.Location())
+			if s.kind != store.OutageRouter && !t.Before(start) && t.Before(start.Add(time.Duration(s.minutes)*time.Minute)) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, s := range spells {
+		start := time.Date(now.Year(), now.Month(), now.Day()-s.daysAgo, s.hour, 10, 0, 0, now.Location())
+		if _, err := st.OpenOutage(ctx, start.UnixMilli(), s.kind); err != nil {
+			return err
+		}
+		if s.kind == store.OutageDNS {
+			_ = st.CloseDNSOutages(ctx, start.Add(time.Duration(s.minutes)*time.Minute).UnixMilli())
+		} else {
+			_ = st.CloseOutages(ctx, start.Add(time.Duration(s.minutes)*time.Minute).UnixMilli())
+		}
+	}
+	var ls []store.Latency
+	for t := now.Add(-30 * 24 * time.Hour).Truncate(5 * time.Minute); t.Before(now.Add(-5 * time.Minute)); t = t.Add(5 * time.Minute) {
+		med := 11 + rnd.IntN(4)
+		if h := t.Hour(); h >= 19 && h <= 22 {
+			med += 6 + rnd.IntN(8) // evening peak
+		}
+		l := store.Latency{TS: t.UnixMilli(), Median: med, Max: med + 3 + rnd.IntN(25), Samples: 10}
+		if down(t) {
+			l.Median, l.Max, l.Lost = -1, -1, 10
+		} else if rnd.IntN(40) == 0 {
+			l.Lost = 1
+		}
+		ls = append(ls, l)
+	}
+	return st.AddLatency(ctx, ls...)
 }

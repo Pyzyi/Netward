@@ -345,13 +345,8 @@ func TestSoftwareRowsAndPreUpdateBackup(t *testing.T) {
 
 	// Pretend the database is one schema behind: reopening keeps a copy the
 	// older version can still open.
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = ?`, len(migrations)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.db.ExecContext(ctx, `DROP TABLE software`); err != nil {
-		t.Fatal(err)
-	}
 	s.Close()
+	withExtraMigration(t)
 	s, err = Open(ctx, path)
 	if err != nil {
 		t.Fatal(err)
@@ -384,9 +379,8 @@ func TestPreUpdateBackupFailureDoesNotBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _ = s.db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = ?`, len(migrations))
-	_, _ = s.db.ExecContext(ctx, `DROP TABLE software`)
 	s.Close()
+	withExtraMigration(t)
 	// "backup" exists as a file: the copy cannot be written.
 	if err := os.WriteFile(filepath.Join(dir, "backup"), nil, 0o600); err != nil {
 		t.Fatal(err)
@@ -399,4 +393,12 @@ func TestPreUpdateBackupFailureDoesNotBlock(t *testing.T) {
 	if len(s.Warnings()) != 1 {
 		t.Fatalf("warnings %v", s.Warnings())
 	}
+}
+
+// withExtraMigration makes an up-to-date database one schema behind, the way
+// it is after installing a newer version.
+func withExtraMigration(t *testing.T) {
+	orig := migrations
+	migrations = append(orig[:len(orig):len(orig)], `CREATE TABLE test_extra (x INTEGER);`)
+	t.Cleanup(func() { migrations = orig })
 }

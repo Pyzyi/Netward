@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"net/netip"
+	"slices"
 	"sync"
 	"time"
 
@@ -77,7 +78,13 @@ type Monitor struct {
 	fails    int
 	outageAt int64
 	history  []Sample
+	dnsFails int   // checks in a row with working addresses but failing names
+	bucket   []int // latencies (ms, -1 = lost) of the current 5-minute bucket
+	bucketAt int64 // start of the current bucket
 }
+
+// latencyBucket is the resolution of the stored latency history.
+const latencyBucket = 5 * time.Minute
 
 // New creates the monitor.
 func New(st *store.Store, h *hub.Hub, events Logger, n notify.Notifier, pinger *l2.Pinger, policy *egress.Policy, gw Gateways, log *slog.Logger) *Monitor {
@@ -100,8 +107,12 @@ func (m *Monitor) Configure(enabled bool, targets []string) {
 		if m.outageAt != 0 && m.fails >= failLimit {
 			_ = m.st.CloseOutages(context.Background(), time.Now().UnixMilli())
 		}
+		if m.dnsFails >= failLimit {
+			_ = m.st.CloseDNSOutages(context.Background(), time.Now().UnixMilli())
+		}
 		m.status = Status{State: StateDisabled}
-		m.fails, m.outageAt = 0, 0
+		m.fails, m.outageAt, m.dnsFails = 0, 0, 0
+		m.bucket, m.bucketAt = nil, 0
 	} else if m.status.State == StateDisabled {
 		m.status = Status{State: StateUnknown}
 	}
@@ -145,6 +156,9 @@ func (m *Monitor) History() []Sample {
 // Run checks periodically until ctx ends.
 func (m *Monitor) Run(ctx context.Context) {
 	// Resume an outage that was open when the process stopped.
+	// A DNS outage cannot be resumed reliably; the report leaves out the
+	// time Netzwart was not running anyway.
+	_ = m.st.CloseDNSOutages(ctx, time.Now().UnixMilli())
 	if outs, err := m.st.ListOutages(ctx, 0); err == nil {
 		for _, o := range outs {
 			if o.End == 0 {
@@ -249,10 +263,18 @@ func (m *Monitor) record(ctx context.Context, now time.Time, state string, laten
 	if len(m.history) > historyLen {
 		m.history = m.history[len(m.history)-historyLen:]
 	}
+	flush := m.addToBucket(now, ms, gwOK)
 	prev := m.status.State
 	up := state == StateOnline || state == StateDegraded
-	var startOutage, endOutage bool
+	var startOutage, endOutage, startDNS, endDNS bool
 	var outageStart int64
+	if state == StateDegraded {
+		m.dnsFails++
+		startDNS = m.dnsFails == failLimit
+	} else {
+		endDNS = m.dnsFails >= failLimit
+		m.dnsFails = 0
+	}
 	if up {
 		if m.fails >= failLimit && m.outageAt != 0 {
 			endOutage, outageStart = true, m.outageAt
@@ -277,8 +299,26 @@ func (m *Monitor) record(ctx context.Context, now time.Time, state string, laten
 	m.mu.Unlock()
 
 	m.hub.Publish("internet", st)
+	if flush != nil {
+		if err := m.st.AddLatency(ctx, *flush); err != nil {
+			m.log.Error("record latency", "err", err)
+		}
+	}
+	// DNS outages only go into the provider report: no event, no message.
+	if startDNS {
+		_, _ = m.st.OpenOutage(ctx, now.Add(-time.Duration(failLimit-1)*checkEvery).UnixMilli(), store.OutageDNS)
+	}
+	if endDNS {
+		_ = m.st.CloseDNSOutages(ctx, now.UnixMilli())
+	}
 	if startOutage {
-		if _, err := m.st.OpenOutage(ctx, outageAt); err != nil {
+		// The kind is decided at the start: an outage that begins with the
+		// router not answering (a reboot, a power cut) is not the provider's.
+		kind := store.OutageInternet
+		if state == StateLANDown {
+			kind = store.OutageRouter
+		}
+		if _, err := m.st.OpenOutage(ctx, outageAt, kind); err != nil {
 			m.log.Error("record outage", "err", err)
 		}
 		data := map[string]any{"state": state}
@@ -294,4 +334,40 @@ func (m *Monitor) record(ctx context.Context, now time.Time, state string, laten
 		m.notifier.Notify(notify.Event{Kind: notify.KindInternetUp, Severity: "info", TS: now.UnixMilli(), Data: data})
 		m.log.Info("internet outage ended", "duration", time.Duration(dur)*time.Millisecond)
 	}
+}
+
+// addToBucket adds one check to the current 5-minute bucket and returns the
+// previous bucket once a new one starts; m.mu must be held. Failures while
+// the router itself does not answer are not counted as lost: that is a
+// problem at home, not on the line.
+func (m *Monitor) addToBucket(now time.Time, ms int, gwOK bool) *store.Latency {
+	start := now.Truncate(latencyBucket).UnixMilli()
+	var out *store.Latency
+	if m.bucketAt != 0 && start != m.bucketAt && len(m.bucket) > 0 {
+		l := summarize(m.bucketAt, m.bucket)
+		out = &l
+		m.bucket = m.bucket[:0]
+	}
+	m.bucketAt = start
+	if ms >= 0 || gwOK {
+		m.bucket = append(m.bucket, ms)
+	}
+	return out
+}
+
+func summarize(at int64, vals []int) store.Latency {
+	l := store.Latency{TS: at, Median: -1, Max: -1, Samples: len(vals)}
+	var ok []int
+	for _, v := range vals {
+		if v < 0 {
+			l.Lost++
+			continue
+		}
+		ok = append(ok, v)
+	}
+	if len(ok) > 0 {
+		slices.Sort(ok)
+		l.Median, l.Max = ok[len(ok)/2], ok[len(ok)-1]
+	}
+	return l
 }

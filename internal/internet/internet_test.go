@@ -103,3 +103,62 @@ func TestDisableClosesOutage(t *testing.T) {
 		}
 	}
 }
+
+func TestOutageKindsAndLatencyBuckets(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "i.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	r := &rec{}
+	m := New(st, hub.New(), r, r, nil, &egress.Policy{}, func() []netip.Addr { return nil }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	m.Configure(true, []string{"192.0.2.1:443"})
+	base := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	at := func(i int) time.Time { return base.Add(time.Duration(i) * 30 * time.Second) }
+	// Bucket 12:00: ten checks, one lost while the router answered.
+	for i := 0; i < 10; i++ {
+		ms := time.Duration(10+i) * time.Millisecond
+		if i == 4 {
+			ms = -1
+		}
+		state := StateOnline
+		if ms < 0 {
+			state = StateOffline
+		}
+		m.record(ctx, at(i), state, ms, "192.168.1.1", true)
+	}
+	// 12:05: the router reboots (router outage), then DNS fails for a while.
+	for i := 10; i < 14; i++ {
+		m.record(ctx, at(i), StateLANDown, -1, "192.168.1.1", false)
+	}
+	for i := 14; i < 18; i++ {
+		m.record(ctx, at(i), StateDegraded, 20*time.Millisecond, "192.168.1.1", true)
+	}
+	m.record(ctx, at(18), StateOnline, 12*time.Millisecond, "192.168.1.1", true)
+	m.record(ctx, at(30), StateOnline, 12*time.Millisecond, "192.168.1.1", true) // 12:15: flushes 12:05
+
+	outs, _ := st.OutagesBetween(ctx, 0, base.Add(time.Hour).UnixMilli())
+	if len(outs) != 2 || outs[0].Kind != store.OutageRouter || outs[1].Kind != store.OutageDNS || outs[0].End == 0 || outs[1].End == 0 {
+		t.Fatalf("outages %+v", outs)
+	}
+	if listed, _ := st.ListOutages(ctx, 0); len(listed) != 1 {
+		t.Fatalf("DNS outages must not show up as connectivity outages: %+v", listed)
+	}
+	for _, k := range r.kinds {
+		if k == "log:internet_down" && len(r.kinds) != 4 {
+			t.Fatalf("a DNS outage must not notify: %v", r.kinds)
+		}
+	}
+	ls, _ := st.LatencyBetween(ctx, 0, base.Add(time.Hour).UnixMilli())
+	if len(ls) != 2 {
+		t.Fatalf("buckets %+v", ls)
+	}
+	if b := ls[0]; b.TS != base.UnixMilli() || b.Samples != 10 || b.Lost != 1 || b.Median != 15 || b.Max != 19 {
+		t.Fatalf("first bucket %+v", b)
+	}
+	// Failures while the router was down are not counted against the line.
+	if b := ls[1]; b.Lost != 0 || b.Samples != 5 {
+		t.Fatalf("second bucket %+v", b)
+	}
+}

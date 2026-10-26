@@ -177,4 +177,18 @@ CREATE TABLE software (
 	PRIMARY KEY (device_id, source)
 );
 `,
+	// 4: evidence for the provider report (docs/09, F5). Outages get their
+	// kind (router: the router itself did not answer, so it does not count
+	// against the provider; internet; dns), latency is kept as 5-minute
+	// buckets of the 30-second checks.
+	`
+ALTER TABLE internet_outages ADD COLUMN kind TEXT NOT NULL DEFAULT 'internet';
+CREATE TABLE internet_latency (
+	ts        INTEGER PRIMARY KEY,
+	median_ms INTEGER NOT NULL,
+	max_ms    INTEGER NOT NULL,
+	lost      INTEGER NOT NULL,
+	samples   INTEGER NOT NULL
+);
+`,
 }

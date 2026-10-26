@@ -158,32 +158,58 @@ func (s *Store) ListEvents(ctx context.Context, q EventQuery) ([]Event, error) {
 	return out, rows.Err()
 }
 
+// Outage kinds.
+const (
+	OutageInternet = "internet" // router answers, the internet does not
+	OutageRouter   = "router"   // the router itself does not answer
+	OutageDNS      = "dns"      // addresses work, name resolution does not
+)
+
 // Outage is a period without internet connectivity.
 type Outage struct {
-	ID    int64 `json:"id"`
-	Start int64 `json:"start"`
-	End   int64 `json:"end"` // 0 = ongoing
+	ID    int64  `json:"id"`
+	Start int64  `json:"start"`
+	End   int64  `json:"end"` // 0 = ongoing
+	Kind  string `json:"kind"`
 }
 
-// OpenOutage records the start of an internet outage.
-func (s *Store) OpenOutage(ctx context.Context, ts int64) (int64, error) {
-	res, err := s.db.ExecContext(ctx, `INSERT INTO internet_outages (started_at) VALUES (?)`, ts)
+// OpenOutage records the start of an outage of the given kind.
+func (s *Store) OpenOutage(ctx context.Context, ts int64, kind string) (int64, error) {
+	res, err := s.db.ExecContext(ctx, `INSERT INTO internet_outages (started_at, kind) VALUES (?, ?)`, ts, kind)
 	if err != nil {
 		return 0, err
 	}
 	return res.LastInsertId()
 }
 
-// CloseOutages ends every open outage at ts.
+// CloseOutages ends every open connectivity outage (router or internet) at ts.
 func (s *Store) CloseOutages(ctx context.Context, ts int64) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE internet_outages SET ended_at = ? WHERE ended_at IS NULL`, ts)
+	_, err := s.db.ExecContext(ctx, `UPDATE internet_outages SET ended_at = ? WHERE ended_at IS NULL AND kind <> 'dns'`, ts)
 	return err
 }
 
-// ListOutages returns outages that started after since, newest first.
+// CloseDNSOutages ends every open DNS outage at ts.
+func (s *Store) CloseDNSOutages(ctx context.Context, ts int64) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE internet_outages SET ended_at = ? WHERE ended_at IS NULL AND kind = 'dns'`, ts)
+	return err
+}
+
+// ListOutages returns connectivity outages (no DNS) that started after
+// since, newest first.
 func (s *Store) ListOutages(ctx context.Context, since int64) ([]Outage, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, started_at, IFNULL(ended_at, 0) FROM internet_outages
-		WHERE started_at >= ? OR ended_at IS NULL ORDER BY started_at DESC LIMIT 200`, since)
+	return s.queryOutages(ctx, `SELECT id, started_at, IFNULL(ended_at, 0), kind FROM internet_outages
+		WHERE kind <> 'dns' AND (started_at >= ? OR ended_at IS NULL) ORDER BY started_at DESC LIMIT 200`, since)
+}
+
+// OutagesBetween returns every outage of any kind overlapping [from, to],
+// oldest first (provider report).
+func (s *Store) OutagesBetween(ctx context.Context, from, to int64) ([]Outage, error) {
+	return s.queryOutages(ctx, `SELECT id, started_at, IFNULL(ended_at, 0), kind FROM internet_outages
+		WHERE started_at <= ? AND (ended_at IS NULL OR ended_at >= ?) ORDER BY started_at LIMIT 10000`, to, from)
+}
+
+func (s *Store) queryOutages(ctx context.Context, q string, args ...any) ([]Outage, error) {
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -191,10 +217,51 @@ func (s *Store) ListOutages(ctx context.Context, since int64) ([]Outage, error) 
 	out := []Outage{}
 	for rows.Next() {
 		var o Outage
-		if err := rows.Scan(&o.ID, &o.Start, &o.End); err != nil {
+		if err := rows.Scan(&o.ID, &o.Start, &o.End, &o.Kind); err != nil {
 			return nil, err
 		}
 		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
+// Latency is one 5-minute bucket of internet checks.
+type Latency struct {
+	TS      int64 `json:"t"`      // bucket start
+	Median  int   `json:"median"` // ms of the successful checks, -1 if none
+	Max     int   `json:"max"`    // ms, -1 if none
+	Lost    int   `json:"lost"`   // failed checks while the router answered
+	Samples int   `json:"samples"`
+}
+
+// AddLatency stores buckets (replacing a bucket with the same start).
+func (s *Store) AddLatency(ctx context.Context, ls ...Latency) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, l := range ls {
+			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO internet_latency (ts, median_ms, max_ms, lost, samples)
+				VALUES (?, ?, ?, ?, ?)`, l.TS, l.Median, l.Max, l.Lost, l.Samples); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// LatencyBetween returns the buckets in [from, to), oldest first.
+func (s *Store) LatencyBetween(ctx context.Context, from, to int64) ([]Latency, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT ts, median_ms, max_ms, lost, samples FROM internet_latency
+		WHERE ts >= ? AND ts < ? ORDER BY ts`, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Latency{}
+	for rows.Next() {
+		var l Latency
+		if err := rows.Scan(&l.TS, &l.Median, &l.Max, &l.Lost, &l.Samples); err != nil {
+			return nil, err
+		}
+		out = append(out, l)
 	}
 	return out, rows.Err()
 }
@@ -358,6 +425,7 @@ func (s *Store) Prune(ctx context.Context, before int64) error {
 			`DELETE FROM presence WHERE ended_at IS NOT NULL AND ended_at < ?`,
 			`DELETE FROM internet_outages WHERE ended_at IS NOT NULL AND ended_at < ?`,
 			`DELETE FROM monitor_gaps WHERE ended_at < ?`,
+			`DELETE FROM internet_latency WHERE ts < ?`,
 			`DELETE FROM sessions WHERE expires_at < ?`,
 		} {
 			arg := before

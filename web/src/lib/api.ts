@@ -108,6 +108,6 @@ export const api = {
   wlan: () => request<WlanView>('GET', '/wlan'),
   acceptNetwork: (b: { ip: string } | { server: string }) => request<NetworkState>('POST', '/network/accept', b),
 
-  internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number }[] }>('GET', '/internet'),
+  internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number; kind: 'internet' | 'router' }[] }>('GET', '/internet'),
   system: () => request<SystemInfo>('GET', '/system'),
 };
