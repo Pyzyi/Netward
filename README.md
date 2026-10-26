@@ -40,11 +40,20 @@ aber auf jedem Linux-Host mit Docker.
   iPhones (aus dem Modell), macOS, Android, Debian/Raspberry Pi OS, Ubuntu, Synology DSM, Apple TV, FRITZ!OS mit
   verfügbarem Update. Veraltete Geräte werden zum Sicherheitsbefund mit Benachrichtigung und konkretem Rat.
   Was das Netz nicht verrät (z. B. die iOS-Version), kannst du am Gerät selbst angeben.
+- **Bekannte, aktiv ausgenutzte Lücken** (neu in 0.2). Netzwart gleicht genaue Versionen von iOS, iPadOS, macOS und
+  tvOS offline mit der CISA-Liste ausgenutzter Lücken ab und sagt, ab welcher Version sie geschlossen sind.
 - **Sicherheitscheck.** Riskante offene Dienste (Telnet, SMB, RDP, unverschlüsselte Datenbanken …), UPnP am Router,
-  IP-Konflikte, unbekannte Geräte. Jeder Befund mit konkretem Tipp, was zu tun ist.
-- **Internet-Monitor.** Latenz der letzten 24 Stunden und Ausfallhistorie. Unterscheidet „Router weg“, „Internet weg“
-  und „nur DNS gestört“.
+  IP-Konflikte, unbekannte Geräte. Neu in 0.2: ein zweiter DHCP-Server im Netz, ein anderes Gerät auf der
+  Router-Adresse (ARP-Spoofing) und bekannte Geräte, die sich plötzlich als anderes System melden.
+  Jeder Befund mit konkretem Tipp, was zu tun ist.
+- **Personen** (neu in 0.2). „Wer ist zu Hause“ anhand der Handys und Uhren, auf Wunsch je Person als
+  `device_tracker` in Home Assistant. Die Zeit im Heimnetz je Tag nur, wenn die Person zugestimmt hat.
+- **Internet-Monitor und Nachweis für den Provider.** Latenz und Ausfallhistorie; unterscheidet „Router weg“,
+  „Internet weg“ und „nur DNS gestört“. Neu in 0.2: ein PDF-Bericht über einen Zeitraum mit Verfügbarkeit, allen
+  Ausfällen, Latenz je Tag und – mit FRITZ!Box – den Sync-Raten gegen deine Vertragswerte, dazu die Rohdaten als CSV.
 - **FRITZ!Box-Anbindung** (optional, TR-064): übernimmt die Namen, die du in der FRITZ!Box vergeben hast.
+  Neu in 0.2: WLAN-Diagnose (welches Gerät hängt an welchem Repeater, in welchem Band, wie gut) und die
+  Leitungsdaten (Sync-Raten, Neueinwahlen).
 - **Werkzeuge:** Portscan pro Gerät, Wake-on-LAN, Geräte zusammenführen, CSV/JSON-Export.
 - **Oberfläche:** hell und dunkel, Deutsch und Englisch, funktioniert auf dem Handy und lässt sich zum
   Startbildschirm hinzufügen.

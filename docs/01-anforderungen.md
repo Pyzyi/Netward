@@ -94,6 +94,12 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-30 | Software und Support je Gerät (0.1) | Gerätedetail zeigt System, Version, Quelle und ob es noch Sicherheitsupdates bekommt (`unterstützt`, `Ende absehbar`, `Update verfügbar`, `keine Updates mehr`, `unbekannt`) mit Handlungsempfehlung; Wissensstand mit Datum; Version oder Windows-Ausgabe manuell angebbar ([08](08-software-und-support.md)) |
 | F-31 | Befund „Keine Sicherheitsupdates mehr“ (0.1) | Wird beim Start, täglich und nach jeder Änderung neu bewertet, unabhängig vom Sicherheitscheck; Benachrichtigung bei neuem Befund, mehr als drei auf einmal gebündelt; eine neue Version mit gleichem Urteil löst keine erneute Meldung aus |
 | F-32 | Hinweis auf neue Netzwart-Versionen (0.1, opt-in) | Standardmäßig aus; wenn an, einmal täglich ein GET auf die Release-Liste von GitHub; zeigt Version und Link zu den Release-Notizen; installiert nichts selbst |
+| F-33 | Zweiter DHCP-Server und Router-Adresse (0.2) | Passiv und per einzelner DHCP-Anfrage im Sicherheitscheck (abschaltbar) erkannte DHCP-Server werden angezeigt; ein weiterer Server ist ein Befund (kritisch, wenn er andere Router/DNS vorgibt), ebenso zwei Antwortende auf die Router-Adresse oder eine neue Hardware dafür; „Diesen Server kenne ich“/„Das ist mein neuer Router“ bestätigen ([09](09-version-0.2.md)) |
+| F-34 | WLAN-Diagnose (0.2, FRITZ!Box) | Je WLAN-Gerät Zugangspunkt, Band, Kanal, Signal (dBm) und Datenrate, Anbindung der Repeater; Hinweise auf schwaches Signal, 2,4 GHz trotz 5-GHz-Fähigkeit und schwach angebundene Repeater erst nach drei Abfragen in Folge; ohne Benachrichtigung |
+| F-35 | Nachweis-Bericht für den Provider (0.2) | PDF über einen gewählten Zeitraum (abgeschlossene Tage, max. ein Jahr): Verfügbarkeit über die gemessene Zeit, Störungen nach Art (Router zählt nicht), Latenz je Tag, Sync-Raten gegen Vertragswerte; Rohdaten als CSV mit SHA-256 im PDF; persönliche Angaben nur im PDF; Hinweis auf die Breitbandmessung der Bundesnetzagentur |
+| F-36 | Bekannte, aktiv ausgenutzte Lücken (0.2) | Offline-Schnappschuss (CISA KEV + CVE List v5, je Release); bei genauer Version von iOS, iPadOS, macOS oder tvOS kritischer Befund mit CVEs und „behoben in“; eigene Angaben bitten um Bestätigung; Datenstand sichtbar; nie „keine Lücken“ |
+| F-37 | Personen (0.2) | Personen mit Geräten; „zu Hause seit …“ auf der Übersicht; Zeit je Tag nur mit bestätigtem Einverständnis; je Person ein Home-Assistant-`device_tracker` (abschaltbar); keine Kommen/Gehen-Meldungen |
+| F-38 | Verhaltens-Baseline (0.2, klein) | Wechsel der Systemfamilie eines etablierten, bekannten Geräts (zweimal bestätigt) wird Befund mit „Neu eingerichtet“/„Kenne ich nicht“; neue Ports bei zwei übereinstimmenden Scans gleichen Umfangs als Ereignis |
 
 ### Could (Roadmap)
 
@@ -117,7 +123,7 @@ Die vollständige Zuordnung zu ISO/IEC 25010 steht in [04-qualitaetsmodell-iso25
 | N-01 | Installation ausschließlich per `docker compose` (copy & paste), ohne weitere Dateien |
 | N-02 | Image ≤ 40 MB, RAM im Leerlauf ≤ 60 MB (Spitze beim Login ≤ 90 MB), CPU < 1 % im Leerlauf und < 3 % eines Kerns während SMB-Übertragung auf Celeron-Klasse (ZimaBoard) |
 | N-03 | Läuft auf `linux/amd64` und `linux/arm64` |
-| N-04 | Keine ausgehenden Verbindungen außer konfigurierten Benachrichtigungen, dem (abschaltbaren) Internet-Monitor und – nur wenn eingeschaltet – der Versionsabfrage (F-32) |
+| N-04 | Keine ausgehenden Verbindungen außer konfigurierten Benachrichtigungen, dem (abschaltbaren) Internet-Monitor und – nur wenn eingeschaltet – der Versionsabfrage (F-32); der Lücken-Abgleich (F-36) fragt nichts online ab |
 | N-05 | Prozess läuft nicht als root und hat zur Laufzeit **keine** Capabilities (Raw-Sockets werden vor dem Rechteverzicht geöffnet) |
 | N-06 | Oberfläche zielt auf WCAG 2.2 AA (Kontrast automatisch geprüft, Tastatur, Fokus, Semantik) |
 | N-07 | Daten bleiben über Container-Updates erhalten; Schema-Migrationen laufen automatisch, vorher wird die Datenbank als `backup/pre-update-schema-N.db` gesichert (Rückweg zur Vorversion) |

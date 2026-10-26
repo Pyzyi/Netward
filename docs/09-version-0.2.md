@@ -119,3 +119,17 @@ Die Abschnitte oben bleiben als ursprünglicher Plan stehen; wo sie abweichen, g
 - Keine Hersteller-Abgleiche aus mDNS/UPnP (Docker-, NAS- und Medien-Apps melden fremde Hersteller).
 - Identität: nur Wechsel der DHCP-Systemfamilie bei bekannten Geräten, die mindestens 7 Tage bekannt sind und zweimal per DHCP gesehen wurden; Buttons „neu eingerichtet“ / „kenne ich nicht“.
 - Neue Ports nur mit gespeichertem Scan-Umfang und erst, wenn zwei Scans übereinstimmen; sonst nur Ereignisse.
+
+## Umsetzung (Stand Release 0.2.0)
+
+Reihenfolge wie beschlossen, jede Funktion einzeln mit eigenen Tests, Commit und grüner CI: F1a → F1b → F3 → F5a/b/c → F6a/b → F4 → F2.
+
+Abweichungen vom Plan, bewusst:
+
+- **Datenmodell:** Router-Referenzen, DHCP-Server, Probe-MAC und Systemfamilien sind kleine JSON-Einstellungen statt eigener Tabellen (wenige Einträge, keine Abfragen darüber). Die Migrationen sind daher: 4 Latenz-Abschnitte und Ausfallart, 5 Leitungsdaten, 6 Personen.
+- **F1b:** Absender-MAC des DISCOVER ist die eigene Schnittstelle, nur `chaddr` ist die feste Probe-MAC. So funktioniert die Prüfung auch über WLAN und hinterlässt keine fremde MAC in Switch-Tabellen.
+- **F3:** Abfrage alle 5 Minuten, Hinweise nach drei Abfragen in Folge; ohne Recht für die Mesh-Liste die WLAN-Gerätelisten je Funkband (Signal in Prozent, keine Repeater, daher keine Signal-Hinweise).
+- **F5:** Der Bericht umfasst nur abgeschlossene Tage; dadurch enthalten PDF und die getrennt geladene CSV dieselben Daten und die Prüfsumme im PDF passt. Fiel der Router aus, zählt das nicht gegen den Anbieter; maßgeblich ist die Art beim Beginn des Ausfalls.
+- **F6:** Abgleich für iOS, iPadOS, macOS und tvOS. „17.1“ ohne Patch-Stand ergibt „unsicher“, wenn die Lücke erst in 17.1.x geschlossen wurde. Neben „kritisch“ (erkannte Version) gibt es „Warnung“ (eigene Angabe, bitte bestätigen) und „Hinweis“ (unsicher).
+- **F2:** Neue Ports erscheinen nur als Ereignis (zwei übereinstimmende Scans desselben Umfangs), ohne Befund. Der Systemwechsel bleibt bei Familien (Apple, Windows, Android, Linux); iPhone → Mac ist kein Wechsel.
+- **Nebenbei behoben:** MQTT-Verbindung brach direkt nach dem Start einmal ab; CI hat Zeitlimits je Job.
