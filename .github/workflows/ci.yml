@@ -11,13 +11,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   go:
     name: Go – lint, test, fuzz
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -53,6 +54,7 @@ jobs:
   govulncheck:
     name: Go – known vulnerabilities
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
@@ -63,6 +65,7 @@ jobs:
   web:
     name: Web – types, contrast, build
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: web
@@ -86,6 +89,7 @@ jobs:
   container:
     name: Container – build, integration, UI, scan
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     needs: [go, web]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,6 +128,7 @@ jobs:
         working-directory: e2e
         env:
           NETZWART_URL: http://127.0.0.1:18850
+        timeout-minutes: 12
         run: |
           npm ci --no-fund
           npx playwright install --with-deps chromium
@@ -153,6 +158,7 @@ jobs:
     name: Release check
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
@@ -181,6 +187,7 @@ jobs:
     name: Publish image
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     needs: [go, govulncheck, web, container, version]
     permissions:
       contents: read
@@ -238,6 +245,7 @@ jobs:
     name: GitHub release
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || needs.version.outputs.release == 'true')
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     needs: [version, publish]
     permissions:
       contents: write
