@@ -30,6 +30,10 @@ type DHCP struct {
 	FQDN        string     // option 81 (raw)
 	VendorClass string     // option 60 (raw)
 	ParamList   []byte     // option 55
+	// Server replies only:
+	ServerID netip.Addr   // option 54
+	Router   netip.Addr   // option 3 (first router)
+	DNS      []netip.Addr // option 6 (at most 4)
 }
 
 var errNotDHCP = errors.New("not a DHCP packet")
@@ -121,6 +125,18 @@ func DecodeDHCP(p []byte) (DHCP, error) {
 			}
 		case 81:
 			d.FQDN = decodeFQDNOption(v)
+		case 54:
+			if l == 4 {
+				d.ServerID = netip.AddrFrom4([4]byte(v))
+			}
+		case 3:
+			if l >= 4 {
+				d.Router = netip.AddrFrom4([4]byte(v[:4]))
+			}
+		case 6:
+			for j := 0; j+4 <= l && len(d.DNS) < 4; j += 4 {
+				d.DNS = append(d.DNS, netip.AddrFrom4([4]byte(v[j:j+4])))
+			}
 		}
 		i += 2 + l
 	}

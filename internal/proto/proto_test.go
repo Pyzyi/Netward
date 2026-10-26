@@ -279,3 +279,23 @@ func FuzzDecodeUPnP(f *testing.F) {
 		}
 	})
 }
+
+func TestDecodeDHCPServerOptions(t *testing.T) {
+	opts := []byte{
+		53, 1, 2, // OFFER
+		54, 4, 192, 168, 178, 1,
+		3, 8, 192, 168, 178, 1, 192, 168, 178, 254,
+		6, 12, 192, 168, 178, 1, 1, 1, 1, 1, 9, 9, 9, 9,
+		6, 3, 1, 2, 3, // truncated second DNS option: ignored
+		255,
+	}
+	_, _, _, _, payload, _ := UDPPayload(buildDHCPFrame(2, macB, opts))
+	d, err := DecodeDHCP(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.ServerID != netip.MustParseAddr("192.168.178.1") || d.Router != netip.MustParseAddr("192.168.178.1") || len(d.DNS) != 3 ||
+		d.DNS[2] != netip.MustParseAddr("9.9.9.9") {
+		t.Fatalf("server options: %+v", d)
+	}
+}
