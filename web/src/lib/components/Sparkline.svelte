@@ -2,25 +2,9 @@
   let { points, height = 36, color = 'var(--signal)' }: { points: { t: number; ms: number }[]; height?: number; color?: string } = $props();
 
   const W = 240;
-  const path = $derived.by(() => {
-    const ok = points.filter((p) => p.ms >= 0);
-    if (ok.length < 2) return { line: '', fails: [] };
-    const t0 = points[0].t;
-    const t1 = points[points.length - 1].t;
-    const max = Math.max(...ok.map((p) => p.ms), 10) * 1.15;
-    const x = (t: number) => ((t - t0) / Math.max(1, t1 - t0)) * W;
-    const y = (ms: number) => height - 2 - (ms / max) * (height - 4);
-    let d = '';
-    let pen = false;
-    for (const p of points) {
-      if (p.ms < 0) {
-        pen = false;
-        continue;
-      }
-      d += `${pen ? 'L' : 'M'}${x(p.t).toFixed(1)} ${y(p.ms).toFixed(1)}`;
-      pen = true;
-    }
-    // Runs of failed probes become one segment on the baseline, at least 3 wide.
+
+  // Runs of failed probes become one segment on the baseline, at least 3 wide.
+  function outages(x: (t: number) => number) {
     const fails: { x: number; w: number }[] = [];
     let start = -1;
     points.forEach((p, i) => {
@@ -34,6 +18,29 @@
         start = -1;
       }
     });
+    return fails;
+  }
+
+  const path = $derived.by(() => {
+    if (points.length < 2) return { line: '', fails: [] };
+    const t0 = points[0].t;
+    const t1 = points[points.length - 1].t;
+    const x = (t: number) => ((t - t0) / Math.max(1, t1 - t0)) * W;
+    const fails = outages(x);
+    const ok = points.filter((p) => p.ms >= 0);
+    if (ok.length < 2) return { line: '', fails }; // nothing but outages
+    const max = Math.max(...ok.map((p) => p.ms), 10) * 1.15;
+    const y = (ms: number) => height - 2 - (ms / max) * (height - 4);
+    let d = '';
+    let pen = false;
+    for (const p of points) {
+      if (p.ms < 0) {
+        pen = false;
+        continue;
+      }
+      d += `${pen ? 'L' : 'M'}${x(p.t).toFixed(1)} ${y(p.ms).toFixed(1)}`;
+      pen = true;
+    }
     return { line: d, fails };
   });
 </script>

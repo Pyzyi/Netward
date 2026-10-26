@@ -8,9 +8,10 @@
   import type { FritzBoxSettings, SystemInfo } from '../../lib/types';
 
   const MASK = '••••••••';
-  const s = store.settings!;
-  let f = $state<FritzBoxSettings>({ ...s.fritzbox, password: '' });
-  const hasPassword = s.fritzbox.password === MASK;
+  const init = store.settings!; // starting values of the form
+  const s = $derived(store.settings!); // last saved values, for dirty tracking
+  let f = $state<FritzBoxSettings>({ ...init.fritzbox, password: '' });
+  const hasPassword = $derived(s.fritzbox.password === MASK);
   let busy = $state(false);
   let error = $state('');
   let status = $state<SystemInfo['fritzbox']>(null);

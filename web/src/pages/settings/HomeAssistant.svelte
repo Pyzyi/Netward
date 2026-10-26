@@ -8,9 +8,10 @@
   import type { MQTTSettings } from '../../lib/types';
 
   const MASK = '••••••••';
-  const s = store.settings!;
-  let m = $state<MQTTSettings>({ ...s.mqtt, password: '' });
-  const hasPassword = s.mqtt.password === MASK;
+  const init = store.settings!; // starting values of the form
+  const s = $derived(store.settings!); // last saved values, for dirty tracking
+  let m = $state<MQTTSettings>({ ...init.mqtt, password: '' });
+  const hasPassword = $derived(s.mqtt.password === MASK);
   let busy = $state(false);
   let error = $state('');
   let mqttState = $state<{ state: string; error?: string } | null>(null);

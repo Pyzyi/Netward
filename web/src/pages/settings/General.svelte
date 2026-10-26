@@ -4,10 +4,11 @@
   import { store, updateSettings } from '../../lib/state.svelte';
   import { setLang, t, type Lang } from '../../lib/i18n.svelte';
 
-  const s = store.settings!;
-  let networkName = $state(s.networkName);
-  let language = $state<Lang>(s.language);
-  let timezone = $state(s.timezone);
+  const init = store.settings!; // starting values of the form
+  const s = $derived(store.settings!); // last saved values, for dirty tracking
+  let networkName = $state(init.networkName);
+  let language = $state<Lang>(init.language);
+  let timezone = $state(init.timezone);
   let busy = $state(false);
   let error = $state('');
 

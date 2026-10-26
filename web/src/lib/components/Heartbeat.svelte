@@ -1,6 +1,6 @@
 <script lang="ts">
   import { store } from '../state.svelte';
-  import { t, time } from '../i18n.svelte';
+  import { number, t, time } from '../i18n.svelte';
 
   // The last 24 hours of a device in 48 half-hour slots, drawn as runs:
   // a solid bar while it was online, a thin baseline while Netzwart saw it
@@ -25,7 +25,7 @@
   });
   const hours = $derived([...cells].filter((c) => c === '1').length / 2);
   const always = $derived(runs.length === 1 && runs[0].kind === '1' && runs[0].start === 0);
-  const label = $derived(always ? t('device.heartbeatAlways') : t('device.heartbeat', { h: hours }));
+  const label = $derived(always ? t('device.heartbeatAlways') : t('device.heartbeat', { h: hours, hs: number(hours) }));
   const bar = $derived(Math.round(height * 0.66));
   const span = (r: Run) => {
     if (!store.stripFrom) return '';

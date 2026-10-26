@@ -32,17 +32,38 @@ export const store = $state<{
   stripFrom: 0,
 });
 
+const SLOT_MS = 30 * 60_000;
+const SLOTS = 48;
 let stripTimer: ReturnType<typeof setInterval> | undefined;
+let stripsLoading = false;
 export async function loadStrips() {
+  // Hidden tabs and signed-out pages must not poll: every authenticated
+  // request would otherwise keep the session from idling out.
+  if (stripsLoading || document.hidden || !auth.state?.authenticated) return;
+  stripsLoading = true;
   try {
     const r = await api.strips();
     const next: Record<number, string> = {};
     for (const [id, st] of Object.entries(r.strips)) next[Number(id)] = st;
+    // A device that came online while the request was in flight is online now.
+    for (const d of store.devices.values()) {
+      const st = next[d.id];
+      if (st && d.online && !st.endsWith('1')) next[d.id] = st.slice(0, -1) + '1';
+    }
     store.strips = next;
     store.stripFrom = r.from;
   } catch {
     /* not critical */
+  } finally {
+    stripsLoading = false;
   }
+}
+
+function stopStrips() {
+  clearInterval(stripTimer);
+  stripTimer = undefined;
+  store.strips = {};
+  store.stripFrom = 0;
 }
 
 /** A clock for relative times, ticking every 15 seconds. */
@@ -80,6 +101,7 @@ function localStorageLang(): string | null {
 setUnauthorizedHandler(() => {
   if (auth.state) auth.state = { ...auth.state, authenticated: false, csrf: '' };
   disconnect();
+  stopStrips();
 });
 
 export async function loadAll() {
@@ -96,6 +118,7 @@ export async function loadAll() {
     store.recent = recent;
     store.devices.clear();
     for (const d of devices ?? []) store.devices.set(d.id, d);
+    store.eventTick++; // lists built from events reload after a resync
     void loadStrips();
     clearInterval(stripTimer);
     stripTimer = setInterval(loadStrips, 5 * 60_000);
@@ -117,7 +140,12 @@ function handle(type: string, data: unknown) {
     case 'device': {
       const d = data as Device;
       store.devices.set(d.id, d);
-      // Keep the current slot of the heartbeat in step with live state.
+      // Keep the current slot of the heartbeat in step with live state; once
+      // the last slot lies in the past, the strips need a fresh window.
+      if (store.stripFrom && Date.now() >= store.stripFrom + SLOTS * SLOT_MS) {
+        void loadStrips();
+        break;
+      }
       const st = store.strips[d.id];
       if (st && d.online && !st.endsWith('1')) store.strips[d.id] = st.slice(0, -1) + '1';
       break;
@@ -210,6 +238,7 @@ export async function logout() {
     await api.logout();
   } finally {
     disconnect();
+    stopStrips();
     store.devices.clear();
     store.overview = null;
     if (auth.state) auth.state = { ...auth.state, authenticated: false, csrf: '' };

@@ -280,8 +280,18 @@ func (s *Server) handlePresenceStrips(w http.ResponseWriter, r *http.Request, _ 
 		s.fail(w, r, err)
 		return
 	}
+	// Adjacent or overlapping gaps (ordered by start) are merged first, so a
+	// slot spanned by two back-to-back gaps still counts as unmonitored.
+	var merged []store.Gap
+	for _, g := range gaps {
+		if n := len(merged); n > 0 && g.Start <= merged[n-1].End {
+			merged[n-1].End = max(merged[n-1].End, g.End)
+			continue
+		}
+		merged = append(merged, g)
+	}
 	covered := func(a, b int64) bool { // slot fully inside a monitoring gap
-		for _, g := range gaps {
+		for _, g := range merged {
 			if g.Start <= a && g.End >= b {
 				return true
 			}
@@ -294,7 +304,7 @@ func (s *Server) handlePresenceStrips(w http.ResponseWriter, r *http.Request, _ 
 		for i := range b {
 			a, e := from+int64(i)*slot, from+int64(i+1)*slot
 			switch {
-			case e <= d.FirstSeen || a > now || covered(a, e):
+			case e <= d.FirstSeen || covered(a, e):
 				b[i] = '-'
 			default:
 				b[i] = '0'

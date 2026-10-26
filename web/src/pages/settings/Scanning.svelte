@@ -5,13 +5,14 @@
   import { store, updateSettings } from '../../lib/state.svelte';
   import { duration, number, t } from '../../lib/i18n.svelte';
 
-  const s = store.settings!;
-  let interfaces = $state<string[]>([...(s.interfaces ?? [])]);
-  let scanInterval = $state(s.scanInterval);
-  let offlineAfter = $state(s.offlineAfter);
-  let offlineAfterMobile = $state(s.offlineAfterMobile);
-  let allowLarge = $state(s.allowLargeSubnets);
-  let resolveNames = $state(s.resolveNames);
+  const init = store.settings!; // starting values of the form
+  const s = $derived(store.settings!); // last saved values, for dirty tracking
+  let interfaces = $state<string[]>([...(init.interfaces ?? [])]);
+  let scanInterval = $state(init.scanInterval);
+  let offlineAfter = $state(init.offlineAfter);
+  let offlineAfterMobile = $state(init.offlineAfterMobile);
+  let allowLarge = $state(init.allowLargeSubnets);
+  let resolveNames = $state(init.resolveNames);
   let schedule = $state(store.settings!.securityScanDays);
   async function saveSchedule() {
     const err = await updateSettings((x) => (x.securityScanDays = Number(schedule)));

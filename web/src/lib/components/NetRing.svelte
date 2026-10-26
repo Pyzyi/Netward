@@ -59,7 +59,13 @@
       });
       slot += gap;
     }
-    return { points, labels, radii };
+    // Dots and their click targets shrink when the ring gets crowded, so
+    // neighbours never overlap (neighbours on one ring are `rings` slots apart).
+    const rings = radii.length > 1 && others.length > capacity[0] ? 2 : 1;
+    const pitch = ((2 * Math.PI * radii[0]) / Math.max(1, total)) * rings;
+    const dot = Math.max(2, Math.min(5.5, pitch / 2.6));
+    const hit = Math.max(dot + 1, Math.min(11, pitch / 2));
+    return { points, labels, radii, dot, hit };
   });
 
   let hover = $state<Device | null>(null);
@@ -98,9 +104,9 @@
         onmouseleave={() => (hover = null)}
         onclick={() => navigate(`/devices/${p.d.id}`)}
       >
-        <circle class="hit" cx={p.x} cy={p.y} r="11" />
-        {#if p.d.new}<circle class="halo" cx={p.x} cy={p.y} r="11" />{/if}
-        <circle class="dot" cx={p.x} cy={p.y} r={hover?.id === p.d.id ? 7.5 : 5.5} />
+        <circle class="hit" cx={p.x} cy={p.y} r={layout.hit} />
+        {#if p.d.new}<circle class="halo" cx={p.x} cy={p.y} r={layout.dot * 2} />{/if}
+        <circle class="dot" cx={p.x} cy={p.y} r={hover?.id === p.d.id ? layout.dot + 2 : layout.dot} />
       </g>
     {/each}
   </svg>

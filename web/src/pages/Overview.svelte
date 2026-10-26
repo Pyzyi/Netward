@@ -75,18 +75,29 @@
   });
 
   // The overview shows what happened on the network; sign-ins and settings
-  // changes stay in the activity log. Reloaded whenever a new event arrives.
+  // changes stay in the activity log. Reloaded when events arrive; a burst
+  // of events costs one request, and only the newest answer is used.
   let feed = $state<EventItem[]>([]);
   let feedLoaded = $state(false);
+  let feedSeq = 0;
   $effect(() => {
     void store.eventTick;
-    api.events({ kinds: overviewKinds, limit: 8 }).then(
-      (r) => {
-        feed = r;
-        feedLoaded = true;
-      },
-      () => (feedLoaded = true),
+    const n = ++feedSeq;
+    const timer = setTimeout(
+      () =>
+        api.events({ kinds: overviewKinds, limit: 8 }).then(
+          (r) => {
+            if (n !== feedSeq) return;
+            feed = r;
+            feedLoaded = true;
+          },
+          () => {
+            if (n === feedSeq) feedLoaded = true;
+          },
+        ),
+      n === 1 ? 0 : 300,
     );
+    return () => clearTimeout(timer);
   });
 
   const inetState = $derived(ov?.internet.state ?? 'unknown');

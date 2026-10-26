@@ -165,3 +165,40 @@ Behebung der Runde 3:
 Offen und bewusst zurückgestellt: Sitzungen werden weiterhin einzeln gelistet (mit „Alle anderen abmelden“). Eine Gruppierung nach Gerät folgt, wenn Sitzungen einen stabilen Gerätenamen tragen.
 
 Nachweis: svelte-check 0 Fehler/0 Warnungen, Kontrastskript 68 Paare ok, 14 UI-Tests (Desktop und Mobil) grün, README-Screenshots neu erstellt.
+
+## Review 4 · Code- und Security-Review des Redesigns
+
+Umfang: alle Änderungen seit Review 2 (`f170c01..3ba1553`), also das neue Frontend und der Endpunkt `GET /api/v1/presence/strips`. Zwei unabhängige Reviewer haben parallel geprüft, einer auf Sicherheit, einer auf Korrektheit. Sie haben die Demo-Instanz mit curl und Playwright angegriffen bzw. bedient und das Repo nicht verändert.
+
+### 4.1 Security-Review
+
+Ergebnis: keine kritischen, hohen oder mittleren Befunde. Ohne Befund geprüft:
+- Zugriffsschutz des neuen Endpunkts (401 ohne Sitzung, kein CORS, `CORP: same-origin`, `no-store`) und parametrisiertes SQL.
+- XSS: keine `{@html}`-/`innerHTML`-Senken; Gerätenamen gelangen nur escaped in SVG-`<title>` und `aria-label`.
+- CSP: unverändert; Schriften liegen selbst gehostet unter `/assets`.
+- CSRF-Token bei allen ändernden Aufrufen.
+- Die erzeugten Icons sind byte-identisch reproduzierbar.
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| „Alle anderen abmelden“ löschte Sitzungen einzeln aus einer beim Seitenaufruf geladenen Liste und brach beim ersten 404 stumm ab. Spätere oder neue Sitzungen blieben gültig (schwächt T-03). | niedrig | Neuer Endpunkt `POST /api/v1/auth/sessions/revoke-others`: ein `DELETE` für alle anderen Sitzungen, deren Live-Verbindungen werden geschlossen. Die Seite meldet die Anzahl oder den Fehler. Test `TestRevokeOtherSessions`. |
+| Der Abruf der Herzschlag-Streifen lief alle 5 min auch in versteckten Tabs und nach dem Abmelden. Ein vergessener Tab hielt so die Sitzung über das 7-Tage-Leerlauflimit hinaus am Leben. | niedrig | Kein Abruf bei verstecktem Tab oder ohne Anmeldung; Timer und Daten werden bei Abmeldung und 401 gelöscht. |
+| Die Streifen-Abfrage durchsuchte die ganze Anwesenheitstabelle. | Info | Migration 2: Index `presence(ended_at)`. Ohne `ORDER BY` in SQL nutzt SQLite ihn per MULTI-INDEX OR (Query-Plan geprüft). |
+
+### 4.2 Code-Review (Korrektheit)
+
+Die Slot-Berechnung im Backend wurde mit einem eigenen Test bestätigt: Fensterränder, Spannen über den Fensteranfang, Ende genau auf einer Slotgrenze, offene Spannen und Lücken.
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Einstellungsseiten verglichen Eingaben mit den Werten beim Seitenaufruf statt mit den gespeicherten. Nach dem Speichern und Zurückändern verschwand „Speichern“, obwohl der Server den anderen Wert hatte. Der Fehler war älter; das Redesign hat ihn sichtbar gemacht. | hoch | Alle fünf Seiten vergleichen mit `$derived(store.settings)`. Neuer UI-Test „saved values become the new baseline“, der ohne die Korrektur fehlschlägt. |
+| Die Aktivitätsliste der Übersicht lud nur bei neuen Live-Ereignissen nach. Nach verstecktem Tab oder Neuverbindung fehlten Ereignisse. | hoch | `loadAll()` stößt das Nachladen ebenfalls an (`eventTick`); davon profitieren auch Aktivitätsseite und Gerätedetail. |
+| Viele Ereignisse auf einmal lösten parallele Anfragen aus; eine ältere Antwort konnte die neuere überschreiben. | mittel | 300 ms Bündelung und Sequenznummer: nur die jüngste Antwort zählt. |
+| Timer der Streifen nach dem Abmelden | mittel | wie 4.1 |
+| Die Live-Markierung konnte nach einem Slotwechsel den falschen Slot setzen oder durch eine laufende Abfrage überschrieben werden. | niedrig | Nach Ablauf des Fensters werden die Streifen neu geladen; nach jeder Abfrage wird der Live-Status erneut angewendet; keine parallelen Abfragen. |
+| Bei Totalausfall zeigte die Internet-Kurve nichts. | niedrig | Ausfallsegmente werden auch ohne Messwerte gezeichnet. |
+| Netzring: Punkte überlappten ab ca. 120 Geräten. | niedrig | Punkt- und Klickradius richten sich nach dem Abstand der Nachbarn. |
+| Beschriftung „1 Stunden“ bzw. „0.5 Stunden“ | niedrig | Pluralform und deutsches Zahlenformat („0,5 Stunden“). |
+| Zwei direkt aneinandergrenzende Überwachungslücken ließen den gemeinsamen Slot als „offline“ statt „unbekannt“ erscheinen. Dazu kam eine nie wahre Bedingung. | niedrig | Lücken werden vor der Prüfung zusammengeführt; die tote Bedingung ist entfernt. `TestPresenceStripsEdges` deckt alle Randfälle ab und schlägt ohne die Korrektur fehl. |
+
+Nachweis: `go vet` und `go test -race ./...` grün, svelte-check 0/0, 16 UI-Tests (Desktop und Mobil) grün.

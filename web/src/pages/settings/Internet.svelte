@@ -7,9 +7,10 @@
   import { clock, store, updateSettings } from '../../lib/state.svelte';
   import { dateTime, duration, relTime, t } from '../../lib/i18n.svelte';
 
-  const s = store.settings!;
-  let enabled = $state(s.internetCheck);
-  let targets = $state((s.internetTargets ?? []).join('\n'));
+  const init = store.settings!; // starting values of the form
+  const s = $derived(store.settings!); // last saved values, for dirty tracking
+  let enabled = $state(init.internetCheck);
+  let targets = $state((init.internetTargets ?? []).join('\n'));
   let busy = $state(false);
   let error = $state('');
   let data = $state<Awaited<ReturnType<typeof api.internet>> | null>(null);

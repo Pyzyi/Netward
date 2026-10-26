@@ -462,3 +462,56 @@ func TestRevokeOtherSessions(t *testing.T) {
 		t.Fatalf("own session revoked: %d", rec.Code)
 	}
 }
+
+// TestPresenceStripsEdges pins the slot rules: unknown before first sight and
+// inside (merged) gaps, a span ending on a slot boundary leaves that slot
+// offline, open spans run up to now.
+func TestPresenceStripsEdges(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	const slot = int64(30 * 60 * 1000)
+	now := time.Now()
+	to := (now.UnixMilli()/slot + 1) * slot
+	from := to - 48*slot
+	at := func(i int, plusMin int64) int64 { return from + int64(i)*slot + plusMin*60_000 }
+
+	h.mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0x3c, 0, 0, 0, 0, 7}, IP: netip.MustParseAddr("192.168.1.7"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.UnixMilli(at(10, 1))})
+	devs := h.mon.Devices()
+	if len(devs) != 1 {
+		t.Fatalf("devices: %d", len(devs))
+	}
+	id := devs[0].ID
+	if err := h.st.ClosePresence(ctx, id, at(20, 0)); err != nil { // exactly on the start of slot 20
+		t.Fatal(err)
+	}
+	if err := h.st.OpenPresence(ctx, id, at(30, 5)); err != nil {
+		t.Fatal(err)
+	}
+	// Two back-to-back gaps covering slots 22–24; they meet inside slot 23,
+	// which neither covers alone.
+	if err := h.st.AddGap(ctx, at(22, 0), at(23, 15)); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.st.AddGap(ctx, at(23, 15), at(25, 0)); err != nil {
+		t.Fatal(err)
+	}
+	h.srv.now = func() time.Time { return now }
+
+	rec := h.do(req{method: "GET", path: "/api/v1/presence/strips", cookie: s.cookie})
+	var r struct {
+		From   int64             `json:"from"`
+		Strips map[string]string `json:"strips"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &r); err != nil || rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	if r.From != from {
+		t.Fatalf("from = %d, want %d", r.From, from)
+	}
+	want := strings.Repeat("-", 10) + strings.Repeat("1", 10) + "00" + "---" + strings.Repeat("0", 5) + strings.Repeat("1", 18)
+	if got := r.Strips[itoa(id)]; got != want {
+		t.Fatalf("strip\n got %s\nwant %s", got, want)
+	}
+}

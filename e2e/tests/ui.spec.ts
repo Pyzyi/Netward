@@ -85,6 +85,22 @@ test('keyboard: open detail, escape returns focus to the row', async ({ page }) 
   await expect(page.locator('a.main').nth(2)).toBeFocused();
 });
 
+test('settings: saved values become the new baseline', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/settings/general');
+  const name = page.locator('#nn');
+  const card = page.locator('.block').filter({ has: name });
+  await name.fill('Zuhause 2');
+  await card.getByRole('button', { name: 'Speichern' }).click();
+  await expect(card.getByText('Keine Änderungen')).toBeVisible();
+  // Going back to the old value is a change again and must be savable.
+  await name.fill('Zuhause');
+  await card.getByRole('button', { name: 'Speichern' }).click();
+  await expect(card.getByText('Keine Änderungen')).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('security, activity and settings pages render', async ({ page }) => {
   const problems = watch(page);
   await login(page);
