@@ -66,7 +66,7 @@
     device_flood: 'warning', device_removed: 'trash', device_merged: 'git-merge', scan_baseline: 'broadcast',
     auth_login: 'key', auth_failed: 'shield-warning', auth_setup: 'key', auth_password: 'key',
     config_settings: 'gear-six', config_channel: 'gear-six', config_network: 'gear-six',
-    gateway_changed: 'shield-warning', dhcp_server_new: 'broadcast',
+    gateway_changed: 'shield-warning', dhcp_server_new: 'broadcast', identity_changed: 'shield-warning', port_new: 'plus',
   };
 </script>
 

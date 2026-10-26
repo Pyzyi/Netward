@@ -118,7 +118,7 @@ func (s *Scanner) PortScan(ctx context.Context, id int64) ([]store.Port, error) 
 	if err := scanCtx.Err(); err != nil {
 		return nil, err
 	}
-	if err := s.mon.SetPorts(scanCtx, id, ports, time.Now().UnixMilli()); err != nil {
+	if err := s.mon.SetPorts(scanCtx, id, ports, time.Now().UnixMilli(), "top"); err != nil {
 		return nil, err
 	}
 	return ports, nil

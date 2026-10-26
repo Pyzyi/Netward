@@ -224,6 +224,17 @@ test('persons: who is at home, consent for time per day', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+test('identity change of a known device is explained with two answers', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/security');
+  const item = page.locator('li.finding', { hasText: 'Laptop Kinder meldet sich plötzlich als Linux-Gerät' });
+  await expect(item).toBeVisible();
+  await expect(item.getByRole('button', { name: 'Neu eingerichtet' })).toBeDisabled(); // demo mode
+  await expect(item.getByRole('button', { name: 'Kenne ich nicht' })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
   for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning', '/settings/internet', '/persons']) {

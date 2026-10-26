@@ -68,6 +68,11 @@ type entry struct {
 	ports      []int
 	probing    bool
 	sw         map[string]store.Software // source -> what the device revealed about its software
+	// Port scans (F2): scope and result of the previous scan, ports seen
+	// newly open once and waiting for a second scan.
+	portScope string
+	portPrev  map[int]bool
+	portCand  map[int]bool
 }
 
 type stash struct {
@@ -116,8 +121,9 @@ type Monitor struct {
 	dhcpServers map[string]*DHCPServer // server ID -> server
 	gatewayRefs map[string]*GatewayRef // router address -> reference MAC
 	netChanged  bool
-	dhcpProbe   *DHCPProbe       // last active DHCP check
-	probeMAC    net.HardwareAddr // client MAC of the active DHCP check, never a device
+	dhcpProbe   *DHCPProbe          // last active DHCP check
+	probeMAC    net.HardwareAddr    // client MAC of the active DHCP check, never a device
+	baseline    map[int64]*dhcpBase // DHCP operating system family per device (F2)
 }
 
 // New loads the device table and prepares the monitor.
@@ -128,7 +134,7 @@ func New(ctx context.Context, st *store.Store, h *hub.Hub, n notify.Notifier, s 
 		proxies: map[string]bool{}, gateways: map[netip.Addr]bool{}, selfMACs: map[string]bool{},
 		stashed: map[string]stash{}, dirty: map[int64]int64{}, conflicts: map[string]map[netip.Addr]string{},
 		reported: map[string]time.Time{}, probeSem: make(chan struct{}, 8),
-		dhcpServers: map[string]*DHCPServer{}, gatewayRefs: map[string]*GatewayRef{},
+		dhcpServers: map[string]*DHCPServer{}, gatewayRefs: map[string]*GatewayRef{}, baseline: map[int64]*dhcpBase{},
 		admitTokens: admissionPerMinute,
 	}
 	if m.notify == nil {
@@ -143,6 +149,7 @@ func New(ctx context.Context, st *store.Store, h *hub.Hub, n notify.Notifier, s 
 		return nil, err
 	}
 	m.loadNetwork(ctx)
+	m.loadBaseline(ctx)
 	if err := m.load(ctx); err != nil {
 		return nil, err
 	}
@@ -386,6 +393,9 @@ func (m *Monitor) observeLocked(ctx context.Context, s l2.Sighting) {
 	}
 	if s.DHCP != nil && m.applyDHCP(e, s.DHCP) {
 		changed = true
+	}
+	if s.DHCP != nil && s.DHCP.Op == 1 && s.Source == "dhcp" {
+		m.observeFamily(ctx, e, s.DHCP, now)
 	}
 	if s.MDNS != nil && m.applyMDNS(e, s.MDNS) {
 		changed = true

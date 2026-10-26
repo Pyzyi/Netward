@@ -40,6 +40,18 @@
       busy = false;
     }
   }
+  async function resolveIdentity(f: Finding, setUpAnew: boolean) {
+    if (!f.deviceId) return;
+    busy = true;
+    try {
+      await api.resolveIdentity(f.deviceId, setUpAnew);
+      await load();
+    } catch (e) {
+      toast(errorText(e), 'error');
+    } finally {
+      busy = false;
+    }
+  }
   const gateway = (f: Finding) => net.gateways.find((g) => g.ip === f.data.ip);
   const server = (f: Finding) => net.dhcpServers.find((d) => d.serverId === f.data.server);
 
@@ -89,6 +101,10 @@
         return t('security.unknown.title', { n: unknownCount });
       case 'gateway_mac':
         return t(`security.gateway.${f.data.kind}.title`, { ip: f.data.ip ?? '' });
+      case 'identity_changed': {
+        const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined;
+        return t('security.identity.title', { name: dev ? displayName(dev) : t('common.unknown'), to: t(`os.family.${f.data.to}`) });
+      }
       case 'known_exploited': {
         const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
         return t(`security.exploited.title${f.data.manual ? '.manual' : f.data.uncertain ? '.uncertain' : ''}`, { name });
@@ -114,6 +130,7 @@
     if (f.check === 'software_outdated' || f.check === 'software_update') return t(`security.software.why.${f.data.status}`);
     if (f.check === 'risky_port') return t(`security.port.why.${f.data.service}`);
     if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.why`);
+    if (f.check === 'identity_changed') return t('security.identity.why', { from: t(`os.family.${f.data.from}`), to: t(`os.family.${f.data.to}`) });
     if (f.check === 'known_exploited') return t('security.exploited.why') + (f.data.manual ? ' ' + t('security.exploited.whyManual') : '');
     if (f.check === 'dhcp_rogue') return t('security.dhcp.why') + (f.severity === 'critical' ? ' ' + t('security.dhcp.whyOther') : '');
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
@@ -122,6 +139,7 @@
     if (f.check === 'software_outdated' || f.check === 'software_update') return softwareAdvice(f);
     if (f.check === 'risky_port') return t(`security.port.todo.${f.data.service}`);
     if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.todo`);
+    if (f.check === 'identity_changed') return t('security.identity.todo');
     if (f.check === 'known_exploited') return t(f.data.uncertain ? 'security.exploited.todo.uncertain' : 'security.exploited.todo', { fixed: f.data.fixed ?? '' });
     if (f.check === 'dhcp_rogue') return t('security.dhcp.todo');
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
@@ -211,6 +229,15 @@
               <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => acceptNetwork(f)}>
                 <Icon name="check" size={14} /> {t('security.dhcp.accept')}
               </button>
+            {:else if f.check === 'identity_changed'}
+              <div class="row-btns">
+                <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => resolveIdentity(f, true)}>
+                  <Icon name="check" size={14} /> {t('security.identity.setUp')}
+                </button>
+                <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => resolveIdentity(f, false)}>
+                  <Icon name="question" size={14} /> {t('security.identity.unknown')}
+                </button>
+              </div>
             {:else if f.check === 'unknown_devices'}
               <a class="btn small" href="/devices?filter=unreviewed" use:link>{t('security.unknown.open')}</a>
             {/if}
@@ -419,6 +446,11 @@
     gap: 4px;
     margin: 0;
     font-size: 14px;
+  }
+  .row-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .netinfo {
     margin-top: 32px;

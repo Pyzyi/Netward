@@ -560,3 +560,83 @@ func TestDHCPServerTracking(t *testing.T) {
 		t.Fatal("servers not persisted")
 	}
 }
+
+func TestIdentityChangeNeedsAnEstablishedDevice(t *testing.T) {
+	e := newEnv(t)
+	iphone := &proto.DHCP{Op: 1, MsgType: proto.DHCPRequest, ClientMAC: mac(7), ParamList: []byte{1, 121, 3, 6, 15, 119, 252}}
+	windows := &proto.DHCP{Op: 1, MsgType: proto.DHCPRequest, ClientMAC: mac(7), ParamList: []byte{1, 3, 6, 15, 31, 33, 43, 44, 46, 47, 119, 121, 249, 252}}
+	dhcp := func(d *proto.DHCP) {
+		e.m.Observe(e.ctx, l2.Sighting{MAC: mac(7), Iface: "eth0", Source: "dhcp", DHCP: d, At: e.clk.Now()})
+	}
+	e.m.Observe(e.ctx, l2.Sighting{MAC: mac(7), IP: ip(7), Iface: "eth0", Source: "arp", ARP: true, At: e.clk.Now()})
+	id := e.m.Devices()[0].ID
+	dhcp(iphone)
+	dhcp(iphone) // REQUEST right after DISCOVER: still one sighting
+	// While the device is new, a different family is simply learned.
+	dhcp(windows)
+	e.clk.Add(time.Hour)
+	dhcp(windows)
+	if len(e.m.IdentityChanges()) != 0 {
+		t.Fatal("change reported for a new device")
+	}
+	// A week later and confirmed by the user: now a change counts, after two sightings.
+	known := true
+	if _, err := e.m.PatchDevice(e.ctx, id, store.DevicePatch{Known: &known}); err != nil {
+		t.Fatal(err)
+	}
+	e.clk.Add(8 * 24 * time.Hour)
+	dhcp(windows)
+	dhcp(iphone)
+	if len(e.m.IdentityChanges()) != 0 {
+		t.Fatal("one sighting is enough to report")
+	}
+	e.clk.Add(time.Hour)
+	dhcp(iphone)
+	ch, ok := e.m.IdentityChanges()[id]
+	if !ok || ch.From != "windows" || ch.To != "apple" {
+		t.Fatalf("change %+v", e.m.IdentityChanges())
+	}
+	// Survives a restart; "I don't know it" marks the device unknown.
+	e2 := newEnvWithStore(t, e.st)
+	if _, ok := e2.m.IdentityChanges()[id]; !ok {
+		t.Fatal("change lost on restart")
+	}
+	if !e2.m.ResolveIdentity(e2.ctx, id, false) {
+		t.Fatal("resolve failed")
+	}
+	if d, _ := e2.m.Device(id); d.Known || len(e2.m.IdentityChanges()) != 0 {
+		t.Fatalf("after resolve: known=%v changes=%v", d.Known, e2.m.IdentityChanges())
+	}
+}
+
+func TestNewPortsNeedTwoScans(t *testing.T) {
+	e := newEnv(t)
+	e.m.Observe(e.ctx, l2.Sighting{MAC: mac(8), IP: ip(8), Iface: "eth0", Source: "arp", ARP: true, At: e.clk.Now()})
+	id := e.m.Devices()[0].ID
+	scan := func(scope string, ports ...int) {
+		var ps []store.Port
+		for _, p := range ports {
+			ps = append(ps, store.Port{Port: p, Proto: "tcp"})
+		}
+		if err := e.m.SetPorts(e.ctx, id, ps, e.clk.Now().UnixMilli(), scope); err != nil {
+			t.Fatal(err)
+		}
+		e.clk.Add(time.Minute)
+	}
+	newPorts := func() int {
+		evs, _ := e.st.ListEvents(e.ctx, store.EventQuery{Kinds: []string{KindPortNew}, Limit: 10})
+		return len(evs)
+	}
+	scan("top", 22)
+	scan("top", 22, 8080) // seen once
+	scan("full", 22, 8080, 9000)
+	scan("full", 22, 8080, 9000) // other scope: compared only with itself
+	if newPorts() != 0 {
+		t.Fatal("new port reported without two agreeing scans of one scope")
+	}
+	scan("full", 22, 8080, 9000, 5555)
+	scan("full", 22, 8080, 9000, 5555)
+	if newPorts() != 1 {
+		t.Fatalf("got %d port events, want 1", newPorts())
+	}
+}

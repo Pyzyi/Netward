@@ -240,14 +240,16 @@ func (m *Monitor) applyEnrichment(ctx context.Context, id int64, en Enrichment) 
 	m.publish(e)
 }
 
-// SetPorts records the open ports found by a port scan.
-func (m *Monitor) SetPorts(ctx context.Context, id int64, ports []store.Port, at int64) error {
+// SetPorts records the open ports found by a port scan. scope names the
+// list of ports that was scanned: only scans of the same scope are compared.
+func (m *Monitor) SetPorts(ctx context.Context, id int64, ports []store.Port, at int64, scope string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.byID[id]
 	if e == nil {
 		return store.ErrNotFound
 	}
+	m.notePorts(ctx, e, ports, scope)
 	if err := m.st.ReplacePorts(ctx, id, ports, at); err != nil {
 		return err
 	}

@@ -385,6 +385,12 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return tr("Zwei Geräte verteilen Adressen im Netz: ", "Two devices hand out addresses on the network: ") + srv,
 			tr("Ein zweiter DHCP-Server kann Geräte auf einen falschen Router oder DNS-Server lenken.",
 				"A second DHCP server can point devices to a wrong router or DNS server.")
+	case CheckIdentity:
+		from, _ := data["from"].(string)
+		to, _ := data["to"].(string)
+		return fmt.Sprintf(tr("Gerät meldet sich als anderes System (%s statt %s)", "Device reports as another system (%s instead of %s)"), family(to, lang), family(from, lang)),
+			tr("Ein bekanntes Gerät fragt plötzlich wie ein anderes Betriebssystem nach einer Adresse. Wurde es neu eingerichtet? Sonst könnte ein anderes Gerät seine Kennung nutzen.",
+				"A known device suddenly asks for an address like a different operating system. Was it set up anew? Otherwise another device may be using its identity.")
 	case CheckKnownExploited:
 		sw, _ := data["software"].(string)
 		fixed, _ := data["fixed"].(string)
@@ -402,4 +408,16 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 				"The maker no longer maintains this device's system. Netzwart shows what you can do.")
 	}
 	return check, ""
+}
+
+// family names an operating system family for messages.
+func family(f, lang string) string {
+	names := map[string]string{"apple": "Apple", "windows": "Windows", "android": "Android", "linux": "Linux"}
+	if n, ok := names[f]; ok {
+		return n
+	}
+	if lang == "en" {
+		return "unknown"
+	}
+	return "unbekannt"
 }

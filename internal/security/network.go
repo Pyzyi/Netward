@@ -16,8 +16,9 @@ import (
 // addresses are never part of a finding's identity, so a spoofer changing
 // MACs cannot cause a flood of alerts.
 const (
-	CheckGatewayMAC = "gateway_mac" // router address answered by another or a second device
-	CheckDHCPRogue  = "dhcp_rogue"  // more than one device hands out addresses
+	CheckGatewayMAC = "gateway_mac"      // router address answered by another or a second device
+	CheckDHCPRogue  = "dhcp_rogue"       // more than one device hands out addresses
+	CheckIdentity   = "identity_changed" // a known device asks for addresses like another system (F2)
 )
 
 // EvaluateNetwork turns the monitor's network state into findings.
@@ -71,6 +72,10 @@ func (c *Checker) EvaluateNetwork(ctx context.Context) {
 		}
 	}
 
+	for id, ch := range c.mon.IdentityChanges() {
+		add(CheckIdentity, id, "warning", map[string]string{"from": ch.From, "to": ch.To})
+	}
+
 	var alerts []store.Finding
 	for _, f := range found {
 		isNew, err := c.st.UpsertFinding(ctx, f)
@@ -90,7 +95,7 @@ func (c *Checker) EvaluateNetwork(ctx context.Context) {
 	for _, d := range devs {
 		ids = append(ids, d.ID)
 	}
-	if err := c.st.PruneFindings(ctx, runStart, ids, []string{CheckGatewayMAC, CheckDHCPRogue}); err != nil {
+	if err := c.st.PruneFindings(ctx, runStart, ids, []string{CheckGatewayMAC, CheckDHCPRogue, CheckIdentity}); err != nil {
 		c.log.Error("prune network findings", "err", err)
 	}
 	for _, f := range alerts {
@@ -102,7 +107,8 @@ func (c *Checker) EvaluateNetwork(ctx context.Context) {
 		if d, ok := c.mon.Device(f.DeviceID); ok {
 			dev = &d
 		}
-		c.mon.AddEvent(ctx, notify.KindSecurity, f.Severity, f.DeviceID, map[string]any{"check": f.CheckID, "ip": data["ip"], "server": data["server"]})
+		c.mon.AddEvent(ctx, notify.KindSecurity, f.Severity, f.DeviceID, map[string]any{"check": f.CheckID, "ip": data["ip"], "server": data["server"],
+			"from": data["from"], "to": data["to"]})
 		c.notifier.Notify(notify.Event{Kind: notify.KindSecurity, Severity: f.Severity, TS: runStart, Device: dev, Data: data})
 	}
 }

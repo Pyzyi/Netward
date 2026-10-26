@@ -167,10 +167,10 @@ export interface Overview {
 
 export interface Finding {
   id: number;
-  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited';
+  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited' | 'identity_changed';
   deviceId?: number;
   severity: 'info' | 'warning' | 'critical';
-  data: { port?: number; service?: string; ip?: string; product?: string; status?: string; kind?: 'conflict' | 'changed'; server?: string; fixed?: string; manual?: string; uncertain?: string };
+  data: { port?: number; service?: string; ip?: string; product?: string; status?: string; kind?: 'conflict' | 'changed'; server?: string; fixed?: string; manual?: string; uncertain?: string; from?: string; to?: string };
   firstSeen: number;
   lastSeen: number;
   dismissed: boolean;

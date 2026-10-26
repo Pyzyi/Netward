@@ -165,6 +165,7 @@ func (s *Server) Handler() http.Handler {
 	authed("DELETE /api/v1/persons/{id}", s.handleDeletePerson)
 	authed("PUT /api/v1/persons/{id}/devices", s.handlePersonDevices)
 	authed("POST /api/v1/network/accept", s.handleNetworkAccept)
+	authed("POST /api/v1/devices/{id}/identity", s.handleDeviceIdentity)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)
 	authed("GET /api/v1/presence/strips", s.handlePresenceStrips)

@@ -217,6 +217,18 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	if _, err := st.OpenOutage(ctx, out.UnixMilli(), store.OutageInternet); err == nil {
 		_ = st.CloseOutages(ctx, out.Add(23*time.Minute).UnixMilli())
 	}
+	// The children's laptop now asks for addresses like Linux (docs/09, F2):
+	// reinstalled, or another device with its identity?
+	laptop := ids["30:5a:3a:61:0b:2d"]
+	changedAt := now.Add(-3 * time.Hour).UnixMilli()
+	_ = st.SetSetting(ctx, "baseline_dhcp_family", map[int64]any{laptop: map[string]any{
+		"family": "windows", "count": 40, "lastAt": now.Add(-26 * time.Hour).UnixMilli(),
+		"change": map[string]any{"from": "windows", "to": "linux", "at": changedAt}}})
+	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "identity_changed", DeviceID: laptop, Severity: "warning",
+		Data: json.RawMessage(`{"from":"windows","to":"linux"}`), LastSeen: now.UnixMilli()})
+	idc, _ := json.Marshal(map[string]any{"name": "Laptop Kinder", "from": "windows", "to": "linux", "deviceType": "laptop"})
+	events = append(events, store.Event{TS: changedAt, Kind: "identity_changed", Severity: "warning", DeviceID: laptop, Data: idc})
+
 	// The household (docs/09, F4): Anna agreed to show her time at home.
 	for _, p := range []struct {
 		name  string

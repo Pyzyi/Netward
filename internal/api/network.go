@@ -46,3 +46,26 @@ func (s *Server) handleNetworkAccept(w http.ResponseWriter, r *http.Request, _ *
 	s.d.Security.EvaluateNetwork(r.Context())
 	writeJSON(w, http.StatusOK, s.d.Monitor.Network())
 }
+
+// handleDeviceIdentity answers a change of the operating system family
+// (F2): "set up anew" accepts it, otherwise the device is marked as not
+// known so it can be reviewed.
+func (s *Server) handleDeviceIdentity(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
+	id, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_id", "")
+		return
+	}
+	var req struct {
+		SetUpAnew bool `json:"setUpAnew"`
+	}
+	if !readJSON(w, r, &req) {
+		return
+	}
+	if !s.d.Monitor.ResolveIdentity(r.Context(), id, req.SetUpAnew) {
+		writeError(w, http.StatusNotFound, "not_found", "")
+		return
+	}
+	s.d.Security.EvaluateNetwork(r.Context())
+	w.WriteHeader(http.StatusNoContent)
+}
