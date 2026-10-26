@@ -17,14 +17,16 @@
   let error = $state('');
   let pwError = $state('');
   let showPw = $state(false);
+  let tried = $state(false); // after a submit, an empty repeat field counts as a mismatch
 
   const st = $derived(auth.state);
-  const mismatch = $derived(repeat.length > 0 && repeat !== password);
+  const mismatch = $derived((tried || repeat.length > 0) && repeat !== password);
 
   function next(e: SubmitEvent) {
     e.preventDefault();
     error = '';
     pwError = '';
+    tried = true;
     if (password.length < 10) {
       pwError = t('err.password_too_short');
       document.getElementById('p')?.focus();

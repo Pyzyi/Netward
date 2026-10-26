@@ -305,9 +305,11 @@
   }
   .scroll {
     min-width: 0;
-    max-width: 100%;
+    max-width: calc(100% + 8px);
     overflow-x: auto;
     scrollbar-width: none;
+    padding: 4px;
+    margin: -4px;
   }
   .filters .seg {
     border-bottom: 0;

@@ -118,8 +118,10 @@
   .filters {
     border-bottom: 0;
     overflow-x: auto;
-    max-width: 100%;
+    max-width: calc(100% + 8px);
     scrollbar-width: none;
+    padding: 4px;
+    margin: -4px;
   }
   .sk {
     height: 40px;

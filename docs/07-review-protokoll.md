@@ -133,10 +133,35 @@ Gemessen am 25.10.2026 mit dem Release-Kandidaten (Image `netzwart:local`, amd64
 | Kompatibilität | amd64 + arm64 | Cross-Compile im Multi-Arch-Build (CI) | erfüllt |
 | Erlernbarkeit | Einrichtung < 2 min | 2 Schritte, automatisiert in < 1 s durchlaufen; Nutzertest steht aus | teilweise |
 | Bedienbarkeit | Tastatur, Touch, Maus | Fokusführung + `inert`, Regressionstests; Touch-Ziele der Navigation ≥ 44 px | erfüllt |
-| Inklusivität | WCAG 2.2 AA | Kontrastskript (48 Paare, hell/dunkel) in CI; Feldfehler mit `aria-describedby` | erfüllt (automatisiert prüfbarer Teil) |
+| Inklusivität | WCAG 2.2 AA | Kontrastskript (68 Paare, hell/dunkel) in CI; Feldfehler mit `aria-describedby` | erfüllt (automatisiert prüfbarer Teil) |
 | Schutz vor Fehlbedienung | Bestätigung bei Massenaktionen | „Gerät vergessen“, „Alle als bekannt markieren“ mit Dialog | erfüllt |
 | Fehlerfreiheit | 0 offene Defekte hoch/kritisch | alle Befunde aus Review 2 behoben; `staticcheck`, `go vet` sauber | erfüllt |
 | Verfügbarkeit | Neustart nach Hänger | Watchdog (C1 korrigiert) + `restart: unless-stopped`, Healthcheck im Container-Test | erfüllt |
 | Sicherheit | Bedrohungsmodell umgesetzt | 29 Bedrohungen, Container-Test: UID 10001, CapEff/CapPrm 0, NoNewPrivs, DB 0600; Live-Angriffe S1/S2 nach Fix wirkungslos | erfüllt |
 | Testbarkeit | Coverage ≥ 60 % Kernpakete | monitor 63 %, auth 88 %, config 86 %, proto 84 %, egress 83 %, mqtt 72 %, fritzbox 70 %; store 49 %, api 48 %. Hardwarenahe Pakete (`l2`, `scanner`, `privdrop`) werden über den Container-Test abgedeckt | teilweise |
 | Installierbarkeit | ein Compose-Block | Container-Test mit Compose-Flags, 7 Szenarien (Bind-Mount root, fremder Eigentümer, ohne Volume, PUID, ohne NET_RAW, `--user`) | erfüllt |
+
+## Review 3 · Design-Review (nach dem Redesign „Leitstand“)
+
+Auslöser: Rückmeldung „sieht aus wie die nächste Vibecoding-App“. Das Frontend wurde mit der Designsprache „Leitstand“ neu gestaltet (siehe [05 · UX-Design](05-ux-design.md), Abschnitt 0). Danach hat ein unabhängiger Reviewer die laufende Demo in drei Runden mit Screenshots bei 1440, 1024 und 390 px in Hell und Dunkel bewertet. Er kannte den Code nicht und hat das Repo nicht verändert.
+
+| Runde | Note (1–10) | Wichtigste Befunde | Behebung |
+|---|---|---|---|
+| 1 | 6 | Aktivitätskasten leer (die letzten Ereignisse waren nur Anmeldungen), Kopfleiste springt zwischen Seiten, graue deaktivierte Buttons, abgeschnittene Fokusringe, blaue Links, zu viele Schriftgrößen, doppelte Linien, Sitzungen als Karten | Feed lädt gezielt Ereignisarten (`overviewKinds`), feste Kopfleiste, Typo-Skala 11/13/14/16/20/30, Linkfarbe = Textfarbe, Sitzungen als Zeilen |
+| 2 | 7 | N1–N12: gestrichelte Buttons, zu viele Unterstreichungen, Einstellungen ohne Satzspiegel, Herzschlag-Semantik, „Online“ in der Kompaktliste, Fokus überdeckt Text, schwacher Dialog-Hintergrund im Dunkelmodus, Login-Ring ungruppiert | Explizite Button-Zustände („Keine Änderungen“, Hinweistext statt deaktiviert), Unterstreichung nur in Fließtext, 680-px-Spalte, Tooltip „Durchgehend online (24 h)“ und 6-h-Marken, gruppierter Login-Ring |
+| 3 | 8 | P1 relative Zeiten überlagern den Text im Aktivitäts-Feed; P2 Ausfallmarke der Sparkline; P3 Fokus und Auswahl der Filter-Tabs kaum unterscheidbar; P4 Wiederholungsfeld beim Setup; P5 Schusterjunge im Geräte-Intro; P6 Sicherheitszeile auf dem Handy | siehe unten |
+
+Behebung der Runde 3:
+
+| Befund | Behebung |
+|---|---|
+| P1 Zeiten im Feed | Spalte zeigt immer `HH:MM`, darunter „Gestern“ oder „Sa., 24.“; feste Breite `8ch`, `nowrap`. |
+| P2 Sparkline | Daten geprüft: Der Ausfall lag tatsächlich am Anfang des Fensters, die Marke war korrekt. Zusammenhängende Ausfälle werden jetzt als ein Segment in voller Länge gezeichnet und bleiben innerhalb der Grafik. |
+| P3 Fokus vs. Auswahl | Auswahl = Unterstrich, Fokus = 2-px-Umriss mit Abstand. Scrollende Tab-Leisten reservieren 4 px, damit der Umriss nicht abgeschnitten wird. |
+| P4 Setup | Nicht reproduzierbar (auch mit sofortigem Ausfüllen beider Felder). Trotzdem gehärtet: Nach dem Absenden gilt ein leeres Wiederholungsfeld als Abweichung und zeigt „Passwörter stimmen nicht überein“, statt stumm nichts zu tun. |
+| P5 Geräte-Intro | Text gekürzt: „Die Streifen zeigen die letzten 24 Stunden.“ |
+| P6 Handy-Sicherheitszeile | Unter 480 px steht „Geprüft vor …“ in einer eigenen Zeile unter den Zahlen. |
+
+Offen und bewusst zurückgestellt: Sitzungen werden weiterhin einzeln gelistet (mit „Alle anderen abmelden“). Eine Gruppierung nach Gerät folgt, wenn Sitzungen einen stabilen Gerätenamen tragen.
+
+Nachweis: svelte-check 0 Fehler/0 Warnungen, Kontrastskript 68 Paare ok, 14 UI-Tests (Desktop und Mobil) grün, README-Screenshots neu erstellt.

@@ -12,7 +12,7 @@
   import { category, deviceTypes, displayName, subtitle, typeLabel, type Category } from '../lib/devices';
   import { eventText, overviewKinds } from '../lib/events';
   import type { EventItem } from '../lib/types';
-  import { number, relTime, t, time } from '../lib/i18n.svelte';
+  import { number, relTime, shortDay, t, time } from '../lib/i18n.svelte';
   import type { DeviceType } from '../lib/types';
 
   const devices = $derived([...store.devices.values()]);
@@ -96,7 +96,6 @@
   let ringBox = $state(0);
   const ringLabels = $derived(ringBox >= 380);
   const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 120 : 30)));
-  const sameDay = (ts: number) => new Date(ts).toDateString() === new Date(clock.now).toDateString();
 </script>
 
 <Dialog bind:open={confirmAll} title={t('overview.markAllTitle', { n: fresh.length })}>
@@ -247,9 +246,10 @@
         <ol class="feed">
           {#each feed as e (e.id)}
             {@const dev = deviceName(e.deviceId)}
+            {@const day = shortDay(e.ts, clock.now)}
             <li class={e.severity}>
               <time class="mono" datetime={new Date(e.ts).toISOString()} title={new Date(e.ts).toLocaleString()}>
-                {sameDay(e.ts) ? time(e.ts) : relTime(e.ts, clock.now)}
+                {time(e.ts)}{#if day}<span class="day">{day}</span>{/if}
               </time>
               <span class="feed-text">
                 {#if dev}
@@ -276,7 +276,7 @@
           {:else}
             <span class="sec-ok"><Icon name="shield-check" size={20} /> {ov?.security.lastRunAt ? t('overview.securityOk') : t('overview.securityNever')}</span>
           {/if}
-          <span class="faint small">{ov?.security.lastRunAt ? t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) }) : ''}</span>
+          <span class="faint small when">{ov?.security.lastRunAt ? t('overview.securityLast', { t: relTime(ov.security.lastRunAt, clock.now) }) : ''}</span>
           <Icon name="caret-right" size={16} />
         </a>
         {#if auth.state && !auth.state.https}
@@ -597,7 +597,7 @@
   }
   .feed li {
     display: grid;
-    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-columns: 8ch minmax(0, 1fr);
     gap: 12px;
     padding: 8px 0 8px 12px;
     border-left: 2px solid var(--border-strong);
@@ -613,6 +613,11 @@
     color: var(--text-3);
     padding-top: 1px;
     white-space: nowrap;
+    overflow: hidden;
+  }
+  .feed .day {
+    display: block;
+    font-size: 11px;
   }
   .feed-text a {
     color: var(--text);
@@ -668,6 +673,17 @@
   }
   .http {
     margin-top: 10px;
+  }
+  @media (max-width: 480px) {
+    /* The check time goes under the figures instead of wrapping beside them. */
+    .sec {
+      flex-wrap: wrap;
+      row-gap: 4px;
+    }
+    .sec .when {
+      order: 3;
+      flex-basis: 100%;
+    }
   }
 
   @media (max-width: 1100px) {

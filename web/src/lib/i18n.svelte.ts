@@ -230,7 +230,7 @@ const de = {
   'auth.fact2': 'Erkennt Geräte über ARP, DHCP, mDNS und UPnP.',
   'auth.fact3': 'Meldet neue Geräte, sobald sie sich verbinden.',
   'devices.col.beat': 'Letzte 24 h',
-  'devices.lead': '{online} online, {offline} offline. Die Streifen zeigen, wann ein Gerät in den letzten 24 Stunden da war.',
+  'devices.lead': '{online} online, {offline} offline. Die Streifen zeigen die letzten 24 Stunden.',
   'device.heartbeatAlways': 'Durchgehend online (24 h)',
   'device.heartbeat': 'In den letzten 24 Stunden {h} Stunden online',
   'device.presence.now': 'jetzt',
@@ -787,7 +787,7 @@ const en: Record<Key, string> = {
   'auth.fact2': 'Finds devices via ARP, DHCP, mDNS and UPnP.',
   'auth.fact3': 'Reports new devices as soon as they connect.',
   'devices.col.beat': 'Last 24 h',
-  'devices.lead': '{online} online, {offline} offline. The strips show when a device was around in the last 24 hours.',
+  'devices.lead': '{online} online, {offline} offline. The strips show the last 24 hours.',
   'device.heartbeatAlways': 'Online all the time (24 h)',
   'device.heartbeat': 'Online {h} of the last 24 hours',
   'device.presence.now': 'now',
@@ -1205,6 +1205,18 @@ export function dayLabel(ms: number, now: number): string {
   if (days === 0) return t('activity.today');
   if (days === 1) return t('activity.yesterday');
   return new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' }).format(ms);
+}
+
+/** Day of `ms` as a short tag for tight columns: '' today, "Gestern", else "Sa., 24.". */
+export function shortDay(ms: number, now: number): string {
+  const startOf = (x: number) => {
+    const d = new Date(x);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  const days = Math.round((startOf(now) - startOf(ms)) / 86400000);
+  if (days === 0) return '';
+  if (days === 1) return t('activity.yesterday');
+  return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric' }).format(ms);
 }
 
 export function number(n: number): string {
