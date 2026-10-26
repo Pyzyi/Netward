@@ -202,6 +202,25 @@ export interface LineSample {
   upMax?: number;
 }
 
+/** Provider report (docs/09, F5): contract speeds in Mbit/s, 0 = not given. */
+export interface ReportContract {
+  maxDown: number;
+  normalDown: number;
+  minDown: number;
+  maxUp: number;
+  normalUp: number;
+  minUp: number;
+}
+export interface ReportRequest {
+  from: string;
+  to: string;
+  format: 'pdf' | 'csv';
+  contract: ReportContract;
+  holder: string;
+  customer: string;
+  address: string;
+}
+
 /** Wi-Fi diagnosis from the FRITZ!Box (docs/09, F3). */
 export type WlanHint = 'weak' | 'very_weak' | 'band24' | 'backhaul_weak' | 'weak_repeater';
 export interface WlanClient {

@@ -176,9 +176,24 @@ test('Wi-Fi diagnosis names the problem and the device', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+test('provider report downloads as PDF and CSV', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/settings/internet');
+  await expect(page.getByText('DSL · synchronisiert mit')).toBeVisible();
+  await page.getByLabel('Download Minimal').fill('70');
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Bericht als PDF' }).click()]);
+  expect(pdf.suggestedFilename()).toMatch(/^netzwart-nachweis-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/);
+  const head = (await import('node:fs')).readFileSync(await pdf.path()).subarray(0, 8).toString();
+  expect(head).toBe('%PDF-1.4');
+  const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Rohdaten (CSV)' }).click()]);
+  expect(csv.suggestedFilename()).toMatch(/\.csv$/);
+  expect(problems).toEqual([]);
+});
+
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
-  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning']) {
+  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning', '/settings/internet']) {
     await page.goto(path);
     await page.waitForTimeout(400);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

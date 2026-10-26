@@ -156,6 +156,7 @@ func (s *Server) Handler() http.Handler {
 	authed("PUT /api/v1/devices/{id}/software", s.handleDeviceSoftware)
 	authed("GET /api/v1/network", s.handleNetwork)
 	authed("GET /api/v1/wlan", s.handleWLAN)
+	authed("POST /api/v1/report", s.handleReport)
 	authed("POST /api/v1/network/accept", s.handleNetworkAccept)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)

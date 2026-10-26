@@ -28,6 +28,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/netzwart/internal/report"
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -664,5 +665,46 @@ func TestWLANEndpoint(t *testing.T) {
 	laptop := v.APs[1].Clients[0]
 	if laptop.MAC != "aa:bb:cc:00:00:02" || laptop.DeviceID == 0 || len(laptop.Hints) != 3 {
 		t.Fatalf("laptop %+v", laptop)
+	}
+}
+
+func TestReportEndpoint(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	day := time.Now().AddDate(0, 0, -3).UTC()
+	_ = h.st.AddLatency(ctx, store.Latency{TS: day.Truncate(5 * time.Minute).UnixMilli(), Median: 12, Max: 20, Samples: 10})
+	from, to := day.AddDate(0, 0, -1).Format("2006-01-02"), time.Now().UTC().Format("2006-01-02")
+	body := map[string]any{"from": from, "to": to, "format": "csv"}
+	rec := h.do(req{method: "POST", path: "/api/v1/report", cookie: s.cookie, csrf: s.csrf, body: body})
+	if rec.Code != 200 || !strings.HasPrefix(rec.Body.String(), "record,start_utc") || !strings.Contains(rec.Body.String(), "latency,") ||
+		rec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("csv: %d %s", rec.Code, rec.Body)
+	}
+	if len(report.Checksum(rec.Body.Bytes())) != 64 {
+		t.Fatal("checksum")
+	}
+	body["format"], body["holder"] = "pdf", "Erika Mustermann"
+	body["contract"] = map[string]any{"maxDown": 100, "normalDown": 90, "minDown": 60}
+	rec = h.do(req{method: "POST", path: "/api/v1/report", cookie: s.cookie, csrf: s.csrf, body: body})
+	if rec.Code != 200 || !strings.HasPrefix(rec.Body.String(), "%PDF-1.4") || !strings.Contains(rec.Header().Get("Content-Disposition"), ".pdf") {
+		t.Fatalf("pdf: %d %.200s", rec.Code, rec.Body)
+	}
+	if strings.Contains(rec.Body.String(), "Mustermann") {
+		t.Fatal("PDF text is not hex-encoded")
+	}
+	for _, bad := range []map[string]any{
+		{"from": to, "to": to, "format": "pdf"}, // today only: nothing complete yet
+		{"from": "2026-13-01", "to": to, "format": "pdf"},
+		{"from": "2020-01-01", "to": to, "format": "pdf"}, // longer than a year
+		{"from": from, "to": to, "format": "docx"},
+		{"from": from, "to": to, "format": "pdf", "contract": map[string]any{"minDown": -1}},
+	} {
+		if rec := h.do(req{method: "POST", path: "/api/v1/report", cookie: s.cookie, csrf: s.csrf, body: bad}); rec.Code != 400 {
+			t.Fatalf("%v accepted: %d", bad, rec.Code)
+		}
+	}
+	if rec := h.do(req{method: "POST", path: "/api/v1/report", cookie: s.cookie, body: body}); rec.Code != 403 {
+		t.Fatalf("without CSRF token: %d", rec.Code)
 	}
 }

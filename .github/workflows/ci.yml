@@ -39,6 +39,8 @@ jobs:
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.8.2
           "$(go env GOPATH)/bin/staticcheck" ./...
+      - name: PDF tools (the report test checks its output with qpdf)
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends qpdf poppler-utils
       - name: Tests (race detector)
         run: go test -race -coverprofile=coverage.out ./...
       - name: Coverage

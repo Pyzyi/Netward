@@ -1,6 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, LineSample, NetworkState, SoftwareAssessment, WlanView,
+  InternetStatus, LineSample, NetworkState, ReportRequest, SoftwareAssessment, WlanView,
 } from './types';
 
 export class ApiError extends Error {
@@ -26,6 +26,19 @@ export function setUnauthorizedHandler(fn: () => void) {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await send(method, path, body);
+  if (res.status === 204 || res.status === 202) return undefined as T;
+  return (await res.json().catch(() => null)) as T;
+}
+
+/** A file from the server (report): the blob and the name it should get. */
+async function download(path: string, body: unknown): Promise<{ blob: Blob; name: string }> {
+  const res = await send('POST', path, body);
+  const m = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '');
+  return { blob: await res.blob(), name: m?.[1] ?? 'netzwart' };
+}
+
+async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (method !== 'GET' && csrf) headers['X-CSRF-Token'] = csrf;
@@ -41,17 +54,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError(0, 'network');
   }
-  if (res.status === 204 || res.status === 202) return undefined as T;
-  let data: unknown = null;
-  const ct = res.headers.get('Content-Type') ?? '';
-  if (ct.includes('application/json')) data = await res.json().catch(() => null);
   if (!res.ok) {
+    let data: unknown = null;
+    if ((res.headers.get('Content-Type') ?? '').includes('application/json')) data = await res.json().catch(() => null);
     const d = (data ?? {}) as { error?: string; message?: string };
     const err = new ApiError(res.status, d.error ?? 'internal', d.message ?? '', Number(res.headers.get('Retry-After') ?? 0));
     if (res.status === 401 && !path.startsWith('/auth/')) onUnauthorized();
     throw err;
   }
-  return data as T;
+  return res;
 }
 
 export const api = {
@@ -106,6 +117,7 @@ export const api = {
   dismissFinding: (id: number, dismissed: boolean) => request<void>('POST', `/security/findings/${id}/dismiss`, { dismissed }),
   network: () => request<NetworkState>('GET', '/network'),
   wlan: () => request<WlanView>('GET', '/wlan'),
+  report: (b: ReportRequest) => download('/report', b),
   acceptNetwork: (b: { ip: string } | { server: string }) => request<NetworkState>('POST', '/network/accept', b),
 
   internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number; kind: 'internet' | 'router' }[]; line: LineSample | null }>('GET', '/internet'),

@@ -2,6 +2,7 @@
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
   import Toggle from '../../lib/components/Toggle.svelte';
   import Sparkline from '../../lib/components/Sparkline.svelte';
+  import Report from './Report.svelte';
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
   import { clock, store, updateSettings } from '../../lib/state.svelte';
@@ -90,6 +91,8 @@
     <textarea id="tg" class="textarea mono" rows="3" bind:value={targets} disabled={!enabled}></textarea>
   </div>
 </SettingsCard>
+
+<Report />
 
 <style>
   .spark {
