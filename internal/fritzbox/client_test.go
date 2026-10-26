@@ -78,6 +78,14 @@ func newFakeBox(t *testing.T, listAction bool) *fakeBox {
 		switch {
 		case strings.HasSuffix(action, "#X_AVM-DE_GetHostListPath") && f.listAction:
 			io.WriteString(w, soapResponse("X_AVM-DE_GetHostListPath", map[string]string{"NewX_AVM-DE_HostListPath": "/devicehostlist.lua?sid=abc"}))
+		case strings.HasSuffix(action, "#GetCommonLinkProperties"):
+			io.WriteString(w, soapResponse("GetCommonLinkProperties", map[string]string{"NewWANAccessType": "DSL",
+				"NewLayer1UpstreamMaxBitRate": "40000000", "NewLayer1DownstreamMaxBitRate": "100000000", "NewPhysicalLinkStatus": "Up"}))
+		case strings.HasSuffix(action, "#GetInfo") && strings.Contains(action, "WANDSLInterfaceConfig"):
+			io.WriteString(w, soapResponse("GetInfo", map[string]string{"NewStatus": "Up", "NewDownstreamCurrRate": "92340",
+				"NewUpstreamCurrRate": "38012", "NewDownstreamMaxRate": "118000", "NewUpstreamMaxRate": "41500"}))
+		case strings.HasSuffix(action, "#GetStatusInfo") && strings.Contains(action, "WANPPPConnection"):
+			io.WriteString(w, soapResponse("GetStatusInfo", map[string]string{"NewConnectionStatus": "Connected", "NewUptime": "3600"}))
 		case strings.HasSuffix(action, "#GetInfo") && strings.Contains(action, "DeviceInfo"):
 			io.WriteString(w, soapResponse("GetInfo", map[string]string{"NewSoftwareVersion": "154.07.57",
 				"NewSerialNumber": "SECRET-SERIAL", "NewDeviceLog": "secret log"}))
@@ -245,5 +253,20 @@ func TestFirmware(t *testing.T) {
 	}
 	if strings.Contains(fmt.Sprintf("%+v", fw), "SECRET") {
 		t.Fatal("serial number kept")
+	}
+}
+
+func TestLine(t *testing.T) {
+	f := newFakeBox(t, true)
+	l, err := f.client(pass, nil).Line(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// WANIPConnection answers with a fault here (PPP line): the PPP uptime counts.
+	if l.Access != "dsl" || !l.Up || l.DownKbps != 92340 || l.UpKbps != 38012 || l.DownMaxKbps != 118000 || l.UpMaxKbps != 41500 || l.Uptime != 3600 {
+		t.Fatalf("unexpected line %+v", l)
+	}
+	if accessType("X_AVM-DE_Fiber") != "fiber" || accessType("X_AVM-DE_LTE") != "mobile" || accessType("weird") != "" {
+		t.Fatal("access types")
 	}
 }

@@ -426,6 +426,7 @@ func (s *Store) Prune(ctx context.Context, before int64) error {
 			`DELETE FROM internet_outages WHERE ended_at IS NOT NULL AND ended_at < ?`,
 			`DELETE FROM monitor_gaps WHERE ended_at < ?`,
 			`DELETE FROM internet_latency WHERE ts < ?`,
+			`DELETE FROM line_samples WHERE ts < ?`,
 			`DELETE FROM sessions WHERE expires_at < ?`,
 		} {
 			arg := before
@@ -438,4 +439,50 @@ func (s *Store) Prune(ctx context.Context, before int64) error {
 		}
 		return nil
 	})
+}
+
+// LineSample is the connection state at one moment (stored on change).
+type LineSample struct {
+	TS          int64  `json:"t"`
+	Access      string `json:"access"`
+	Up          bool   `json:"up"`
+	DownKbps    int    `json:"down"`
+	UpKbps      int    `json:"upstream"`
+	DownMaxKbps int    `json:"downMax,omitempty"`
+	UpMaxKbps   int    `json:"upMax,omitempty"`
+	Reconnect   bool   `json:"reconnect,omitempty"`
+}
+
+// AddLineSamples stores connection samples.
+func (s *Store) AddLineSamples(ctx context.Context, ls ...LineSample) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		for _, l := range ls {
+			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO line_samples (ts, access, link_up, down_kbps, up_kbps,
+				down_max_kbps, up_max_kbps, reconnect) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				l.TS, l.Access, l.Up, l.DownKbps, l.UpKbps, l.DownMaxKbps, l.UpMaxKbps, l.Reconnect); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// LineSamplesBetween returns the samples in [from, to] plus the last one
+// before from (it describes the state at from), oldest first.
+func (s *Store) LineSamplesBetween(ctx context.Context, from, to int64) ([]LineSample, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT ts, access, link_up, down_kbps, up_kbps, down_max_kbps, up_max_kbps, reconnect
+		FROM line_samples WHERE ts >= (SELECT IFNULL(MAX(ts), 0) FROM line_samples WHERE ts <= ?) AND ts <= ? ORDER BY ts`, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []LineSample{}
+	for rows.Next() {
+		var l LineSample
+		if err := rows.Scan(&l.TS, &l.Access, &l.Up, &l.DownKbps, &l.UpKbps, &l.DownMaxKbps, &l.UpMaxKbps, &l.Reconnect); err != nil {
+			return nil, err
+		}
+		out = append(out, l)
+	}
+	return out, rows.Err()
 }

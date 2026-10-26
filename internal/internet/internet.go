@@ -81,6 +81,10 @@ type Monitor struct {
 	dnsFails int   // checks in a row with working addresses but failing names
 	bucket   []int // latencies (ms, -1 = lost) of the current 5-minute bucket
 	bucketAt int64 // start of the current bucket
+
+	line       *store.LineSample // last stored connection sample
+	lineNow    *store.LineSample // last reported one
+	lineUptime int64
 }
 
 // latencyBucket is the resolution of the stored latency history.
@@ -137,6 +141,7 @@ func (m *Monitor) SeedDemo(now time.Time) {
 	}
 	m.status = Status{State: StateOnline, LatencyMS: 13, CheckedAt: now.UnixMilli(), Since: outEnd.UnixMilli(),
 		Gateway: "192.168.178.1", GatewayOK: true}
+	m.lineNow = &store.LineSample{TS: now.UnixMilli(), Access: "dsl", Up: true, DownKbps: 92340, UpKbps: 38012, DownMaxKbps: 118000, UpMaxKbps: 41500}
 }
 
 // Status returns the current status.

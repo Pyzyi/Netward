@@ -156,6 +156,7 @@ func Run(ctx context.Context, o Options) error {
 		}
 		mon.ApplyRouterHosts(ctx, rh, at.UnixMilli())
 	}, log)
+	fritz.OnLine(inet.ApplyLine)
 	wifi := wlan.New(mon)
 	fritz.OnWLAN(func(_ context.Context, st fritzbox.WLANState, at time.Time) { wifi.Apply(st, at) })
 	if env.Demo {

@@ -5,7 +5,9 @@
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
   import { clock, store, updateSettings } from '../../lib/state.svelte';
-  import { dateTime, duration, relTime, t } from '../../lib/i18n.svelte';
+  import { dateTime, duration, number, relTime, t } from '../../lib/i18n.svelte';
+
+  const mbit = (kbps: number) => number(Math.round(kbps / 100) / 10);
 
   const init = store.settings!; // starting values of the form
   const s = $derived(store.settings!); // last saved values, for dirty tracking
@@ -58,6 +60,18 @@
       <div class="spark"><Sparkline points={data.history} height={48} /></div>
     </div>
   {/if}
+  {#if data?.line}
+    {@const l = data.line}
+    <div class="field">
+      <span class="label">{t('internet.line')}</span>
+      <p>
+        {t(`internet.access.${l.access || 'other'}`)} ·
+        {#if l.up}{t('internet.sync', { down: mbit(l.down), up: mbit(l.upstream) })}{:else}<span class="warn">{t('internet.lineDown')}</span>{/if}
+        {#if l.up && l.downMax}<span class="faint"> · {t('internet.attainable', { down: mbit(l.downMax), up: mbit(l.upMax ?? 0) })}</span>{/if}
+      </p>
+      <p class="hint">{t('internet.syncHint')}</p>
+    </div>
+  {/if}
   {#if data}
     <div>
       <p class="label">{data.outages.length ? t('internet.outages', { n: data.outages.length }) : t('internet.noOutages')}</p>
@@ -94,5 +108,8 @@
     display: flex;
     justify-content: space-between;
     max-width: 380px;
+  }
+  .warn {
+    color: var(--warn);
   }
 </style>

@@ -12,6 +12,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 - Sicherheitsseite: Übersicht „Router und Adressvergabe“ mit Router-Kennung, bekannten DHCP-Servern und letzter aktiver Prüfung.
 - Bestätigungen erscheinen im Aktivitätsprotokoll.
 - Internet-Verlauf für den Provider-Nachweis: Latenz wird in 5-Minuten-Abschnitten (Median, Höchstwert, Verluste) so lange wie der übrige Verlauf aufbewahrt, Ausfälle bekommen ihre Art (Router antwortete nicht / Internet / DNS). Fiel der Router selbst aus, zählt das nicht gegen den Provider; DNS-Störungen werden nur notiert, nicht gemeldet.
+- Leitungsdaten aus der FRITZ!Box (jede Minute gelesen, bei Änderung und stündlich gespeichert): Zugangsart, Sync-Raten, bei DSL die möglichen Raten, Neueinwahlen. Anzeige unter Einstellungen → Internet.
 - WLAN-Diagnose aus der FRITZ!Box (Mesh-Liste über TR-064, alle 5 Minuten): Zugangspunkt, Band, Kanal, Signal in dBm und Datenrate je Gerät, Anbindung der Repeater. Hinweise wie „Laptop hängt im 2,4-GHz-Band am Repeater, obwohl es 5 GHz kann“, schwaches Signal oder schwach angebundener Repeater erscheinen erst nach drei Abfragen in Folge und benachrichtigen nicht. Neue Seite „WLAN“ (über Geräte) und Abschnitt „WLAN“ im Gerätedetail. Ohne Recht für die Mesh-Liste dient die einfache WLAN-Liste als Ersatz; die Geräteliste der FRITZ!Box ist davon nicht betroffen.
 
 ## 0.1.0 – 2026-10-26

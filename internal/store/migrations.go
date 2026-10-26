@@ -191,4 +191,19 @@ CREATE TABLE internet_latency (
 	samples   INTEGER NOT NULL
 );
 `,
+	// 5: connection data from the FRITZ!Box (docs/09, F5), stored when it
+	// changes and at least hourly. reconnect marks a new connection
+	// (resync or the provider's nightly disconnect).
+	`
+CREATE TABLE line_samples (
+	ts            INTEGER PRIMARY KEY,
+	access        TEXT NOT NULL,
+	link_up       INTEGER NOT NULL,
+	down_kbps     INTEGER NOT NULL,
+	up_kbps       INTEGER NOT NULL,
+	down_max_kbps INTEGER NOT NULL,
+	up_max_kbps   INTEGER NOT NULL,
+	reconnect     INTEGER NOT NULL DEFAULT 0
+);
+`,
 }

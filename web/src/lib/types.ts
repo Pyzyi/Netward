@@ -191,6 +191,17 @@ export interface NetworkState {
   probe?: { at: number; answers: number };
 }
 
+/** Connection data from the FRITZ!Box (docs/09, F5); rates in kbit/s. */
+export interface LineSample {
+  t: number;
+  access: 'dsl' | 'cable' | 'fiber' | 'ethernet' | 'mobile' | '';
+  up: boolean;
+  down: number;
+  upstream: number;
+  downMax?: number;
+  upMax?: number;
+}
+
 /** Wi-Fi diagnosis from the FRITZ!Box (docs/09, F3). */
 export type WlanHint = 'weak' | 'very_weak' | 'band24' | 'backhaul_weak' | 'weak_repeater';
 export interface WlanClient {

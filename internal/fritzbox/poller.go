@@ -28,6 +28,9 @@ type Status struct {
 	// WLAN is the state of the Wi-Fi diagnosis, which needs more rights
 	// than the host list: "" (not yet), mesh, wlanlist, auth or error.
 	WLAN string `json:"wlan,omitempty"`
+	// Line: reading the connection data for the provider report ("" not
+	// yet, ok, auth, error).
+	Line string `json:"line,omitempty"`
 }
 
 // ApplyFunc receives the host table after every successful sync.
@@ -55,6 +58,15 @@ type Poller struct {
 	wlan     func(ctx context.Context, st WLANState, at time.Time)
 	wlanAt   time.Time
 	wlanStat string
+	line     func(ctx context.Context, l Line, at time.Time)
+	lineStat string
+}
+
+// OnLine registers fn to receive the connection state every poll (F5).
+func (p *Poller) OnLine(fn func(ctx context.Context, l Line, at time.Time)) {
+	p.mu.Lock()
+	p.line = fn
+	p.mu.Unlock()
 }
 
 // wlanEvery: the Wi-Fi diagnosis shows the current state; five minutes is
@@ -91,7 +103,7 @@ func (p *Poller) Configure(ctx context.Context, cfg config.FritzBox) {
 	changed := cfg != p.cfg
 	p.cfg = cfg
 	if changed {
-		p.fwAt, p.wlanAt, p.wlanStat = time.Time{}, time.Time{}, ""
+		p.fwAt, p.wlanAt, p.wlanStat, p.lineStat = time.Time{}, time.Time{}, "", ""
 	}
 	if !cfg.Enabled {
 		p.status = Status{State: "disabled"}
@@ -200,10 +212,11 @@ func (p *Poller) Sync(ctx context.Context) error {
 		}
 	}
 	p.syncWLAN(ctx, cctx, c, now)
+	p.syncLine(ctx, cctx, c, now)
 	p.mu.Lock()
-	wlanStat := p.wlanStat
+	wlanStat, lineStat := p.wlanStat, p.lineStat
 	p.mu.Unlock()
-	p.setStatus(ctx, cfg, Status{State: "connected", Hosts: len(hosts), LastSync: now.UnixMilli(), WLAN: wlanStat})
+	p.setStatus(ctx, cfg, Status{State: "connected", Hosts: len(hosts), LastSync: now.UnixMilli(), WLAN: wlanStat, Line: lineStat})
 	return nil
 }
 
@@ -247,4 +260,33 @@ func (p *Poller) setStatus(_ context.Context, cfg config.FritzBox, st Status) {
 	p.status = st
 	p.mu.Unlock()
 	p.hub.Publish("fritzbox", st)
+}
+
+// syncLine reads the connection data; like the Wi-Fi it is optional.
+func (p *Poller) syncLine(ctx, cctx context.Context, c *Client, now time.Time) {
+	p.mu.Lock()
+	fn := p.line
+	p.mu.Unlock()
+	if fn == nil {
+		return
+	}
+	l, err := c.Line(cctx)
+	stat := "ok"
+	switch {
+	case errors.Is(err, ErrAuth):
+		stat = "auth"
+	case err != nil:
+		stat = "error"
+	}
+	p.mu.Lock()
+	changed := p.lineStat != stat
+	p.lineStat = stat
+	p.mu.Unlock()
+	if err != nil {
+		if changed {
+			p.log.Info("FRITZ!Box line query failed", "err", err)
+		}
+		return
+	}
+	fn(ctx, l, now)
 }

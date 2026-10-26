@@ -230,7 +230,8 @@ func (s *Server) handleInternet(w http.ResponseWriter, r *http.Request, _ *sessi
 		s.fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": s.d.Internet.Status(), "history": s.d.Internet.History(), "outages": outs})
+	writeJSON(w, http.StatusOK, map[string]any{"status": s.d.Internet.Status(), "history": s.d.Internet.History(), "outages": outs,
+		"line": s.d.Internet.Line()})
 }
 
 // csvSafe prevents spreadsheet formula injection (CWE-1236).

@@ -313,5 +313,25 @@ func seedLineHistory(ctx context.Context, st *store.Store, now time.Time, rnd *r
 		}
 		ls = append(ls, l)
 	}
-	return st.AddLatency(ctx, ls...)
+	if err := st.AddLatency(ctx, ls...); err != nil {
+		return err
+	}
+	// DSL 100: synced at 92 Mbit/s; for four days after a resync only 61
+	// Mbit/s, plus the nightly reconnects.
+	var lines []store.LineSample
+	for d := 30; d >= 0; d-- {
+		for h := 0; h < 24; h++ {
+			t := time.Date(now.Year(), now.Month(), now.Day()-d, h, 0, 0, 0, now.Location())
+			if t.After(now) {
+				break
+			}
+			down, up := 92340, 38012
+			if d <= 12 && d > 8 {
+				down, up = 61020, 31004
+			}
+			lines = append(lines, store.LineSample{TS: t.UnixMilli(), Access: "dsl", Up: true, DownKbps: down, UpKbps: up,
+				DownMaxKbps: down * 128 / 100, UpMaxKbps: up * 109 / 100, Reconnect: h == 3 || (d == 12 && h == 14) || (d == 8 && h == 9)})
+		}
+	}
+	return st.AddLineSamples(ctx, lines...)
 }

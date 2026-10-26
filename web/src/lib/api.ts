@@ -1,6 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, NetworkState, SoftwareAssessment, WlanView,
+  InternetStatus, LineSample, NetworkState, SoftwareAssessment, WlanView,
 } from './types';
 
 export class ApiError extends Error {
@@ -108,6 +108,6 @@ export const api = {
   wlan: () => request<WlanView>('GET', '/wlan'),
   acceptNetwork: (b: { ip: string } | { server: string }) => request<NetworkState>('POST', '/network/accept', b),
 
-  internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number; kind: 'internet' | 'router' }[] }>('GET', '/internet'),
+  internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number; kind: 'internet' | 'router' }[]; line: LineSample | null }>('GET', '/internet'),
   system: () => request<SystemInfo>('GET', '/system'),
 };

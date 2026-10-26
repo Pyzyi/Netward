@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/egress"
+	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -160,5 +161,39 @@ func TestOutageKindsAndLatencyBuckets(t *testing.T) {
 	// Failures while the router was down are not counted against the line.
 	if b := ls[1]; b.Lost != 0 || b.Samples != 5 {
 		t.Fatalf("second bucket %+v", b)
+	}
+}
+
+func TestApplyLineStoresChangesAndReconnects(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "i.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	m := New(st, hub.New(), &rec{}, &rec{}, nil, &egress.Policy{}, func() []netip.Addr { return nil }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	base := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	l := fritzbox.Line{Access: "dsl", Up: true, DownKbps: 92000, UpKbps: 38000, DownMaxKbps: 118000, UpMaxKbps: 41000, Uptime: 1000}
+	for i := 0; i < 5; i++ { // unchanged for 5 minutes, max rate wanders by 1 %
+		l.Uptime += 60
+		l.DownMaxKbps = 118000 + i*200
+		m.ApplyLine(ctx, l, base.Add(time.Duration(i)*time.Minute))
+	}
+	l.Uptime = 30 // reconnected, new sync rate
+	l.DownKbps = 61000
+	m.ApplyLine(ctx, l, base.Add(6*time.Minute))
+	l.Uptime += 60
+	m.ApplyLine(ctx, l, base.Add(7*time.Minute))
+	m.ApplyLine(ctx, l, base.Add(68*time.Minute)) // hourly heartbeat
+	ls, _ := st.LineSamplesBetween(ctx, 0, base.Add(2*time.Hour).UnixMilli())
+	if len(ls) != 3 || ls[1].DownKbps != 61000 || !ls[1].Reconnect || ls[0].Reconnect || ls[2].Reconnect {
+		t.Fatalf("samples %+v", ls)
+	}
+	// The sample before the window describes the state at its start.
+	if ls, _ := st.LineSamplesBetween(ctx, base.Add(30*time.Minute).UnixMilli(), base.Add(2*time.Hour).UnixMilli()); len(ls) != 2 || ls[0].TS != base.Add(6*time.Minute).UnixMilli() {
+		t.Fatalf("window %+v", ls)
+	}
+	if m.Line() == nil || m.Line().DownKbps != 61000 {
+		t.Fatal("current line not kept")
 	}
 }
