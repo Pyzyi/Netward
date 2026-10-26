@@ -89,6 +89,10 @@
         return t('security.unknown.title', { n: unknownCount });
       case 'gateway_mac':
         return t(`security.gateway.${f.data.kind}.title`, { ip: f.data.ip ?? '' });
+      case 'known_exploited': {
+        const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
+        return t(`security.exploited.title${f.data.manual ? '.manual' : f.data.uncertain ? '.uncertain' : ''}`, { name });
+      }
       case 'dhcp_rogue':
         return t(f.severity === 'info' ? 'security.dhcp.titleAsk' : 'security.dhcp.title', { server: f.data.server ?? '' });
       case 'software_outdated':
@@ -110,6 +114,7 @@
     if (f.check === 'software_outdated' || f.check === 'software_update') return t(`security.software.why.${f.data.status}`);
     if (f.check === 'risky_port') return t(`security.port.why.${f.data.service}`);
     if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.why`);
+    if (f.check === 'known_exploited') return t('security.exploited.why') + (f.data.manual ? ' ' + t('security.exploited.whyManual') : '');
     if (f.check === 'dhcp_rogue') return t('security.dhcp.why') + (f.severity === 'critical' ? ' ' + t('security.dhcp.whyOther') : '');
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
   }
@@ -117,6 +122,7 @@
     if (f.check === 'software_outdated' || f.check === 'software_update') return softwareAdvice(f);
     if (f.check === 'risky_port') return t(`security.port.todo.${f.data.service}`);
     if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.todo`);
+    if (f.check === 'known_exploited') return t(f.data.uncertain ? 'security.exploited.todo.uncertain' : 'security.exploited.todo', { fixed: f.data.fixed ?? '' });
     if (f.check === 'dhcp_rogue') return t('security.dhcp.todo');
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
   }

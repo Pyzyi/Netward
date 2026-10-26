@@ -155,7 +155,7 @@ type softwareRequest struct {
 	Edition *string `json:"edition"`
 }
 
-var manualVersionRe = regexp.MustCompile(`^[0-9]{1,2}(\.[0-9]{1,2})?$`)
+var manualVersionRe = regexp.MustCompile(`^[0-9]{1,2}(\.[0-9]{1,2}){0,2}$`)
 
 func (s *Server) handleDeviceSoftware(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
 	id, ok := pathID(r, "id")

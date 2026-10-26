@@ -32,6 +32,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/vuln"
 	"github.com/Pyzyi/netzwart/internal/wlan"
 )
 
@@ -706,5 +707,51 @@ func TestReportEndpoint(t *testing.T) {
 	}
 	if rec := h.do(req{method: "POST", path: "/api/v1/report", cookie: s.cookie, body: body}); rec.Code != 403 {
 		t.Fatalf("without CSRF token: %d", rec.Code)
+	}
+}
+
+func TestKnownExploitedFinding(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	h.mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0xd0, 0x03, 0x4b, 0, 0, 1}, IP: netip.MustParseAddr("192.168.1.53"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	id := h.mon.Devices()[0].ID
+	// tvOS 18.2 from AirPlay: the embedded snapshot knows CVE-2025-24085 (fixed in 18.3).
+	h.mon.AddSoftware(id, []software.Observation{{Source: "airplay", Product: software.TvOS, Version: "18.2", Evidence: "osvers=18.2", SeenAt: time.Now().UnixMilli()}})
+	sw, _ := h.mon.Software(id)
+	if sw.Exploited == nil || sw.Exploited.Verdict != vuln.Affected || sw.Exploited.Fixed == "" || len(sw.Exploited.CVEs) == 0 {
+		t.Fatalf("assessment %+v", sw.Exploited)
+	}
+	sec := h.srv.d.Security
+	sec.EvaluateSoftware(ctx)
+	find := func() *store.Finding {
+		fs, _ := h.st.ListFindings(ctx)
+		for i := range fs {
+			if fs[i].CheckID == security.CheckKnownExploited {
+				return &fs[i]
+			}
+		}
+		return nil
+	}
+	if f := find(); f == nil || f.Severity != "critical" || f.DeviceID != id || !strings.Contains(string(f.Data), `"fixed"`) {
+		t.Fatalf("finding %+v", f)
+	}
+	// After the update the finding goes away.
+	h.mon.AddSoftware(id, []software.Observation{{Source: "airplay", Product: software.TvOS, Version: "99.0", Evidence: "osvers=99.0", SeenAt: time.Now().UnixMilli()}})
+	sec.EvaluateSoftware(ctx)
+	if f := find(); f != nil {
+		t.Fatalf("finding stays after the update: %+v", f)
+	}
+	// A manual exact version asks for confirmation instead of alarming.
+	rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
+		body: map[string]any{"manual": map[string]any{"product": "tvos", "version": "18.2.1"}}})
+	if rec.Code != 200 {
+		t.Fatalf("manual: %d %s", rec.Code, rec.Body)
+	}
+	h.mon.AddSoftware(id, []software.Observation{{Source: "airplay", Product: software.TvOS, Version: "18.2", Evidence: "osvers=18.2", SeenAt: time.Now().Add(-100 * 24 * time.Hour).UnixMilli()}})
+	sec.EvaluateSoftware(ctx)
+	if f := find(); f == nil || f.Severity != "warning" || !strings.Contains(string(f.Data), `"manual":"true"`) {
+		t.Fatalf("manual finding %+v", f)
 	}
 }

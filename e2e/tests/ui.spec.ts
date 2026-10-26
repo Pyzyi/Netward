@@ -191,6 +191,18 @@ test('provider report downloads as PDF and CSV', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+test('known exploited vulnerabilities: detected version and manual entry', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/devices/7'); // MacBook-Air, macOS 26.6 from AirPlay
+  await expect(page.getByText('Update dringend: Lücken werden bereits ausgenutzt')).toBeVisible();
+  await expect(page.getByText(/^CVE-\d{4}-\d+$/).first()).toBeVisible();
+  await expect(page.getByText(/fehlt ein Eintrag, heißt das nicht, dass das Gerät sicher ist/)).toBeVisible();
+  await page.goto('/devices/6'); // Annas iPhone, entered by hand
+  await expect(page.getByText(/Laut deiner Angabe \(26\.6\.2\)/)).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
   for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning', '/settings/internet']) {

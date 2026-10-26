@@ -24,8 +24,16 @@
     !isWindows && (['phone', 'tablet', 'watch', 'laptop', 'computer'].includes(device.type) || s.product === 'ios' || s.product === 'ipados' || s.product === 'macos' || s.product === 'android'),
   );
   const dataOld = $derived(Date.now() - Date.parse(s.dataAsOf) > 183 * 86_400_000);
+  // Known exploited vulnerabilities (offline list, docs/09 F6). Nothing is
+  // shown when none applies: the list never proves a device is safe.
+  const x = $derived(s.exploited && s.exploited.verdict !== 'none' ? s.exploited : undefined);
+  const xOld = $derived(!!x && Date.now() - Date.parse(x.dataAsOf) > 90 * 86_400_000);
+  const safeUrl = (u?: string) => (u && u.startsWith('https://support.apple.com/') ? u : undefined);
 
+  // A confirmed exploited hole outranks "gets updates": the update is there, but not installed.
+  const urgent = $derived(s.exploited?.verdict === 'affected' && !s.exploited.manual);
   const headline = $derived.by(() => {
+    if (urgent) return t('software.status.exploited');
     switch (s.status) {
       case 'outdated':
         return s.since ? t('software.status.outdatedSince', { d: dateLong(s.since) }) : t('software.status.outdated');
@@ -61,12 +69,15 @@
 
   let product = $state('ios');
   let version = $state('');
+  let exact = $state(''); // optional, e.g. 18.6.2: enables the check for exploited holes
   let editing = $state(false);
+  const exactOk = $derived(exact.trim() === '' || (/^\d{1,2}(\.\d{1,2}){1,2}$/.test(exact.trim()) && exact.trim().startsWith(`${version}.`)));
   let busy = $state(false);
 
   function startEdit() {
     product = manual?.product ?? (device.os === 'Android' ? 'android' : s.product && ['ios', 'ipados', 'macos', 'android'].includes(s.product) ? s.product : device.type === 'tablet' ? 'ipados' : 'ios');
-    version = manual?.version ?? '';
+    version = manual?.version.split('.')[0] ?? '';
+    exact = manual?.version.includes('.') ? manual.version : '';
     editing = true;
   }
 
@@ -90,7 +101,7 @@
   }
 </script>
 
-<div class="sw" data-status={s.status}>
+<div class="sw" data-status={urgent ? 'outdated' : s.status}>
   <p class="verdict"><span class="mark" aria-hidden="true"></span><strong>{headline}</strong></p>
   {#if s.name || s.maxOs}
     <p class="system">
@@ -101,6 +112,30 @@
     </p>
   {/if}
   {#if s.conflict}<p class="notice warn small">{t('software.conflict')}</p>{/if}
+  {#if x}
+    <div class="exploited" class:uncertain={x.verdict === 'uncertain'} class:manual={x.manual}>
+      <p class="x-title">
+        <strong>
+          {#if x.verdict === 'uncertain'}{t('software.exploited.uncertain', { version: x.version, fixed: x.fixed ?? '' })}
+          {:else if x.manual}{t(x.cves?.length === 1 ? 'software.exploited.manual.one' : 'software.exploited.manual', { version: x.version, n: x.cves?.length ?? 0 })}
+          {:else}{t(x.cves?.length === 1 ? 'software.exploited.affected.one' : 'software.exploited.affected', { n: x.cves?.length ?? 0 })}{/if}
+        </strong>
+      </p>
+      {#if x.verdict === 'affected'}
+        <p>{t('software.exploited.fix', { fixed: x.fixed ?? '' })}</p>
+        <ul class="cves">
+          {#each (x.cves ?? []).slice(0, 5) as c (c.id)}
+            <li>
+              {#if safeUrl(c.url)}<a href={safeUrl(c.url)} target="_blank" rel="noopener noreferrer">{c.id}</a>{:else}<span>{c.id}</span>{/if}
+              <span class="faint">· {t('software.exploited.added', { d: dateLong(c.added) })}</span>
+            </li>
+          {/each}
+          {#if (x.cves?.length ?? 0) > 5}<li class="faint">{t('software.exploited.more', { n: (x.cves?.length ?? 0) - 5 })}</li>{/if}
+        </ul>
+      {/if}
+      <p class="faint small" class:old={xOld}>{t(xOld ? 'software.exploited.listOld' : 'software.exploited.list', { d: dateLong(x.dataAsOf) })}</p>
+    </div>
+  {/if}
   {#if s.note === 'stale' && s.lastSeen}<p class="hint">{t('software.lastSeen', { d: dateTime(s.lastSeen) })}</p>{/if}
   {#if why}<p class="why">{why}</p>{/if}
   {#if advice}
@@ -123,19 +158,24 @@
 
   {#if canManual}
     {#if editing}
-      <form class="manual" onsubmit={(e) => { e.preventDefault(); send({ manual: { product, version } }); }}>
+      <form class="manual" onsubmit={(e) => { e.preventDefault(); send({ manual: { product, version: exact.trim() || version } }); }}>
         <p class="hint">{t(`software.manual.where.${product}`)}</p>
         <div class="row">
-          <select class="select" bind:value={product} aria-label={t('software.manual.system')} onchange={() => (version = '')}>
+          <select class="select" bind:value={product} aria-label={t('software.manual.system')} onchange={() => { version = ''; exact = ''; }}>
             {#each Object.keys(versions) as p (p)}<option value={p}>{t(`software.product.${p}`)}</option>{/each}
           </select>
           <select class="select" bind:value={version} aria-label={t('software.manual.version')} required>
             <option value="" disabled>{t('software.manual.pick')}</option>
             {#each versions[product] as v (v)}<option value={v}>{v}</option>{/each}
           </select>
+          {#if product !== 'android'}
+            <input class="input exact" bind:value={exact} inputmode="decimal" maxlength="8" placeholder={version ? `${version}.x.x` : ''}
+              aria-label={t('software.manual.exact')} aria-invalid={!exactOk} />
+          {/if}
         </div>
+        {#if product !== 'android'}<p class="hint">{exactOk ? t('software.manual.exactHint') : t('software.manual.exactBad', { v: version })}</p>{/if}
         <div class="row">
-          <button class="btn primary small" type="submit" disabled={busy || !version}>{t('common.save')}</button>
+          <button class="btn primary small" type="submit" disabled={busy || !version || !exactOk}>{t('common.save')}</button>
           <button class="btn small" type="button" onclick={() => (editing = false)}>{t('common.cancel')}</button>
           {#if manual}<button class="btn small" type="button" disabled={busy} onclick={() => send({ manual: { product: '', version: '' } })}>{t('software.manual.clear')}</button>{/if}
         </div>
@@ -249,6 +289,9 @@
     width: auto;
     min-width: 120px;
   }
+  .exact {
+    width: 110px;
+  }
   .how summary {
     font-size: 13px;
     color: var(--text-2);
@@ -274,6 +317,38 @@
   }
   .small {
     font-size: 13px;
+  }
+  .exploited {
+    display: grid;
+    gap: 6px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--danger);
+    background: var(--danger-soft);
+    font-size: 14px;
+  }
+  .exploited.manual,
+  .exploited.uncertain {
+    border-left-color: var(--amber);
+    background: var(--warn-soft);
+  }
+  .x-title {
+    color: var(--danger);
+  }
+  .manual .x-title,
+  .uncertain .x-title {
+    color: var(--warn);
+  }
+  .cves {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+    font-size: 13px;
+  }
+  .cves a,
+  .cves span:first-child {
+    font-family: var(--mono);
   }
   .old {
     color: var(--warn);

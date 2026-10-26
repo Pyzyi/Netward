@@ -385,6 +385,12 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return tr("Zwei Geräte verteilen Adressen im Netz: ", "Two devices hand out addresses on the network: ") + srv,
 			tr("Ein zweiter DHCP-Server kann Geräte auf einen falschen Router oder DNS-Server lenken.",
 				"A second DHCP server can point devices to a wrong router or DNS server.")
+	case CheckKnownExploited:
+		sw, _ := data["software"].(string)
+		fixed, _ := data["fixed"].(string)
+		return tr("Aktiv ausgenutzte Sicherheitslücken", "Actively exploited vulnerabilities") + suffix(sw),
+			fmt.Sprintf(tr("Für diese Version sind Lücken bekannt, die bereits für Angriffe genutzt werden. Behoben in Version %s.",
+				"Holes in this version are known to be used in attacks. Fixed in version %s."), fixed)
 	case CheckSoftwareOutdated:
 		if n, ok := data["count"].(int); ok {
 			return fmt.Sprintf(tr("%d Geräte bekommen keine Sicherheitsupdates mehr", "%d devices no longer get security updates"), n),

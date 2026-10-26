@@ -8,9 +8,12 @@
 package software
 
 import (
+	"slices"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Pyzyi/netzwart/internal/vuln"
 )
 
 // Sources, in the order of their precision (most precise first).
@@ -99,6 +102,33 @@ type Assessment struct {
 	// Observations lists every source, most precise first.
 	Observations []Observation `json:"observations"`
 	DataAsOf     string        `json:"dataAsOf"`
+	// Exploited is the match against known exploited vulnerabilities
+	// (docs/09, F6); nil when the version is too vague to tell.
+	Exploited *Exploited `json:"exploited,omitempty"`
+}
+
+// Exploited is what the offline snapshot says about the deciding version.
+type Exploited struct {
+	vuln.Result
+	Version  string `json:"version"`
+	Manual   bool   `json:"manual,omitempty"` // the version was entered by the user
+	DataAsOf string `json:"dataAsOf"`
+}
+
+// exploited matches an observation; manual entries count for StaleAfter
+// like everything else, since the device may have been updated meanwhile.
+func exploited(o Observation, now time.Time) *Exploited {
+	if !slices.Contains(vuln.Products, o.Product) {
+		return nil
+	}
+	if o.Source == SourceManual && o.SeenAt > 0 && now.Sub(time.UnixMilli(o.SeenAt)) > StaleAfter {
+		return nil
+	}
+	r := vuln.Check(o.Product, o.Version)
+	if r.Verdict == vuln.Unknown {
+		return nil
+	}
+	return &Exploited{Result: r, Version: o.Version, Manual: o.Source == SourceManual, DataAsOf: vuln.DataAsOf()}
 }
 
 // Sort orders observations by precision, then by recency.
@@ -187,7 +217,9 @@ func Assess(in Input) Assessment {
 				}
 			}
 		}
-		return expire(finish(a, o), in.Now)
+		a = finish(a, o)
+		a.Exploited = exploited(o, in.Now)
+		return expire(a, in.Now)
 	}
 	// Only old observations: the model may still decide; otherwise name what
 	// was seen, but decide nothing.

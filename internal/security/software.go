@@ -8,6 +8,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/vuln"
 )
 
 // Software findings. They are decided from what devices reveal about
@@ -16,6 +17,7 @@ import (
 const (
 	CheckSoftwareOutdated = "software_outdated" // no security updates any more
 	CheckSoftwareUpdate   = "software_update"   // update waiting or end in sight
+	CheckKnownExploited   = "known_exploited"   // the version has holes that are exploited (F6)
 )
 
 // maxSingleAlerts: more new findings at once are sent as one summary, e.g.
@@ -86,12 +88,33 @@ type swAlert struct {
 func (c *Checker) EvaluateSoftware(ctx context.Context) {
 	runStart := c.nextRun()
 	var checked []int64
-	var alerts []swAlert
+	var alerts, exploits []swAlert
 	for _, d := range c.mon.Devices() {
 		checked = append(checked, d.ID)
 		a, ok := c.mon.Software(d.ID)
 		if !ok {
 			continue
+		}
+		if x := a.Exploited; x != nil && x.Verdict != vuln.None {
+			// The version that fixes it is part of the identity: a newer
+			// snapshot with a new exploited hole alerts again, an update
+			// within the same affected range does not.
+			data := map[string]string{"fixed": x.Fixed}
+			sev := "critical"
+			switch {
+			case x.Verdict == vuln.Uncertain:
+				sev, data["uncertain"] = "info", "true"
+			case x.Manual:
+				sev, data["manual"] = "warning", "true" // ask to confirm the version first
+			}
+			raw, _ := json.Marshal(data)
+			f := store.Finding{CheckID: CheckKnownExploited, DeviceID: d.ID, Severity: sev, Data: raw, LastSeen: runStart}
+			if isNew, err := c.st.UpsertFinding(ctx, f); err != nil {
+				c.log.Error("store exploited finding", "err", err)
+			} else if isNew && sev == "critical" {
+				dev := d
+				exploits = append(exploits, swAlert{f: f, name: a.Name, dev: &dev})
+			}
 		}
 		var check, sev string
 		switch a.Status {
@@ -120,10 +143,18 @@ func (c *Checker) EvaluateSoftware(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	if err := c.st.PruneFindings(ctx, runStart, checked, []string{CheckSoftwareOutdated, CheckSoftwareUpdate}); err != nil {
+	if err := c.st.PruneFindings(ctx, runStart, checked, []string{CheckSoftwareOutdated, CheckSoftwareUpdate, CheckKnownExploited}); err != nil {
 		c.log.Error("prune software findings", "err", err)
 	}
 	c.alertSoftware(ctx, runStart, alerts)
+	for _, a := range exploits {
+		var fd map[string]any
+		_ = json.Unmarshal(a.f.Data, &fd)
+		data := map[string]any{"check": CheckKnownExploited, "software": a.name, "fixed": fd["fixed"]}
+		data["title"], data["detail"] = Describe(CheckKnownExploited, data, "de")
+		c.mon.AddEvent(ctx, notify.KindSecurity, "critical", a.f.DeviceID, map[string]any{"check": CheckKnownExploited, "software": a.name, "fixed": fd["fixed"]})
+		c.notifier.Notify(notify.Event{Kind: notify.KindSecurity, Severity: "critical", TS: runStart, Device: a.dev, Data: data})
+	}
 	c.hub.Publish("security", c.Status())
 }
 

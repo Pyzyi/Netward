@@ -89,7 +89,7 @@ jobs:
   container:
     name: Container – build, integration, UI, scan
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: [go, web]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,14 +124,18 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: e2e/package-lock.json
+      - name: Install browser for the UI tests
+        working-directory: e2e
+        timeout-minutes: 15
+        run: |
+          npm ci --no-fund
+          npx playwright install --with-deps chromium
       - name: UI tests (Playwright, desktop + mobile)
         working-directory: e2e
         env:
           NETZWART_URL: http://127.0.0.1:18850
-        timeout-minutes: 12
+        timeout-minutes: 10
         run: |
-          npm ci --no-fund
-          npx playwright install --with-deps chromium
           npx playwright test
       - name: Container logs
         if: failure()
