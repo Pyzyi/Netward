@@ -17,12 +17,18 @@ import (
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/internet"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/persons"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
 // Source provides the data the bridge publishes.
 type Source interface {
 	Devices() []store.Device
+}
+
+// PersonSource provides the persons (docs/09, F4).
+type PersonSource interface {
+	States() []persons.State
 }
 
 // BridgeStatus is shown in the settings page.
@@ -48,12 +54,51 @@ type Bridge struct {
 	reconnect chan struct{}
 	status    BridgeStatus
 	published map[string]bool // object IDs with a discovery config
+	people    PersonSource
+	pubNames  map[string]string // person object ID -> name in its published config
+	pubStates map[string]string // person object ID -> last published state
+}
+
+// SetPersons adds a device_tracker per person.
+func (b *Bridge) SetPersons(p PersonSource) {
+	b.mu.Lock()
+	b.people = p
+	b.mu.Unlock()
+}
+
+func personObjectID(id int64) string { return "netzwart_person_" + strconv.FormatInt(id, 10) }
+
+func (b *Bridge) personStates() []persons.State {
+	b.mu.Lock()
+	p := b.people
+	b.mu.Unlock()
+	if p == nil {
+		return nil
+	}
+	return p.States()
+}
+
+// wanted are the entities that should exist: watched devices and the
+// persons shown in Home Assistant.
+func (b *Bridge) wanted() map[string]bool {
+	ids := map[string]bool{}
+	for _, d := range b.src.Devices() {
+		if d.Watch {
+			ids[deviceObjectID(d)] = true
+		}
+	}
+	for _, p := range b.personStates() {
+		if p.HA {
+			ids[personObjectID(p.ID)] = true
+		}
+	}
+	return ids
 }
 
 // NewBridge creates the bridge; Run must be called to start it.
 func NewBridge(src Source, h *hub.Hub, policy *egress.Policy, inet func() internet.Status, version string, log *slog.Logger) *Bridge {
 	b := &Bridge{src: src, hub: h, policy: policy, inet: inet, version: version, log: log,
-		reconnect: make(chan struct{}, 1), status: BridgeStatus{State: "disabled"}, published: map[string]bool{}}
+		reconnect: make(chan struct{}, 1), status: BridgeStatus{State: "disabled"}, published: map[string]bool{}, pubNames: map[string]string{}, pubStates: map[string]string{}}
 	if policy != nil {
 		b.dial = policy.DialContext
 	}
@@ -117,6 +162,12 @@ func deviceObjectID(d store.Device) string {
 func (b *Bridge) Run(ctx context.Context) {
 	backoff := 5 * time.Second
 	for {
+		// A pending "settings changed" is answered by reading them now; left
+		// in the channel it would end the session right after connecting.
+		select {
+		case <-b.reconnect:
+		default:
+		}
 		b.mu.Lock()
 		cfg := b.cfg
 		b.mu.Unlock()
@@ -168,7 +219,7 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 	// Discovery configs are tracked per broker session: a new broker (or one
 	// without persistence) has none of them yet.
 	b.mu.Lock()
-	b.published = map[string]bool{}
+	b.published, b.pubNames, b.pubStates = map[string]bool{}, map[string]string{}, map[string]string{}
 	b.mu.Unlock()
 	// Retained configs the broker still holds from earlier runs; entities of
 	// devices that are no longer watched are removed after the initial sync.
@@ -233,12 +284,7 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 		case <-cl.Done():
 			return cl.Err()
 		case <-cleanup.C:
-			watched := map[string]bool{}
-			for _, d := range b.src.Devices() {
-				if d.Watch {
-					watched[deviceObjectID(d)] = true
-				}
-			}
+			watched := b.wanted()
 			retainedMu.Lock()
 			var stale []string
 			for id := range retained {
@@ -255,7 +301,7 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 		case <-resync:
 			// Home Assistant restarted: send every config again.
 			b.mu.Lock()
-			b.published = map[string]bool{}
+			b.published, b.pubNames, b.pubStates = map[string]bool{}, map[string]string{}, map[string]string{}
 			b.mu.Unlock()
 			if err := b.publishAll(ctx, cl, cfg); err != nil {
 				return err
@@ -277,6 +323,11 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 				if d, ok := m.Data.(store.Device); ok {
 					err = b.publishDevice(ctx, cl, cfg, d)
 				}
+				if err == nil {
+					err = b.publishPersons(ctx, cl, cfg)
+				}
+			case "persons":
+				err = b.publishPersons(ctx, cl, cfg)
 			case "device_removed":
 				if v, ok := m.Data.(map[string]int64); ok {
 					err = b.removeByID(ctx, cl, cfg, v["id"])
@@ -347,7 +398,73 @@ func (b *Bridge) publishAll(ctx context.Context, cl *Client, cfg config.MQTT) er
 			return err
 		}
 	}
+	if err := b.publishPersons(ctx, cl, cfg); err != nil {
+		return err
+	}
 	return b.publishStats(ctx, cl, cfg)
+}
+
+// publishPersons sends a device_tracker per person (home / not_home). IDs
+// come from the person's number, never from the name; a person that is
+// deleted or hidden from Home Assistant loses its entity.
+func (b *Bridge) publishPersons(ctx context.Context, cl *Client, cfg config.MQTT) error {
+	states := b.personStates()
+	want := map[string]bool{}
+	for _, p := range states {
+		id := personObjectID(p.ID)
+		if !p.HA {
+			continue
+		}
+		want[id] = true
+		stateTopic := cfg.BaseTopic + "/person/" + strconv.FormatInt(p.ID, 10) + "/state"
+		b.mu.Lock()
+		same := b.published[id] && b.pubNames[id] == p.Name
+		b.mu.Unlock()
+		if !same {
+			msg := map[string]any{
+				"name": nil, "unique_id": id, "object_id": id, "state_topic": stateTopic,
+				"payload_home": "home", "payload_not_home": "not_home", "source_type": "router",
+				"availability_topic": cfg.BaseTopic + "/status",
+				"device":             deviceInfo{Identifiers: []string{id}, Name: p.Name, Manufacturer: "Netzwart", ViaDevice: "netzwart"},
+			}
+			if err := b.publishJSON(ctx, cl, cfg.DiscoveryPrefix+"/device_tracker/"+id+"/config", msg); err != nil {
+				return err
+			}
+			b.mu.Lock()
+			b.published[id], b.pubNames[id] = true, p.Name
+			b.mu.Unlock()
+		}
+		state := "not_home"
+		if p.Home {
+			state = "home"
+		}
+		b.mu.Lock()
+		unchanged := b.pubStates[id] == state
+		b.mu.Unlock()
+		if unchanged {
+			continue
+		}
+		if err := cl.Publish(ctx, stateTopic, []byte(state), true); err != nil {
+			return err
+		}
+		b.mu.Lock()
+		b.pubStates[id] = state
+		b.mu.Unlock()
+	}
+	b.mu.Lock()
+	var stale []string
+	for id := range b.published {
+		if strings.HasPrefix(id, "netzwart_person_") && !want[id] {
+			stale = append(stale, id)
+		}
+	}
+	b.mu.Unlock()
+	for _, id := range stale {
+		if err := b.remove(ctx, cl, cfg, id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *Bridge) publishStats(ctx context.Context, cl *Client, cfg config.MQTT) error {
@@ -433,22 +550,23 @@ func (b *Bridge) remove(ctx context.Context, cl *Client, cfg config.MQTT, id str
 	if err := cl.Publish(ctx, cfg.DiscoveryPrefix+"/device_tracker/"+id+"/config", nil, true); err != nil {
 		return err
 	}
-	_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/state", nil, true)
-	_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/attributes", nil, true)
+	if pid, ok := strings.CutPrefix(id, "netzwart_person_"); ok {
+		_ = cl.Publish(ctx, cfg.BaseTopic+"/person/"+pid+"/state", nil, true)
+	} else {
+		_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/state", nil, true)
+		_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/attributes", nil, true)
+	}
 	b.mu.Lock()
 	delete(b.published, id)
+	delete(b.pubNames, id)
+	delete(b.pubStates, id)
 	b.mu.Unlock()
 	return nil
 }
 
 func (b *Bridge) removeByID(ctx context.Context, cl *Client, cfg config.MQTT, deviceID int64) error {
 	// The device is gone from the monitor; remove every entity that no longer matches a watched device.
-	current := map[string]bool{}
-	for _, d := range b.src.Devices() {
-		if d.Watch {
-			current[deviceObjectID(d)] = true
-		}
-	}
+	current := b.wanted()
 	b.mu.Lock()
 	var stale []string
 	for id := range b.published {

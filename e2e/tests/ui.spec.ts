@@ -203,9 +203,30 @@ test('known exploited vulnerabilities: detected version and manual entry', async
   expect(problems).toEqual([]);
 });
 
+test('persons: who is at home, consent for time per day', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/');
+  const home = page.locator('section', { has: page.getByRole('heading', { name: 'Wer ist zu Hause' }) });
+  await expect(home.getByText('Max', { exact: true })).toBeVisible();
+  await expect(home.getByText(/^zu Hause seit /).first()).toBeVisible();
+  await home.getByRole('link', { name: 'Verwalten' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Personen' })).toBeVisible();
+  // Anna agreed: hours per day are shown. Max did not: switching on asks first.
+  await expect(page.getByText('Stunden je Tag, in denen mindestens ein Anwesenheitsgerät verbunden war.')).toBeVisible();
+  const max = page.locator('section.person', { has: page.getByRole('heading', { name: /Max/ }) });
+  await max.getByRole('switch', { name: 'Zeit im Heimnetz je Tag zeigen' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText('Max weiß Bescheid und ist einverstanden.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Einschalten' })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(max.getByRole('switch', { name: 'Zeit im Heimnetz je Tag zeigen' })).toHaveAttribute('aria-checked', 'false');
+  expect(problems).toEqual([]);
+});
+
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
-  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning', '/settings/internet']) {
+  for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/wlan', '/settings/scanning', '/settings/internet', '/persons']) {
     await page.goto(path);
     await page.waitForTimeout(400);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

@@ -325,6 +325,7 @@ func (s *Store) factoryReset(ctx context.Context) error {
 			`DELETE FROM sessions`,
 			`DELETE FROM users`,
 			`DELETE FROM channels`,
+			`DELETE FROM persons`, // names and consent are personal data
 			`DELETE FROM settings WHERE key NOT IN ('baseline_at', 'heartbeat', 'security_last_run')`,
 		} {
 			if _, err := tx.ExecContext(ctx, q); err != nil {

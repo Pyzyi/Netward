@@ -33,6 +33,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/mqtt"
 	"github.com/Pyzyi/netzwart/internal/netinfo"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/persons"
 	"github.com/Pyzyi/netzwart/internal/privdrop"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/security"
@@ -147,7 +148,12 @@ func Run(ctx context.Context, o Options) error {
 		sec.SetDHCPProber(sc)
 	}
 	sec.SetDHCPCheck(settings.DHCPCheck)
+	people, err := persons.New(ctx, st, mon, h)
+	if err != nil {
+		return err
+	}
 	bridge := mqtt.NewBridge(mon, h, policy, inet.Status, o.Version, log)
+	bridge.SetPersons(people)
 	bridge.Configure(settings.MQTT, settings.Language)
 	fritz := fritzbox.NewPoller(st, h, policy.DialContext, func(ctx context.Context, hosts []fritzbox.Host, at time.Time) {
 		rh := make([]monitor.RouterHost, 0, len(hosts))
@@ -232,7 +238,7 @@ func Run(ctx context.Context, o Options) error {
 
 	srv := api.New(api.Deps{
 		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, FritzBox: fritz, Hub: h,
-		Update: upd, WLAN: wifi,
+		Update: upd, WLAN: wifi, Persons: people,
 		Env: env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
 		Settings: getSettings, ApplySettings: apply, LocalPrefixes: api.LocalPrefixes, RawSockets: len(o.Priv.Links) > 0,
 	})

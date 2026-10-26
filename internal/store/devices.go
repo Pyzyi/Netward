@@ -427,6 +427,8 @@ func (s *Store) MergeDevices(ctx context.Context, from, into int64) error {
 			`UPDATE presence SET device_id = ?2 WHERE device_id = ?1 AND ended_at IS NOT NULL`,
 			`DELETE FROM presence WHERE device_id = ?1`,
 			`UPDATE events SET device_id = ?2 WHERE device_id = ?1`,
+			`INSERT OR IGNORE INTO person_devices (device_id, person_id, presence)
+				SELECT ?2, person_id, presence FROM person_devices WHERE device_id = ?1`,
 			`INSERT OR IGNORE INTO device_addresses (device_id, ip, interface, first_seen, last_seen)
 				SELECT ?2, ip, interface, first_seen, last_seen FROM device_addresses WHERE device_id = ?1`,
 			`INSERT OR IGNORE INTO device_names (device_id, source, name, updated_at)

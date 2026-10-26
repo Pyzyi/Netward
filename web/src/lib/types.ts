@@ -210,6 +210,22 @@ export interface LineSample {
   upMax?: number;
 }
 
+/** A member of the household (docs/09, F4). */
+export interface Person {
+  id: number;
+  name: string;
+  trackTime: boolean;
+  consentAt: number;
+  homeAssistant: boolean;
+  createdAt: number;
+  devices: { deviceId: number; presence: boolean }[];
+}
+export interface PersonStatus extends Person {
+  home: boolean;
+  since: number;
+  days?: { date: string; ms: number }[];
+}
+
 /** Provider report (docs/09, F5): contract speeds in Mbit/s, 0 = not given. */
 export interface ReportContract {
   maxDown: number;

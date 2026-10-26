@@ -25,6 +25,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/mqtt"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/persons"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -45,7 +46,8 @@ type Deps struct {
 	Notify    *notify.Dispatcher
 	MQTT      *mqtt.Bridge
 	FritzBox  *fritzbox.Poller
-	WLAN      *wlan.Tracker   // nil in tests
+	WLAN      *wlan.Tracker // nil in tests
+	Persons   *persons.Service
 	Update    *update.Checker // nil in tests
 	Hub       *hub.Hub
 	Env       config.Env
@@ -157,6 +159,11 @@ func (s *Server) Handler() http.Handler {
 	authed("GET /api/v1/network", s.handleNetwork)
 	authed("GET /api/v1/wlan", s.handleWLAN)
 	authed("POST /api/v1/report", s.handleReport)
+	authed("GET /api/v1/persons", s.handlePersons)
+	authed("POST /api/v1/persons", s.handleCreatePerson)
+	authed("PUT /api/v1/persons/{id}", s.handleUpdatePerson)
+	authed("DELETE /api/v1/persons/{id}", s.handleDeletePerson)
+	authed("PUT /api/v1/persons/{id}/devices", s.handlePersonDevices)
 	authed("POST /api/v1/network/accept", s.handleNetworkAccept)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)

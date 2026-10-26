@@ -22,7 +22,8 @@
   const iface = $derived(scanner?.interfaces?.find((i) => i.active));
 
   // The Wi-Fi view belongs to the devices.
-  const active = (name: string) => router.route.name === name || (name === 'devices' && router.route.name === 'wlan');
+  const active = (name: string) =>
+    router.route.name === name || (name === 'devices' && router.route.name === 'wlan') || (name === 'overview' && router.route.name === 'persons');
 
   function badgeFor(name: string): number {
     if (name === 'devices') return newCount;

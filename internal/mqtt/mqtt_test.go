@@ -14,6 +14,7 @@ import (
 
 	"github.com/Pyzyi/netzwart/internal/config"
 	"github.com/Pyzyi/netzwart/internal/hub"
+	"github.com/Pyzyi/netzwart/internal/persons"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -266,4 +267,67 @@ func mustAtoi(s string) int {
 		n = n*10 + int(r-'0')
 	}
 	return n
+}
+
+type fakePeople struct {
+	mu sync.Mutex
+	st []persons.State
+}
+
+func (f *fakePeople) States() []persons.State {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]persons.State(nil), f.st...)
+}
+
+func TestBridgePublishesPersons(t *testing.T) {
+	b := newBroker(t)
+	host, port, _ := net.SplitHostPort(b.ln.Addr().String())
+	h := hub.New()
+	br := NewBridge(fakeSource{}, h, nil, nil, "test", slog.New(slog.NewTextHandler(io.Discard, nil)))
+	people := &fakePeople{st: []persons.State{{ID: 1, Name: "Anna", Home: true, HA: true}, {ID: 2, Name: "Max", HA: false}}}
+	br.SetPersons(people)
+	cfg := config.MQTT{Enabled: true, Host: host, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+	cfg.Port = mustAtoi(port)
+	br.Configure(cfg, "de")
+	br.dial = (&net.Dialer{}).DialContext
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go br.Run(ctx)
+	wait := func(cond func() bool) bool {
+		for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+			if cond() {
+				return true
+			}
+		}
+		return false
+	}
+	if !wait(func() bool { v, _ := b.get("netzwart/person/1/state"); return v == "home" }) {
+		t.Fatal("person state not published")
+	}
+	cfgMsg, _ := b.get("homeassistant/device_tracker/netzwart_person_1/config")
+	if !strings.Contains(cfgMsg, `"unique_id":"netzwart_person_1"`) || !strings.Contains(cfgMsg, `"name":"Anna"`) {
+		t.Fatalf("config %q", cfgMsg)
+	}
+	if _, ok := b.get("homeassistant/device_tracker/netzwart_person_2/config"); ok {
+		t.Fatal("person hidden from Home Assistant was published")
+	}
+	// Anna leaves, then is deleted: state follows, then the entity goes.
+	people.mu.Lock()
+	people.st[0].Home = false
+	people.mu.Unlock()
+	h.Publish("persons", nil)
+	if !wait(func() bool { v, _ := b.get("netzwart/person/1/state"); return v == "not_home" }) {
+		t.Fatal("state not updated")
+	}
+	people.mu.Lock()
+	people.st = people.st[1:]
+	people.mu.Unlock()
+	h.Publish("persons", nil)
+	if !wait(func() bool {
+		v, ok := b.get("homeassistant/device_tracker/netzwart_person_1/config")
+		return !ok || v == ""
+	}) {
+		t.Fatal("deleted person still has an entity")
+	}
 }

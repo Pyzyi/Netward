@@ -89,6 +89,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		return err
 	}
 	var piholeID int64
+	ids := map[string]int64{}
 	for i, dd := range demoDevices {
 		first := baseline.Add(-time.Duration(rnd.IntN(200)) * 24 * time.Hour)
 		if dd.newDev {
@@ -138,6 +139,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		if first.After(cursor) {
 			cursor = first
 		}
+		open := false
 		for cursor.Before(last) {
 			var on, off time.Duration
 			if dd.phone {
@@ -152,11 +154,17 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 			if end.After(last) {
 				if !dd.online {
 					_ = st.ClosePresence(ctx, d.ID, last.UnixMilli())
+				} else {
+					open = true
 				}
 				break
 			}
 			_ = st.ClosePresence(ctx, d.ID, end.UnixMilli())
 			cursor = end.Add(off)
+		}
+		// An online device is online now, whatever the random spans said.
+		if dd.online && !open {
+			_ = st.OpenPresence(ctx, d.ID, now.Add(-47*time.Minute).UnixMilli())
 		}
 		if dd.newDev {
 			data, _ := json.Marshal(map[string]any{"name": firstNonEmpty(dd.host, dd.vendor, dd.mac), "ip": dd.ip, "vendor": dd.vendor, "deviceType": dd.typ})
@@ -177,6 +185,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		if dd.gateway {
 			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "upnp_igd", DeviceID: d.ID, Severity: "warning", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
 		}
+		ids[dd.mac] = d.ID
 		if dd.mac == "dc:a6:32:91:0e:5b" {
 			piholeID = d.ID
 		}
@@ -207,6 +216,31 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	out := now.Add(-20 * time.Hour)
 	if _, err := st.OpenOutage(ctx, out.UnixMilli(), store.OutageInternet); err == nil {
 		_ = st.CloseOutages(ctx, out.Add(23*time.Minute).UnixMilli())
+	}
+	// The household (docs/09, F4): Anna agreed to show her time at home.
+	for _, p := range []struct {
+		name  string
+		track bool
+		devs  []store.PersonDevice
+	}{
+		{"Max", false, []store.PersonDevice{{DeviceID: ids["6e:41:0a:93:21:5c"], Presence: true}}},
+		{"Anna", true, []store.PersonDevice{{DeviceID: ids["be:22:71:0c:9d:41"], Presence: true}, {DeviceID: ids["72:19:5d:e0:44:a0"], Presence: true},
+			{DeviceID: ids["f0:2f:4b:12:7a:33"]}}},
+		{"Oma", false, []store.PersonDevice{{DeviceID: ids["86:2c:10:5f:a4:93"], Presence: true}}},
+	} {
+		person, err := st.CreatePerson(ctx, p.name)
+		if err != nil {
+			return err
+		}
+		if p.track {
+			person.TrackTime, person.ConsentAt = true, baseline.UnixMilli()
+			if err := st.UpdatePerson(ctx, person); err != nil {
+				return err
+			}
+		}
+		if err := st.SetPersonDevices(ctx, person.ID, p.devs); err != nil {
+			return err
+		}
 	}
 	if err := seedLineHistory(ctx, st, now, rnd); err != nil {
 		return err

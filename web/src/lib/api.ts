@@ -1,6 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, LineSample, NetworkState, ReportRequest, SoftwareAssessment, WlanView,
+  InternetStatus, LineSample, NetworkState, Person, PersonStatus, ReportRequest, SoftwareAssessment, WlanView,
 } from './types';
 
 export class ApiError extends Error {
@@ -118,6 +118,12 @@ export const api = {
   network: () => request<NetworkState>('GET', '/network'),
   wlan: () => request<WlanView>('GET', '/wlan'),
   report: (b: ReportRequest) => download('/report', b),
+  persons: () => request<PersonStatus[]>('GET', '/persons'),
+  createPerson: (name: string) => request<Person>('POST', '/persons', { name }),
+  updatePerson: (id: number, b: { name: string; trackTime: boolean; consent?: boolean; homeAssistant: boolean }) =>
+    request<Person>('PUT', `/persons/${id}`, b),
+  deletePerson: (id: number) => request<void>('DELETE', `/persons/${id}`),
+  setPersonDevices: (id: number, devices: { deviceId: number; presence: boolean }[]) => request<void>('PUT', `/persons/${id}/devices`, { devices }),
   acceptNetwork: (b: { ip: string } | { server: string }) => request<NetworkState>('POST', '/network/accept', b),
 
   internet: () => request<{ status: InternetStatus; history: { t: number; ms: number }[]; outages: { id: number; start: number; end: number; kind: 'internet' | 'router' }[]; line: LineSample | null }>('GET', '/internet'),

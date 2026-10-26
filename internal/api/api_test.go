@@ -27,6 +27,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/persons"
 	"github.com/Pyzyi/netzwart/internal/proto"
 	"github.com/Pyzyi/netzwart/internal/report"
 	"github.com/Pyzyi/netzwart/internal/security"
@@ -67,8 +68,13 @@ func newHarness(t *testing.T) *harness {
 	disp := notify.NewDispatcher(st, &egress.Policy{}, log)
 	inet := internet.New(st, h, mon, disp, nil, &egress.Policy{}, func() []netip.Addr { return nil }, log)
 	hs := &harness{t: t, st: st, mon: mon, settings: config.Defaults()}
+	people, err := persons.New(ctx, st, mon, h)
+	if err != nil {
+		t.Fatal(err)
+	}
 	hs.srv = New(Deps{
-		Store: st, Monitor: mon, Internet: inet, Security: security.New(st, mon, h, disp, log), Notify: disp, Hub: h,
+		Persons: people,
+		Store:   st, Monitor: mon, Internet: inet, Security: security.New(st, mon, h, disp, log), Notify: disp, Hub: h,
 		Log: log, Version: "test", StartedAt: time.Now(),
 		Static:   fstest.MapFS{"index.html": {Data: []byte("<!doctype html><title>Netzwart</title>")}},
 		Settings: func() config.Settings { hs.mu.Lock(); defer hs.mu.Unlock(); return hs.settings },
@@ -753,5 +759,56 @@ func TestKnownExploitedFinding(t *testing.T) {
 	sec.EvaluateSoftware(ctx)
 	if f := find(); f == nil || f.Severity != "warning" || !strings.Contains(string(f.Data), `"manual":"true"`) {
 		t.Fatalf("manual finding %+v", f)
+	}
+}
+
+func TestPersonsEndpoints(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	h.mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0xbe, 0x22, 0x71, 0, 0, 1}, IP: netip.MustParseAddr("192.168.1.36"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	phone := h.mon.Devices()[0].ID
+	do := func(method, path string, body any) *httptest.ResponseRecorder {
+		return h.do(req{method: method, path: path, cookie: s.cookie, csrf: s.csrf, body: body})
+	}
+	rec := do("POST", "/api/v1/persons", map[string]any{"name": "  Anna \u202e "})
+	if rec.Code != 201 {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body)
+	}
+	var p struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &p)
+	if p.Name != "Anna" {
+		t.Fatalf("name not cleaned: %q", p.Name)
+	}
+	path := "/api/v1/persons/" + itoa(p.ID)
+	if rec := do("PUT", path+"/devices", map[string]any{"devices": []map[string]any{{"deviceId": phone, "presence": true}}}); rec.Code != 204 {
+		t.Fatalf("devices: %d %s", rec.Code, rec.Body)
+	}
+	if rec := do("PUT", path+"/devices", map[string]any{"devices": []map[string]any{{"deviceId": 9999, "presence": true}}}); rec.Code != 400 {
+		t.Fatalf("unknown device accepted: %d", rec.Code)
+	}
+	// Time at home per day needs the confirmation that Anna knows.
+	if rec := do("PUT", path, map[string]any{"name": "Anna", "trackTime": true, "homeAssistant": true}); rec.Code != 400 || !strings.Contains(rec.Body.String(), "consent_required") {
+		t.Fatalf("tracking without consent: %d %s", rec.Code, rec.Body)
+	}
+	if rec := do("PUT", path, map[string]any{"name": "Anna", "trackTime": true, "consent": true, "homeAssistant": false}); rec.Code != 200 {
+		t.Fatalf("tracking with consent: %d %s", rec.Code, rec.Body)
+	}
+	rec = h.do(req{method: "GET", path: "/api/v1/persons", cookie: s.cookie})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"home":true`) || !strings.Contains(rec.Body.String(), `"days":[`) {
+		t.Fatalf("list: %d %s", rec.Code, rec.Body)
+	}
+	if rec := do("DELETE", path, nil); rec.Code != 204 {
+		t.Fatalf("delete: %d", rec.Code)
+	}
+	if rec := do("DELETE", path, nil); rec.Code != 404 {
+		t.Fatalf("delete twice: %d", rec.Code)
+	}
+	if rec := do("POST", "/api/v1/persons", map[string]any{"name": " "}); rec.Code != 400 {
+		t.Fatalf("empty name: %d", rec.Code)
 	}
 }

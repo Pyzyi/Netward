@@ -206,4 +206,24 @@ CREATE TABLE line_samples (
 	reconnect     INTEGER NOT NULL DEFAULT 0
 );
 `,
+	// 6: persons and their devices (docs/09, F4). A device belongs to at
+	// most one person; presence marks the devices that tell whether the
+	// person is at home. track_time is opt-in and needs the person's
+	// consent (consent_at).
+	`
+CREATE TABLE persons (
+	id          INTEGER PRIMARY KEY,
+	name        TEXT NOT NULL,
+	track_time  INTEGER NOT NULL DEFAULT 0,
+	consent_at  INTEGER NOT NULL DEFAULT 0,
+	home_assist INTEGER NOT NULL DEFAULT 1,
+	created_at  INTEGER NOT NULL
+);
+CREATE TABLE person_devices (
+	device_id INTEGER PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
+	person_id INTEGER NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+	presence  INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX person_devices_person ON person_devices(person_id);
+`,
 }

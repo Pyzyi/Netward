@@ -11,7 +11,8 @@
   import { link } from '../lib/router.svelte';
   import { category, deviceTypes, displayName, subtitle, typeLabel, type Category } from '../lib/devices';
   import { eventText, overviewKinds } from '../lib/events';
-  import type { EventItem } from '../lib/types';
+  import type { EventItem, PersonStatus } from '../lib/types';
+  import { initials, isHome, presenceText } from '../lib/persons';
   import { number, relTime, shortDay, t, time } from '../lib/i18n.svelte';
   import type { DeviceType } from '../lib/types';
 
@@ -118,6 +119,22 @@
   let ringBox = $state(0);
   const ringLabels = $derived(ringBox >= 380);
   const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 120 : 30)));
+
+  // Who is at home (docs/09, F4). The live state comes from the device list,
+  // "since" from the server; it is reloaded when someone comes or goes.
+  let people = $state<PersonStatus[] | null>(null);
+  async function loadPeople() {
+    try {
+      people = await api.persons();
+    } catch {
+      people = [];
+    }
+  }
+  const homeKey = $derived((people ?? []).map((p) => (isHome(p, store.devices) ? 1 : 0)).join(''));
+  $effect(() => {
+    void homeKey;
+    void loadPeople();
+  });
 </script>
 
 <Dialog bind:open={confirmAll} title={t('overview.markAllTitle', { n: fresh.length })}>
@@ -296,6 +313,32 @@
     </div>
 
     <div class="col">
+      <section class="section" aria-labelledby="home">
+        <div class="section-head">
+          <h2 id="home">{t('persons.title')}</h2>
+          <a class="small" href="/persons" use:link>{t('persons.manage')}</a>
+        </div>
+        {#if people === null}
+          <div class="skeleton sk-row"></div>
+        {:else if people.length === 0}
+          <p class="faint small">{t('persons.emptyShort')}</p>
+        {:else}
+          <ul class="people">
+            {#each people as p (p.id)}
+              {@const home = isHome(p, store.devices)}
+              <li class:home>
+                <span class="avatar" aria-hidden="true">{initials(p.name)}</span>
+                <span class="who">
+                  <span class="pname">{p.name}</span>
+                  <span class="sub">{presenceText(p, home, clock.now)}</span>
+                </span>
+                <span class="badge {home ? 'ok' : ''}">{home ? t('persons.badge.home') : t('persons.badge.away')}</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
+
       <section class="section" aria-labelledby="act">
         <div class="section-head">
           <h2 id="act">{t('overview.activity')}</h2>
@@ -845,5 +888,41 @@
     .fresh-main .seen {
       display: none;
     }
+  }
+  .people {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .people li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .home .avatar {
+    background: var(--ok);
+    color: var(--bg);
+  }
+  .who {
+    display: grid;
+    min-width: 0;
+  }
+  .pname {
+    font-weight: 600;
   }
 </style>

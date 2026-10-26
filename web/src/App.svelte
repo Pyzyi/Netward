@@ -9,6 +9,7 @@
   import Activity from './pages/Activity.svelte';
   import Security from './pages/Security.svelte';
   import Wlan from './pages/Wlan.svelte';
+  import Persons from './pages/Persons.svelte';
   import SettingsPage from './pages/Settings.svelte';
   import { auth, connect, loadAll, loadAuth } from './lib/state.svelte';
   import { router } from './lib/router.svelte';
@@ -30,7 +31,7 @@
   });
 
   const titles: Record<string, string> = {
-    overview: 'nav.overview', devices: 'nav.devices', activity: 'nav.activity', security: 'nav.security', settings: 'nav.settings', wlan: 'wlan.title',
+    overview: 'nav.overview', devices: 'nav.devices', activity: 'nav.activity', security: 'nav.security', settings: 'nav.settings', wlan: 'wlan.title', persons: 'persons.page',
   };
   $effect(() => {
     document.title = auth.state?.authenticated ? `${t(titles[router.route.name])} · Netzwart` : 'Netzwart';
@@ -57,6 +58,8 @@
       <Security />
     {:else if router.route.name === 'wlan'}
       <Wlan />
+    {:else if router.route.name === 'persons'}
+      <Persons />
     {:else if router.route.name === 'settings'}
       <SettingsPage />
     {/if}
