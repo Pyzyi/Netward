@@ -35,6 +35,11 @@ aber auf jedem Linux-Host mit Docker.
   neues Gerät, beobachtetes Gerät kommt oder geht, Internet weg und wieder da, IP-Konflikt, Sicherheitsbefund.
 - **Home Assistant** per MQTT Discovery: beobachtete Geräte als `device_tracker`, dazu Sensoren für Geräteanzahl,
   neue Geräte und Internetstatus.
+- **Software und Updates** (neu in 0.1). Netzwart zeigt, welches System auf einem Gerät läuft, soweit es das im
+  Netz verrät, und ob es noch Sicherheitsupdates bekommt: Windows 10 und ältere Windows-11-Versionen, alte iPads und
+  iPhones (aus dem Modell), macOS, Android, Debian/Raspberry Pi OS, Ubuntu, Synology DSM, Apple TV, FRITZ!OS mit
+  verfügbarem Update. Veraltete Geräte werden zum Sicherheitsbefund mit Benachrichtigung und konkretem Rat.
+  Was das Netz nicht verrät (z. B. die iOS-Version), kannst du am Gerät selbst angeben.
 - **Sicherheitscheck.** Riskante offene Dienste (Telnet, SMB, RDP, unverschlüsselte Datenbanken …), UPnP am Router,
   IP-Konflikte, unbekannte Geräte. Jeder Befund mit konkretem Tipp, was zu tun ist.
 - **Internet-Monitor.** Latenz der letzten 24 Stunden und Ausfallhistorie. Unterscheidet „Router weg“, „Internet weg“
@@ -111,8 +116,26 @@ erreichbar. Wer das verpasst, startet den Container einfach neu. Es gibt kein St
 
 ### Updates
 
-ZimaOS zeigt Updates im App Store an. Mit Docker Compose: `docker compose pull && docker compose up -d`.
-Die Datenbank wird automatisch migriert; einmal täglich entsteht eine Sicherung im Unterordner `backup` (die letzten drei bleiben erhalten).
+Neue Versionen erscheinen unter [Releases](https://github.com/Pyzyi/netzwart/releases) mit einer Beschreibung, was
+neu ist. Das Image-Tag `latest` zeigt immer auf das neueste Release, `0.1` auf die neueste 0.1.x-Version.
+Zwischenstände der Entwicklung heißen `edge` und sind nicht für den Alltag gedacht.
+
+**Aktualisieren ohne Neuinstallation** – Geräte, Namen, Verlauf, Konten und Einstellungen bleiben erhalten:
+
+- **ZimaOS:** In der App „Netzwart“ die Einstellungen öffnen und die App neu erstellen bzw. das Image neu laden
+  (je nach ZimaOS-Version „Update“, „Rebuild“ oder Speichern ohne Änderung). Dabei wird `latest` neu geladen.
+  Ob ZimaOS bei selbst eingefügten Compose-Apps von sich aus ein Update anzeigt, hängt von der ZimaOS-Version ab.
+  Zuverlässig ist der Hinweis in Netzwart selbst (siehe unten).
+- **Docker Compose:** im Ordner mit der `docker-compose.yml`: `docker compose pull && docker compose up -d`.
+
+Die Datenbank wird beim Start automatisch migriert. Vorher legt Netzwart eine Kopie im Unterordner `backup` an
+(`pre-update-schema-N.db`). Zurück auf eine ältere Version geht nur mit dieser Kopie, weil eine ältere Version eine
+neuere Datenbank nicht öffnet. Zusätzlich entsteht einmal täglich eine Sicherung (die letzten drei bleiben erhalten).
+
+**Hinweis auf neue Versionen:** Unter *Einstellungen → Über Netzwart* lässt sich „Nach neuen Versionen suchen“
+einschalten (standardmäßig aus). Netzwart fragt dann einmal am Tag bei GitHub nach und zeigt einen Link zu den
+Release-Notizen. Es installiert nichts selbst: Dafür bräuchte der Container Zugriff auf Docker, und das wäre ein
+größeres Risiko als der Nutzen.
 
 ## Warum diese Rechte?
 
@@ -173,8 +196,17 @@ MAC-Adresse. Netzwart kennzeichnet solche Adressen; in der Detailansicht lassen 
 Unbekannte Geräte mit privater Adresse verschwinden nach 14 Tagen offline von selbst.
 
 **Werden Daten nach außen gesendet?** Nein. Keine Telemetrie, keine Cloud. Netzwart verbindet sich nur mit Zielen,
-die du selbst einträgst (Benachrichtigungen, MQTT, FRITZ!Box), und für den Internet-Monitor mit `1.1.1.1:443`,
-`9.9.9.9:443` und `dns.google:443` (änderbar oder abschaltbar).
+die du selbst einträgst (Benachrichtigungen, MQTT, FRITZ!Box), für den Internet-Monitor mit `1.1.1.1:443`,
+`9.9.9.9:443` und `dns.google:443` (änderbar oder abschaltbar) und – nur wenn du es einschaltest – einmal täglich
+mit GitHub, um nach neuen Versionen zu fragen. Die Software-Bewertung arbeitet mit einer eingebauten Wissensbasis
+(Datenstand steht in der Oberfläche) und fragt keinen Online-Dienst.
+
+**Woher weiß Netzwart, welche Software ein Gerät hat?** Aus dem, was Geräte im Netz von sich aus ankündigen
+(mDNS, UPnP, DHCP), von der FRITZ!Box, und im Sicherheitscheck aus zwei Abfragen: der Begrüßungszeile eines
+SSH-Servers (es wird nichts gesendet) und der Versionsangabe, die Windows beim ersten Schritt einer Dateifreigabe-
+Anmeldung nennt. Die Anmeldung wird nie abgeschlossen, es werden keine Zugangsdaten gesendet. iPhones verraten
+ihre iOS-Version grundsätzlich nicht; dort hilft das Modell („kann höchstens iOS 16“) oder deine Angabe.
+Details: [docs/08](docs/08-software-und-support.md).
 
 **Mehrere Netze/VLANs?** Netzwart sieht jedes Netz, in dem der Host eine Schnittstelle hat. Hinter Routern liegende
 Netze sind auf Layer 2 nicht sichtbar.
@@ -204,6 +236,7 @@ Netzwart wurde wie ein Teamprojekt geplant und geprüft, mit dem Qualitätsmodel
 5. [UX- und Designkonzept](docs/05-ux-design.md)
 6. [Teststrategie](docs/06-teststrategie.md)
 7. [Review-Protokoll](docs/07-review-protokoll.md)
+8. [Software und Support (0.1)](docs/08-software-und-support.md) · [Änderungen](CHANGELOG.md)
 
 ## Lizenz
 

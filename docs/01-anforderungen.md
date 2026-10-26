@@ -91,6 +91,9 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-27 | Zweisprachig DE/EN, Hell/Dunkel/System | Sprache und Theme lassen sich umschalten |
 | F-28 | Zum Startbildschirm hinzufügbar | Manifest und Icons vorhanden; iOS „Zum Home-Bildschirm“ funktioniert auch per HTTP, Chrome/Android-Installation nur über HTTPS |
 | F-29 | FRITZ!Box-Anbindung (optional) | Mit FRITZ!Box-Benutzer liefert TR-064 Gerätenamen und WLAN-Anmeldestatus; verbessert Namen und Anwesenheit schlafender Handys |
+| F-30 | Software und Support je Gerät (0.1) | Gerätedetail zeigt System, Version, Quelle und ob es noch Sicherheitsupdates bekommt (`unterstützt`, `Ende absehbar`, `Update verfügbar`, `keine Updates mehr`, `unbekannt`) mit Handlungsempfehlung; Wissensstand mit Datum; Version oder Windows-Ausgabe manuell angebbar ([08](08-software-und-support.md)) |
+| F-31 | Befund „Keine Sicherheitsupdates mehr“ (0.1) | Wird beim Start, täglich und nach jeder Änderung neu bewertet, unabhängig vom Sicherheitscheck; Benachrichtigung bei neuem Befund, mehr als drei auf einmal gebündelt; eine neue Version mit gleichem Urteil löst keine erneute Meldung aus |
+| F-32 | Hinweis auf neue Netzwart-Versionen (0.1, opt-in) | Standardmäßig aus; wenn an, einmal täglich ein GET auf die Release-Liste von GitHub; zeigt Version und Link zu den Release-Notizen; installiert nichts selbst |
 
 ### Could (Roadmap)
 
@@ -114,7 +117,7 @@ Die vollständige Zuordnung zu ISO/IEC 25010 steht in [04-qualitaetsmodell-iso25
 | N-01 | Installation ausschließlich per `docker compose` (copy & paste), ohne weitere Dateien |
 | N-02 | Image ≤ 40 MB, RAM im Leerlauf ≤ 60 MB (Spitze beim Login ≤ 90 MB), CPU < 1 % im Leerlauf und < 3 % eines Kerns während SMB-Übertragung auf Celeron-Klasse (ZimaBoard) |
 | N-03 | Läuft auf `linux/amd64` und `linux/arm64` |
-| N-04 | Keine ausgehenden Verbindungen außer konfigurierten Benachrichtigungen und dem (abschaltbaren) Internet-Monitor |
+| N-04 | Keine ausgehenden Verbindungen außer konfigurierten Benachrichtigungen, dem (abschaltbaren) Internet-Monitor und – nur wenn eingeschaltet – der Versionsabfrage (F-32) |
 | N-05 | Prozess läuft nicht als root und hat zur Laufzeit **keine** Capabilities (Raw-Sockets werden vor dem Rechteverzicht geöffnet) |
 | N-06 | Oberfläche zielt auf WCAG 2.2 AA (Kontrast automatisch geprüft, Tastatur, Fokus, Semantik) |
-| N-07 | Daten bleiben über Container-Updates erhalten; Schema-Migrationen laufen automatisch |
+| N-07 | Daten bleiben über Container-Updates erhalten; Schema-Migrationen laufen automatisch, vorher wird die Datenbank als `backup/pre-update-schema-N.db` gesichert (Rückweg zur Vorversion) |

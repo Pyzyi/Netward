@@ -58,6 +58,11 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 | T-27 | T | Injektion über Gerätenamen in Benachrichtigungen (Telegram-Markup, `@everyone`, E-Mail-Header, MQTT-Topics) | Encoder je Kanal: Klartext, `allowed_mentions: {parse: []}`, Slack-Escaping, ntfy-JSON, RFC 2047, MQTT-IDs nur aus MAC | Unit-Test je Kanal |
 | T-28 | I | Datenabfluss über vom Angreifer angelegte Kanäle bleibt nach Passwort-Reset bestehen | `factory-reset`; Kanaländerungen im Ereignisprotokoll | Code-Review |
 | T-29 | S/I | **FRITZ!Box-Zugangsdaten** werden von einem Gerät im LAN abgegriffen, das sich als FRITZ!Box ausgibt (ARP-/DNS-Spoofing) | Authentifizierte TR-064-Aufrufe nur über HTTPS; Zertifikat wird beim ersten erfolgreichen Login gepinnt (SHA-256), Abweichung bricht vor dem Senden von Zugangsdaten ab; Digest-Auth statt Klartext; über HTTP läuft nur die unauthentifizierte Port-Abfrage; Host-Listen-Pfad muss relativ sein (kein SSRF); Egress-Dialer; eigener FRITZ!Box-Benutzer empfohlen | Unit-Test (Fake-FRITZ!Box mit TLS) |
+| T-30 | S | **Gefälschte Versionsangaben** (mDNS, SSDP, DHCP und SSH sind spoofbar) führen zu falscher Entwarnung oder falschem Alarm | Angaben zählen nur für das Gerät mit derselben Adresse; aktive Proben und TR-064 gehen passiven Ankündigungen vor; widersprechende Quellen werden angezeigt; Angaben älter als 90 Tage entscheiden nichts; Quelle und Rohwert sind immer sichtbar; Netzwart handelt nie automatisch | Unit-Test |
+| T-31 | T/D | Parser-Fehler bei feindlichen Eingaben (SSH-Zeile, NTLM-Antwort, TXT, SERVER-Header, DHCP-Option 60) | Reine Funktionen mit Längengrenzen und verankerten Regex (RE2, kein Backtracking); SMB-Antwort max. 4 KiB, NTLM-Feld mit Bereichsprüfung; SSH max. 1 KiB; 3 s Timeout; Fuzz-Tests | Fuzzing in CI |
+| T-32 | D | Aktive Proben stören Geräte oder lösen Sperren aus | SSH: es wird nichts gesendet; SMB: nur NEGOTIATE und die erste SESSION_SETUP-Nachricht ohne Benutzer, die Challenge wird nie beantwortet (keine Anmeldung, kein Sperrzähler); nur im Sicherheitscheck (auf Anforderung oder opt-in-Zeitplan), 4 Geräte parallel; bekannte Nicht-Windows-Geräte werden ausgelassen | Unit-Test (Fake-SMB) |
+| T-33 | I | Sensible Daten in TXT-Records oder TR-064-Antworten (Seriennummer, Geräte-ID, Ereignisprotokoll) | Positivliste der übernommenen Schlüssel je Dienst; von TR-064 `GetInfo` nur `NewSoftwareVersion`; Rohwerte bereinigt und auf 120 Zeichen gekürzt | Unit-Test |
+| T-34 | I | Versionsabfrage verrät die Nutzung an GitHub | Standardmäßig aus (N-04); fester Ziel-URL, Egress-Client, keine Kennung/Cookies; nur `tag_name` und `html_url` übernommen, Link muss mit `https://github.com/Pyzyi/netzwart/releases/` beginnen; Antwort max. 64 KiB | Unit-Test |
 
 ## 4. Restrisiken (akzeptiert)
 
@@ -80,6 +85,10 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
    tragen will, setzt `NETZWART_SETUP_TOKEN`.
 9. **Eigene Host-Adressen sind als Ziel erlaubt**: Benachrichtigungen, MQTT und Webhooks dürfen die LAN-IP des Hosts
    erreichen, weil Mosquitto, ntfy oder Gotify häufig auf demselben ZimaOS laufen. Gesperrt bleibt Loopback.
+10. **Versionsangaben im LAN** (T-30): Ein Angreifer im Heimnetz kann für sein eigenes Gerät eine aktuelle Version
+   vortäuschen und so keinen Befund auslösen. Er tarnt damit nur sich selbst; das Risiko ist akzeptiert.
+11. **Abdeckung**: Viele Geräte verraten keine Version (iPhones, Fernseher, Kameras). „Unbekannt“ ist keine Entwarnung;
+   die Oberfläche sagt das ausdrücklich.
 
 ## 5. Sicherheitsrelevante Standards
 

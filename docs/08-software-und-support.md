@@ -1,6 +1,6 @@
 # 08 · Software und Support (Version 0.1)
 
-Stand: 26.10.2026 · Status: Plan, zur Prüfung
+Stand: 26.10.2026 · Status: umgesetzt in Version 0.1.0 (Plan-Review eingearbeitet, siehe §11)
 
 ## 1. Ziel
 
@@ -45,7 +45,7 @@ Ehrlichkeit vor Vollständigkeit: Eine falsche Entwarnung ist schlimmer als „u
 | DHCP Option 60 | `android-dhcp-N`, `dhcpcd-x:Linux-k`, `udhcp x` | Android, Linux-Kernel, BusyBox |
 | FRITZ!Box TR-064 (optional, vorhandener Benutzer) | `UserInterface:GetInfo` → `NewUpgradeAvailable`, `NewX_AVM-DE_Version`; `DeviceInfo:GetInfo` → `NewSoftwareVersion` | FRITZ!OS + Update verfügbar |
 
-Gespeichert werden nur die benannten Felder. Seriennummern und Kennungen in denselben TXT-Records (z. B. `serial=`, `deviceid=`) werden **nicht** übernommen.
+Gespeichert werden nur die benannten Felder (dazu `_home-assistant._tcp` → `version`). Seriennummern und Kennungen in denselben TXT-Records (z. B. `serial=`, `deviceid=`) werden **nicht** übernommen.
 
 ### 3.2 Aktiv (nur mit der Sicherheitsprüfung: auf Knopfdruck oder per opt-in-Zeitplan)
 
@@ -75,14 +75,15 @@ Inhalt 0.1 (recherchiert am 26.10.2026, Quellen im Anhang):
 |---|---|
 | iOS / iPadOS | Aktuell: 27; Vorversion 26 erhält Sicherheitsupdates. Geräte, die höchstens iOS 18 können (XS/XR), erhalten noch Korrekturen im 18er-Zweig (zuletzt 18.7.10, Aug. 2026) → **Hinweis „älterer Zweig, Ende absehbar“**. Höchstens iOS 17 oder älter → **keine Updates**. |
 | macOS | Unterstützt: 27, 26, 15 (aktuelle + zwei Vorgänger). 14 und älter → keine Updates. Intel-Macs: höchstens macOS 26 → Hinweis. |
-| tvOS / audioOS | Aktuell 27, Vorversion 26; älter → Hinweis bzw. keine Updates, analog iOS |
+| tvOS / audioOS | Apple pflegt nur die neueste Version: 27 → unterstützt; 26 → „Update verfügbar“; älter → keine Updates |
 | Windows 10 | Keine Updates mehr (Ende 14.10.2025, Verbraucher-ESU endete 13.10.2026) |
 | Windows 11 | Build 22000 (21H2), 22621 (22H2), 22631 (23H2), 26100 (24H2, Home/Pro bis 13.10.2026) → keine Updates; 26200 (25H2, bis 12.10.2027) und 26300 (26H2) → unterstützt; Builds über dem Datenstand gelten als unterstützt. Fristen für Home/Pro; Enterprise/Server haben längere Fristen → Hinweistext. |
 | Android | 14–17 unterstützt; 13 und älter → keine Updates (Android 13 seit 2.3.2026). Hinweis: Ob ein Handy die Patches bekommt, entscheidet zusätzlich der Hersteller. |
 | Debian | 13 unterstützt; 12 in LTS bis 30.06.2028 → unterstützt; 11 und älter → keine Updates (11 seit 31.08.2026) |
 | Ubuntu | 24.04, 22.04 (bis 04/2027) unterstützt; 20.04 und älter → keine Standard-Updates |
-| Synology DSM | 7.x → unterstützt (keine verlässlichen Daten zu 7.1); 6.x und älter → keine Updates (6.2 seit 10/2024) |
-| FRITZ!OS | Keine Tabelle: maßgeblich ist die Aussage der FRITZ!Box selbst („Update verfügbar“) |
+| Synology DSM | 7.2 und neuer → unterstützt; 7.0/7.1 → Ende absehbar; 6.x und älter → keine Updates (6.2 seit 10/2024) |
+| FRITZ!OS | Maßgeblich ist die FRITZ!Box selbst (TR-064): Update angeboten → „Update verfügbar“; kein Update und FRITZ!OS 8 → unterstützt; kein Update bei FRITZ!OS 7 → Ende absehbar (Modell wird evtl. nicht mehr gepflegt); FRITZ!OS 6 und älter → keine Updates. Nur aus SSDP bekannt: Anzeige ohne Urteil |
+| Windows-Ausgabe | Builds, die auch Enterprise/LTSC/Server nutzen (17763, 19044, 26100), gelten als Home/Pro; die Ausgabe ist je Gerät umstellbar |
 | ESPHome, Shelly, Sonos, Kernel | nur Anzeige, kein Urteil |
 
 ### 4.2 Ergebnis je Gerät
@@ -99,7 +100,7 @@ evidence: kurzer Rohwert zur Nachvollziehbarkeit (z. B. "osvers=18.2", "SSH-2.0-
 - `update` – das Gerät meldet selbst ein verfügbares Update (FRITZ!Box) → Befund **Hinweis**
 - `supported` / `unknown` → kein Befund
 
-Bei mehreren Quellen gewinnt die genaueste (aktive Probe > TXT-Version > DHCP > Modell); widersprechen sich Quellen, gewinnt die jüngste Beobachtung.
+Bei mehreren Quellen gewinnt die genaueste frische Quelle (eigene Angabe > SMB > TR-064 > SSH > mDNS > SSDP > DHCP > Modell). Angaben, die seit über 90 Tagen nicht wiederholt wurden, entscheiden nichts mehr („zuletzt erkannt am …“). Nennen frische Quellen verschiedene Systeme, zeigt die Oberfläche „Quellen widersprechen sich“.
 Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit neuer Wissensbasis bewertet also sofort alle Geräte neu.
 
 ## 5. Oberfläche
@@ -112,7 +113,7 @@ Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit n
 
 ## 6. Versionen und Updates
 
-- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netzwart:0.1.0`, `:0.1` sowie `:latest` (über `main`).
+- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netzwart:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`.
 - **Update ohne Neuinstallation**: Die Daten liegen im Volume, Datenbank-Migrationen laufen beim Start automatisch. Update = neues Image ziehen und Container neu erstellen (ZimaOS-Oberfläche oder `docker compose pull && docker compose up -d`). Konten, Geräte, Namen, Verlauf und Einstellungen bleiben erhalten.
 - Zurück auf eine ältere Version verweigert Netzwart bewusst (Schema-Schutz). Der Rückweg ist dokumentiert: Backup des Volumes vor dem Update.
 - **Release-Notizen** auf GitHub (Deutsch) und `CHANGELOG.md`.
@@ -136,17 +137,20 @@ Migration 3:
 
 ```sql
 CREATE TABLE software (
-  device_id INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-  source    TEXT NOT NULL,      -- smb, ssh, airplay, device-info, synology, esphome, shelly, dhcp, ssdp, upnp, fritzbox
-  product   TEXT NOT NULL,      -- windows, ios, macos, tvos, audioos, android, debian, ubuntu, dsm, fritzos, ...
-  version   TEXT NOT NULL,
-  evidence  TEXT NOT NULL DEFAULT '',
-  seen_at   INTEGER NOT NULL,
+  device_id        INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+  source           TEXT NOT NULL,  -- manual, edition, smb, fritzbox, ssh, airplay, device-info, synology, home-assistant, esphome, shelly, ssdp, dhcp
+  product          TEXT NOT NULL,  -- windows, ios, ipados, macos, tvos, audioos, android, debian, ubuntu, dsm, fritzos, ...
+  version          TEXT NOT NULL DEFAULT '',
+  evidence         TEXT NOT NULL DEFAULT '',
+  update_available INTEGER NOT NULL DEFAULT 0,
+  seen_at          INTEGER NOT NULL,
   PRIMARY KEY (device_id, source)
 );
 ```
 
-Beim Zusammenführen von Geräten (F-17) werden die Einträge übernommen. Beim Löschen eines Geräts verschwinden sie mit.
+Die Zeilen `manual` (vom Nutzer angegebenes System und Hauptversion) und `edition` (Windows-Ausgabe) setzt der Nutzer; alle anderen sind Beobachtungen. Beim Zusammenführen von Geräten (F-17) gewinnt je Quelle die jüngere Zeile; beim Löschen eines Geräts verschwinden sie mit. `devices.os` (Familie aus DHCP) bleibt unabhängig davon bestehen.
+
+Vor jeder Migration einer bestehenden Datenbank legt Netzwart `backup/pre-update-schema-N.db` an (wird nicht rotiert). Damit kann man auf die Vorversion zurück, die eine neuere Datenbank bewusst nicht öffnet.
 
 ## 9. Tests und Abnahme
 
@@ -160,6 +164,25 @@ Beim Zusammenführen von Geräten (F-17) werden die Einträge übernommen. Beim 
 ## 10. Nicht in 0.1
 
 CVE-Datenbank, Online-Aktualisierung der Wissensbasis, Firmware-Tabellen für Fernseher/Kameras, automatische Updates des Containers, Agent auf Endgeräten.
+
+## 11. Änderungen nach dem Plan-Review (Review 5)
+
+| Befund des Reviews | Entscheidung in 0.1 |
+|---|---|
+| Samba/NAS melden NTLM-Platzhalter → „Windows 7, veraltet“ | Nur echte Windows-Paare (6.1.7600/7601, 6.2.9200, 6.3.9600, 10.0 ab Build 10240); bekannte Nicht-Windows-Geräte werden gar nicht gefragt; SPNEGO-Antwort wird nach `NTLMSSP\0` durchsucht; SMB-Antworten max. 4 KiB; Dialekte 2.0.2–3.0.2 |
+| Gemeinsame Builds von Client, LTSC und Server | Standard Home/Pro, Ausgabe je Gerät umstellbar („Enterprise / LTSC / Server“) |
+| tvOS-Regel falsch | Nur die neueste tvOS/audioOS gilt als gepflegt, Vorversion = Update verfügbar |
+| iPhone-Modell darf nicht beruhigen | „Kann iOS 27 installieren“ ist kein „unterstützt“; dazu die manuelle Angabe mit Fundort im Gerät |
+| Wissensbasis gegen das Datum prüfen | Enddaten werden mit der aktuellen Zeit verglichen; Hinweis, wenn der Wissensstand älter als sechs Monate ist |
+| Befunde nur bei laufendem Sicherheitscheck | Eigener Bewertungslauf beim Start, täglich und nach Änderungen; Identität = Produkt + Status; Bündelung ab vier neuen Befunden |
+| Rückweg nach dem Update verloren | Sicherung vor der Migration (`pre-update-schema-N.db`) |
+| `latest` = jeder `main`-Stand, kein GitHub-Release | `latest` nur aus Release-Tags, `edge` für `main`, kein `:0`-Tag, Release-Job im CI, Versionsabfrage ignoriert Entwicklungsstände |
+| FRITZ!Box | Installierte Version aus `DeviceInfo:GetInfo`, Update aus `UserInterface:GetInfo`; Seriennummer und Protokoll werden verworfen; FRITZ!OS 7 ohne Update = Ende absehbar |
+| Quellen-Priorität, Spoofing, alte Angaben | Aktive Proben vor passiven Ankündigungen, Widerspruch wird angezeigt, 90-Tage-Grenze |
+| Kleinere Regeln | Debian ohne `+debN` über die OpenSSH-Version, unbekannte Releases ohne Urteil; Ubuntu 20.04 „nur mit Ubuntu Pro“; DSM 7.1 Ende absehbar; Android-Hinweis auf Herstellerpatches; Home Assistant als Quelle |
+| Upgrade-Test | Container-Test startet das letzte Release, legt Daten an und startet den neuen Build auf demselben Volume |
+
+Bewusst verschoben: SMBv1-Befund, Hue-Bridge-v1-Erkennung, `rpVr`-Auswertung von `_companion-link`, Firmware-Tabellen für Fernseher und Kameras.
 
 ## Anhang: Quellen der Wissensbasis (Abruf 26.10.2026)
 

@@ -202,3 +202,18 @@ Die Slot-Berechnung im Backend wurde mit einem eigenen Test bestätigt: Fensterr
 | Zwei direkt aneinandergrenzende Überwachungslücken ließen den gemeinsamen Slot als „offline“ statt „unbekannt“ erscheinen. Dazu kam eine nie wahre Bedingung. | niedrig | Lücken werden vor der Prüfung zusammengeführt; die tote Bedingung ist entfernt. `TestPresenceStripsEdges` deckt alle Randfälle ab und schlägt ohne die Korrektur fehl. |
 
 Nachweis: `go vet` und `go test -race ./...` grün, svelte-check 0/0, 16 UI-Tests (Desktop und Mobil) grün.
+
+## Review 5 · Plan-Review „Software und Support“ (0.1)
+
+Auslöser: Wunsch nach Software-Versionen je Gerät („so wirklich einen Nutzen habe ich daraus nicht“). Bevor programmiert wurde, hat ein unabhängiger Reviewer den Plan [08 · Software und Support](08-software-und-support.md) auf technische Machbarkeit, Richtigkeit der Regeln, Sicherheit, Nutzen und Release-Prozess geprüft. Die Fakten der Wissensbasis wurden am 26.10.2026 per Websuche recherchiert und vom Reviewer stichprobenartig gegengeprüft.
+
+**Urteil:** bereit mit Änderungen. Der Umfang war richtig gewählt: Support-Ende statt CVE-Abgleich, und ehrlich zu iPhones.
+
+Die zwölf Pflichtänderungen und ihre Umsetzung stehen in [08 §11](08-software-und-support.md#11-änderungen-nach-dem-plan-review-review-5). Die wichtigsten:
+- Samba/NAS-Platzhalter dürfen nie als „Windows 7“ erscheinen.
+- Gemeinsame Build-Nummern von Client, LTSC und Server brauchen eine Ausgabe-Einstellung.
+- Die tvOS-Regel wurde korrigiert.
+- Die Bewertung läuft unabhängig vom opt-in-Sicherheitscheck.
+- Vor jeder Migration entsteht eine Sicherung.
+- `latest` steht nur für Releases.
+- Der GitHub-Release entsteht im CI.
