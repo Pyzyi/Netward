@@ -192,6 +192,16 @@ func (s *Store) ListSessions(ctx context.Context, userID int64) ([]Session, erro
 	return out, rows.Err()
 }
 
+// DeleteOtherSessions revokes every session of a user except keep and
+// returns how many were removed.
+func (s *Store) DeleteOtherSessions(ctx context.Context, userID, keep int64) (int64, error) {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE user_id = ? AND id != ?`, userID, keep)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 // DeleteSession revokes one session of a user.
 func (s *Store) DeleteSession(ctx context.Context, userID, id int64) error {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE id = ? AND user_id = ?`, id, userID)

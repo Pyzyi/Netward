@@ -427,3 +427,38 @@ func TestPresenceStrips(t *testing.T) {
 		t.Fatal("strips readable without session")
 	}
 }
+
+func TestRevokeOtherSessions(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	var others []*http.Cookie
+	for i := 0; i < 2; i++ {
+		rec := h.do(req{method: "POST", path: "/api/v1/auth/login", body: map[string]any{"username": "admin", "password": "Sonnenblume-im-Garten7"}})
+		if rec.Code != 200 {
+			t.Fatalf("login: %d %s", rec.Code, rec.Body)
+		}
+		for _, ck := range rec.Result().Cookies() {
+			if ck.Name == "netzwart_session" {
+				others = append(others, ck)
+			}
+		}
+	}
+	if len(others) != 2 {
+		t.Fatalf("expected two extra sessions, got %d", len(others))
+	}
+	if rec := h.do(req{method: "POST", path: "/api/v1/auth/sessions/revoke-others", cookie: s.cookie}); rec.Code != 403 {
+		t.Fatalf("revoke-others without CSRF: %d", rec.Code)
+	}
+	rec := h.do(req{method: "POST", path: "/api/v1/auth/sessions/revoke-others", cookie: s.cookie, csrf: s.csrf})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"revoked":2`) {
+		t.Fatalf("revoke-others: %d %s", rec.Code, rec.Body)
+	}
+	for _, c := range others {
+		if rec := h.do(req{method: "GET", path: "/api/v1/overview", cookie: c}); rec.Code != 401 {
+			t.Fatalf("other session still valid: %d", rec.Code)
+		}
+	}
+	if rec := h.do(req{method: "GET", path: "/api/v1/overview", cookie: s.cookie}); rec.Code != 200 {
+		t.Fatalf("own session revoked: %d", rec.Code)
+	}
+}

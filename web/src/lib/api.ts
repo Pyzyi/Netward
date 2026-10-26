@@ -64,6 +64,7 @@ export const api = {
   changePassword: (current: string, next: string) => request<void>('POST', '/auth/password', { current, new: next }),
   sessions: () => request<Session[]>('GET', '/auth/sessions'),
   revokeSession: (id: number) => request<void>('DELETE', `/auth/sessions/${id}`),
+  revokeOtherSessions: () => request<{ revoked: number }>('POST', '/auth/sessions/revoke-others'),
 
   overview: () => request<Overview>('GET', '/overview'),
   devices: () => request<Device[]>('GET', '/devices'),

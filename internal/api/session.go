@@ -388,6 +388,18 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request, si *sess
 	writeJSON(w, http.StatusOK, out)
 }
 
+// handleRevokeOtherSessions signs out every session but the caller's in one
+// statement, so sessions created after the list was loaded are included too.
+func (s *Server) handleRevokeOtherSessions(w http.ResponseWriter, r *http.Request, si *sessionInfo) {
+	n, err := s.d.Store.DeleteOtherSessions(r.Context(), si.user.ID, si.session.ID)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.streams.closeAllExcept(si.session.ID)
+	writeJSON(w, http.StatusOK, map[string]int64{"revoked": n})
+}
+
 func (s *Server) handleRevokeSession(w http.ResponseWriter, r *http.Request, si *sessionInfo) {
 	id, ok := pathID(r, "id")
 	if !ok {

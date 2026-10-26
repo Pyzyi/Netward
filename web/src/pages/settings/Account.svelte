@@ -3,7 +3,7 @@
   import SettingsCard from '../../lib/components/SettingsCard.svelte';
   import PasswordStrength from '../../lib/components/PasswordStrength.svelte';
   import { toast } from '../../lib/components/toast.svelte';
-  import { api } from '../../lib/api';
+  import { api, ApiError } from '../../lib/api';
   import { clock, logout } from '../../lib/state.svelte';
   import { relTime, t } from '../../lib/i18n.svelte';
   import type { Session } from '../../lib/types';
@@ -41,12 +41,22 @@
   }
 
   async function revoke(id: number) {
-    await api.revokeSession(id);
+    try {
+      await api.revokeSession(id);
+    } catch (err) {
+      // Already gone (expired or revoked elsewhere) is what the user wanted.
+      if (!(err instanceof ApiError && err.code === 'not_found')) toast(errorText(err), 'error');
+    }
     void loadSessions();
   }
 
   async function revokeOthers() {
-    for (const s of sessions.filter((x) => !x.current)) await api.revokeSession(s.id);
+    try {
+      const { revoked } = await api.revokeOtherSessions();
+      toast(t('settings.sessionsRevoked', { n: revoked }));
+    } catch (err) {
+      toast(errorText(err), 'error');
+    }
     void loadSessions();
   }
 

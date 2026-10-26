@@ -160,4 +160,7 @@ CREATE TABLE channels (
 	updated_at INTEGER NOT NULL
 );
 `,
+	// 2: the presence strips read every span overlapping the last 24 hours;
+	// without this index that is a full scan of the presence table.
+	`CREATE INDEX presence_ended ON presence(ended_at);`,
 }

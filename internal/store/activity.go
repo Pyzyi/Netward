@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ func (s *Store) OpenPresence(ctx context.Context, deviceID, ts int64) error {
 // ListAllPresence returns the presence spans of every device overlapping [from, to].
 func (s *Store) ListAllPresence(ctx context.Context, from, to int64) (map[int64][]PresenceSpan, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT device_id, started_at, IFNULL(ended_at, 0) FROM presence
-		WHERE started_at <= ? AND (ended_at IS NULL OR ended_at >= ?) ORDER BY device_id, started_at`, to, from)
+		WHERE started_at <= ? AND (ended_at IS NULL OR ended_at >= ?)`, to, from)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,15 @@ func (s *Store) ListAllPresence(ctx context.Context, from, to int64) (map[int64]
 		}
 		out[id] = append(out[id], p)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// Sorted here rather than in SQL: an ORDER BY makes SQLite pick the
+	// device index and scan the whole table instead of using presence_ended.
+	for _, spans := range out {
+		sort.Slice(spans, func(i, j int) bool { return spans[i].Start < spans[j].Start })
+	}
+	return out, nil
 }
 
 // ClosePresence ends the open span of a device at ts.

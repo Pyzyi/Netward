@@ -141,6 +141,7 @@ func (s *Server) Handler() http.Handler {
 	authed("POST /api/v1/auth/password", s.handlePassword)
 	authed("GET /api/v1/auth/sessions", s.handleSessions)
 	authed("DELETE /api/v1/auth/sessions/{id}", s.handleRevokeSession)
+	authed("POST /api/v1/auth/sessions/revoke-others", s.handleRevokeOtherSessions)
 
 	authed("GET /api/v1/overview", s.handleOverview)
 	authed("GET /api/v1/devices", s.handleDevices)
