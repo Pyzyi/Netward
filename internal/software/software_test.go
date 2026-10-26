@@ -82,14 +82,17 @@ func TestAssess(t *testing.T) {
 		label  string
 		note   string
 	}{
-		{"win10 22h2", Input{Observations: obs(SourceSMB, Windows, "10.0.19045")}, StatusOutdated, "Windows 10 22H2", NoteWinESU},
-		{"win11 24h2", Input{Observations: obs(SourceSMB, Windows, "10.0.26100")}, StatusOutdated, "Windows 11 24H2", NoteWinServer},
+		{"win11 24h2", Input{Observations: obs(SourceSMB, Windows, "10.0.26100")}, StatusOutdated, "Windows 11 24H2", NoteWinEditionHint},
 		{"win11 25h2", Input{Observations: obs(SourceSMB, Windows, "10.0.26200")}, StatusSupported, "Windows 11 25H2", ""},
 		{"win11 newer than kb", Input{Observations: obs(SourceSMB, Windows, "10.0.26500")}, StatusSupported, "Windows 11", NoteNewerThanKB},
-		{"win 21h2 home", Input{Observations: obs(SourceSMB, Windows, "10.0.19044")}, StatusOutdated, "Windows 10 21H2", NoteWinLTSC},
-		{"win ltsc 2021", Input{Edition: EditionExtended, Observations: obs(SourceSMB, Windows, "10.0.19044")}, StatusSupported, "Windows 10 21H2", NoteWinExtended},
-		{"win 24h2 enterprise", Input{Edition: EditionExtended, Observations: obs(SourceSMB, Windows, "10.0.26100")}, StatusSupported, "Windows 11 24H2", NoteWinExtended},
-		{"edition ignored for 22h2", Input{Edition: EditionExtended, Observations: obs(SourceSMB, Windows, "10.0.19045")}, StatusOutdated, "Windows 10 22H2", NoteWinESU},
+		{"win 21h2 home", Input{Observations: obs(SourceSMB, Windows, "10.0.19044")}, StatusOutdated, "Windows 10 21H2", NoteWinEditionHint},
+		{"win ltsc 2021", Input{Edition: EditionLTSC, Observations: obs(SourceSMB, Windows, "10.0.19044")}, StatusSupported, "Windows 10 21H2", NoteWinLTSCSet},
+		{"win 21h2 enterprise", Input{Edition: EditionEnterprise, Observations: obs(SourceSMB, Windows, "10.0.19044")}, StatusOutdated, "Windows 10 21H2", NoteWinEnterprise},
+		{"win 1809 enterprise", Input{Edition: EditionEnterprise, Observations: obs(SourceSMB, Windows, "10.0.17763")}, StatusOutdated, "Windows 10 1809", NoteWinEnterprise},
+		{"win 24h2 enterprise", Input{Edition: EditionEnterprise, Observations: obs(SourceSMB, Windows, "10.0.26100")}, StatusSupported, "Windows 11 24H2", NoteWinEnterprise},
+		{"win 23h2 enterprise", Input{Edition: EditionEnterprise, Observations: obs(SourceSMB, Windows, "10.0.22631")}, StatusSupported, "Windows 11 23H2", NoteWinEnterprise},
+		{"win 22h2 ltsc chosen", Input{Edition: EditionLTSC, Observations: obs(SourceSMB, Windows, "10.0.19045")}, StatusOutdated, "Windows 10 22H2", NoteWinNoLTSC},
+		{"win 22h2 home", Input{Observations: obs(SourceSMB, Windows, "10.0.19045")}, StatusOutdated, "Windows 10 22H2", NoteWinESU},
 		{"win7", Input{Observations: obs(SourceSMB, Windows, "6.1.7601")}, StatusOutdated, "Windows 7", ""},
 		{"ios 27", Input{Observations: obs(SourceAirPlay, IOS, "27.0.1")}, StatusSupported, "iOS 27.0.1", ""},
 		{"tvos 18", Input{Observations: obs(SourceAirPlay, TvOS, "18.6")}, StatusOutdated, "tvOS 18.6", ""},
@@ -203,6 +206,60 @@ func FuzzSSDPServer(f *testing.F) {
 	f.Add("Linux UPnP/1.0 Sonos/80.1-55014 (ZPS27)")
 	f.Fuzz(func(t *testing.T, s string) {
 		for _, o := range FromSSDPServer(s) {
+			_ = Assess(Input{Now: now, Observations: []Observation{o}})
+		}
+	})
+}
+
+func TestReviewFindings01(t *testing.T) {
+	later := time.Date(2028, 7, 1, 0, 0, 0, 0, time.UTC)
+	if a := Assess(Input{Now: later, Observations: []Observation{{Source: SourceSSH, Product: Debian, Version: "12", SeenAt: later.UnixMilli()}}}); a.Status != StatusOutdated || a.Since != "2028-06-30" {
+		t.Fatalf("Debian 12 after LTS: %+v", a)
+	}
+	// A spoofed AirPlay version above what an iPhone X can install.
+	a := Assess(Input{Now: now, Model: "iPhone10,1", Observations: []Observation{{Source: SourceAirPlay, Product: IOS, Version: "26.1", SeenAt: now.UnixMilli()}}})
+	if a.Status != StatusOutdated || !a.Conflict || a.Source != SourceModel {
+		t.Fatalf("spoofed version reassured: %+v", a)
+	}
+	// Your own entry is trusted even above the model limit (the model may be wrong).
+	if a := Assess(Input{Now: now, Model: "iPhone10,1", Observations: []Observation{{Source: SourceManual, Product: IOS, Version: "26"}}}); a.Status != StatusSupported {
+		t.Fatalf("manual entry overridden: %+v", a)
+	}
+	// Stale version, but the model still knows the answer.
+	old := now.Add(-100 * 24 * time.Hour).UnixMilli()
+	a = Assess(Input{Now: now, Model: "iPhone10,4", Observations: []Observation{{Source: SourceAirPlay, Product: IOS, Version: "16.7", SeenAt: old}}})
+	if a.Status != StatusOutdated || a.LastSeen != old {
+		t.Fatalf("stale hides model verdict: %+v", a)
+	}
+	if a := Assess(Input{Now: now, Model: "MacBookAir8,1"}); a.Status != StatusOutdated || a.MaxOS != "macOS 14" {
+		t.Fatalf("MacBook Air 2018: %+v", a)
+	}
+	if a := Assess(Input{Now: now, Model: "iMacPro1,1"}); a.Status != StatusAging || a.MaxOS != "macOS 15" {
+		t.Fatalf("iMac Pro: %+v", a)
+	}
+	if o := one(t, FromSSHBanner("SSH-2.0-OpenSSH_10.2p1 Ubuntu-2ubuntu3.5")); o.Product != Ubuntu || o.Version != "26.04" {
+		t.Fatalf("Ubuntu 26.04: %+v", o)
+	}
+	if o := one(t, FromFritzBox("154.07.59-112345", false, "")); o.Version != "7.59" {
+		t.Fatalf("lab firmware: %+v", o)
+	}
+}
+
+func FuzzTXT(f *testing.F) {
+	f.Add("_airplay._tcp", "osvers", "26.1", "model", "AppleTV14,1")
+	f.Add("_http._tcp", "vendor", "Synology", "version_major", "7")
+	f.Fuzz(func(t *testing.T, svc, k1, v1, k2, v2 string) {
+		for _, o := range FromTXT(svc, map[string]string{k1: v1, k2: v2}) {
+			_ = Assess(Input{Now: now, Observations: []Observation{o}})
+		}
+	})
+}
+
+func FuzzDHCPVendor(f *testing.F) {
+	f.Add("android-dhcp-14")
+	f.Add("dhcpcd-9.4.1:Linux-6.1.21-v8+:aarch64:Raspberry Pi 4")
+	f.Fuzz(func(t *testing.T, s string) {
+		for _, o := range FromDHCPVendor(s) {
 			_ = Assess(Input{Now: now, Observations: []Observation{o}})
 		}
 	})

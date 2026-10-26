@@ -37,7 +37,7 @@ export interface Device {
   portsScannedAt: number;
   new: boolean;
   /** Short software verdict; missing when nothing is known. */
-  software?: { status: SoftwareStatus; name: string };
+  software?: { status: SoftwareStatus; product: string; name: string };
 }
 
 export type SoftwareStatus = 'supported' | 'aging' | 'outdated' | 'update' | 'unknown';

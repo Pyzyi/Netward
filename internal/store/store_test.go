@@ -367,4 +367,36 @@ func TestSoftwareRowsAndPreUpdateBackup(t *testing.T) {
 	if err := old.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&v); err != nil || v != len(migrations)-1 {
 		t.Fatalf("backup schema %d err %v", v, err)
 	}
+	// A factory reset removes backups: they still hold the old secrets.
+	if err := s.FactoryReset(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(backup); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("backup survived the factory reset: %v", err)
+	}
+}
+
+func TestPreUpdateBackupFailureDoesNotBlock(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "netzwart.db")
+	s, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = s.db.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = ?`, len(migrations))
+	_, _ = s.db.ExecContext(ctx, `DROP TABLE software`)
+	s.Close()
+	// "backup" exists as a file: the copy cannot be written.
+	if err := os.WriteFile(filepath.Join(dir, "backup"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err = Open(ctx, path)
+	if err != nil {
+		t.Fatalf("start blocked by a failed backup: %v", err)
+	}
+	defer s.Close()
+	if len(s.Warnings()) != 1 {
+		t.Fatalf("warnings %v", s.Warnings())
+	}
 }

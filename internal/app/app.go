@@ -93,6 +93,9 @@ func Run(ctx context.Context, o Options) error {
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer st.Close()
+	for _, w := range st.Warnings() {
+		log.Warn(w)
+	}
 	if err := handleResetFiles(ctx, env, st, log); err != nil {
 		log.Error("reset trigger failed", "err", err)
 	}
@@ -149,7 +152,8 @@ func Run(ctx context.Context, o Options) error {
 		mon.ApplyRouterHosts(ctx, rh, at.UnixMilli())
 	}, log)
 	fritz.OnFirmware(func(ctx context.Context, host string, fw fritzbox.Firmware) {
-		// The router is the configured host if that is an address, else the gateway.
+		// The router is the configured host if that is an address, else an
+		// AVM gateway, else the only AVM router; never a guess.
 		var id int64
 		if ip, err := netip.ParseAddr(host); err == nil {
 			if d, ok := mon.DeviceByIP(ip); ok {
@@ -157,18 +161,27 @@ func Run(ctx context.Context, o Options) error {
 			}
 		}
 		if id == 0 {
+			var avm []store.Device
 			for _, d := range mon.Devices() {
-				if d.IsGateway {
-					id = d.ID
-					break
+				if strings.Contains(strings.ToLower(d.Vendor+" "+d.VendorOfficial), "avm") && d.Type == "router" {
+					avm = append(avm, d)
+					if d.IsGateway {
+						id = d.ID
+					}
 				}
 			}
+			if id == 0 && len(avm) == 1 {
+				id = avm[0].ID
+			}
+		}
+		if id == 0 {
+			return
 		}
 		mon.AddSoftware(id, software.FromFritzBox(fw.Version, fw.UpgradeAvailable, fw.NewVersion))
 	})
 	mon.SetSoftwareHook(sec.TriggerSoftware)
 	upd := update.New(policy.HTTPClient(15*time.Second, 0), o.Version)
-	upd.Configure(settings.UpdateCheck)
+	upd.Configure(settings.UpdateCheck && !env.Demo)
 	if !env.Demo {
 		fritz.Configure(ctx, settings.FritzBox)
 	}
@@ -197,7 +210,7 @@ func Run(ctx context.Context, o Options) error {
 		disp.SetLocale(s.Language, s.Timezone)
 		inet.Configure(s.InternetCheck && !env.Demo, s.InternetTargets)
 		bridge.Configure(s.MQTT, s.Language)
-		upd.Configure(s.UpdateCheck)
+		upd.Configure(s.UpdateCheck && !env.Demo)
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)
 		}
@@ -379,6 +392,15 @@ func backup(ctx context.Context, env config.Env, st *store.Store) error {
 	for len(files) > 3 {
 		_ = os.Remove(filepath.Join(dir, files[0]))
 		files = files[1:]
+	}
+	// The copy made before a schema update is the way back to the previous
+	// version; after 30 days nobody goes back, and it holds old secrets.
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "pre-update-schema-") {
+			if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > 30*24*time.Hour {
+				_ = os.Remove(filepath.Join(dir, e.Name()))
+			}
+		}
 	}
 	return nil
 }

@@ -104,3 +104,29 @@ func FuzzParseMDNS(f *testing.F) {
 		_, _ = ParseMDNS(b, netip.MustParseAddr("192.168.1.40"))
 	})
 }
+
+// A sleep proxy (e.g. an Apple TV) answers for a sleeping Mac: the Mac's
+// version TXT must not be attributed to the proxy.
+func TestTXTFromSleepProxyIgnored(t *testing.T) {
+	b := dnsmessage.NewBuilder(nil, dnsmessage.Header{Response: true, Authoritative: true})
+	name := func(s string) dnsmessage.Name { return dnsmessage.MustNewName(s) }
+	rh := func(n string, typ dnsmessage.Type) dnsmessage.ResourceHeader {
+		return dnsmessage.ResourceHeader{Name: name(n), Type: typ, Class: dnsmessage.ClassINET, TTL: 120}
+	}
+	_ = b.StartAnswers()
+	_ = b.SRVResource(rh("MacBook._device-info._tcp.local.", dnsmessage.TypeSRV), dnsmessage.SRVResource{Port: 0, Target: name("MacBook.local.")})
+	_ = b.TXTResource(rh("MacBook._device-info._tcp.local.", dnsmessage.TypeTXT), dnsmessage.TXTResource{TXT: []string{"osxvers=21"}})
+	_ = b.AResource(rh("MacBook.local.", dnsmessage.TypeA), dnsmessage.AResource{A: [4]byte{192, 168, 1, 41}})
+	msg, err := b.Finish()
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxy, _ := ParseMDNS(msg, netip.MustParseAddr("192.168.1.40"))
+	if len(proxy.TXT) != 0 {
+		t.Fatalf("proxy got the Mac's TXT: %+v", proxy.TXT)
+	}
+	mac, _ := ParseMDNS(msg, netip.MustParseAddr("192.168.1.41"))
+	if len(mac.TXT) != 1 {
+		t.Fatalf("the Mac itself lost its TXT: %+v", mac.TXT)
+	}
+}

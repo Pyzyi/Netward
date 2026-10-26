@@ -51,7 +51,7 @@ aber auf jedem Linux-Host mit Docker.
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/devices.png" alt="Geräteliste mit Detailansicht"></td>
+    <td><img src="docs/screenshots/devices.png" alt="Geräteliste mit Detailansicht: Windows 10 bekommt keine Sicherheitsupdates mehr"></td>
     <td><img src="docs/screenshots/security.png" alt="Sicherheitscheck"></td>
   </tr>
   <tr>

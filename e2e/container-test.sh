@@ -160,6 +160,8 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
     sleep 2
   done
   docker stop -t 10 nw8old-$$ >/dev/null
+  schema() { python3 -c "import sqlite3,sys; print(sqlite3.connect('file:'+sys.argv[1]+'?mode=ro', uri=True).execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0])" "$1"; }
+  OLD_SCHEMA="$(schema "$WORK/data8/netzwart.db")"
   IP8="$(start nw8new-$$ "${HARDEN[@]}" -v "$WORK/data8:/data")" && ok "this build starts on the old data" || fail "this build did not start on the old data"
   rm -f "$WORK/jar" "$WORK/csrf"
   api "$IP8" POST /auth/login "{\"username\":\"admin\",\"password\":\"$PASS\"}" \
@@ -168,10 +170,15 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
   [ "$after" -ge "$before" ] && ok "devices kept ($before → $after)" || fail "devices lost: $before → $after"
   name="$(api "$IP8" GET /overview | python3 -c 'import json,sys; print(json.load(sys.stdin)["networkName"])')"
   [ "$name" = Updatetest ] && ok "settings kept" || fail "network name after update: $name"
-  if ls "$WORK/data8/backup/"pre-update-schema-*.db >/dev/null 2>&1; then
-    ok "backup before migration: $(basename "$(ls "$WORK/data8/backup/"pre-update-schema-*.db | head -1)")"
+  NEW_SCHEMA="$(schema "$WORK/data8/netzwart.db")"
+  if [ "$NEW_SCHEMA" -gt "$OLD_SCHEMA" ]; then
+    [ -f "$WORK/data8/backup/pre-update-schema-$OLD_SCHEMA.db" ] \
+      && ok "schema $OLD_SCHEMA → $NEW_SCHEMA, backup pre-update-schema-$OLD_SCHEMA.db kept" \
+      || fail "schema $OLD_SCHEMA → $NEW_SCHEMA without backup"
+    [ "$(schema "$WORK/data8/backup/pre-update-schema-$OLD_SCHEMA.db" 2>/dev/null)" = "$OLD_SCHEMA" ] \
+      && ok "backup opens with the old schema" || fail "backup unreadable or wrong schema"
   else
-    ok "no schema change, no pre-update backup needed"
+    ok "schema unchanged ($NEW_SCHEMA), no backup needed"
   fi
 else
   echo "  skip previous image $PREV_IMAGE not available"

@@ -734,7 +734,7 @@ func (m *Monitor) view(e *entry) store.Device {
 	d := e.d
 	d.New = !d.Known && m.baselineAt != 0 && d.FirstSeen > m.baselineAt
 	if a := m.assess(e); a.Status != software.StatusUnknown || a.Name != "" {
-		d.Software = &store.SoftwareSummary{Status: a.Status, Name: a.Name}
+		d.Software = &store.SoftwareSummary{Status: a.Status, Product: a.Product, Name: a.Name}
 	}
 	return d
 }

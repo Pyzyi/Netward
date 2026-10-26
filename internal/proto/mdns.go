@@ -121,6 +121,16 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 	}
 	reverse := ReverseName(src)
 	instances := map[string]*MDNSInstance{}
+	// Version TXT records are only kept for the sender's own services: a
+	// Bonjour sleep proxy answers for sleeping Macs, whose SRV records point
+	// at hosts with other addresses.
+	type ownedTXT struct {
+		owner string
+		rec   TXTRecord
+	}
+	var txts []ownedTXT
+	srvTarget := map[string]string{}  // instance -> host name
+	addrOf := map[string]netip.Addr{} // host name -> address
 	seenSvc := map[string]bool{}
 	count := 0
 	for section := 0; section < 3; section++ {
@@ -150,6 +160,9 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 				r, err := parser.AResource()
 				if err != nil {
 					return info, err
+				}
+				if len(addrOf) < maxMDNSRecords {
+					addrOf[strings.ToLower(owner)] = netip.AddrFrom4(r.A)
 				}
 				if src.Is4() && netip.AddrFrom4(r.A) == src && strings.HasSuffix(strings.ToLower(owner), ".local.") {
 					info.Hostname = trimLocal(owner)
@@ -187,13 +200,14 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 						instances[owner] = it
 					}
 					it.Port = r.Port
+					srvTarget[strings.ToLower(owner)] = strings.ToLower(r.Target.String())
 				}
 			case dnsmessage.TypeTXT:
 				r, err := parser.TXTResource()
 				if err != nil {
 					return info, err
 				}
-				if _, svc, ok := serviceOf(owner); ok && len(info.TXT) < maxTXTRecords {
+				if _, svc, ok := serviceOf(owner); ok && len(txts) < maxTXTRecords {
 					if keys := VersionTXT[svc]; keys != nil {
 						kv := map[string]string{}
 						for _, s := range r.TXT {
@@ -204,7 +218,7 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 							}
 						}
 						if len(kv) > 0 {
-							info.TXT = append(info.TXT, TXTRecord{Service: svc, KV: kv})
+							txts = append(txts, ownedTXT{owner: strings.ToLower(owner), rec: TXTRecord{Service: svc, KV: kv}})
 						}
 					}
 				}
@@ -234,6 +248,14 @@ func ParseMDNS(p []byte, src netip.Addr) (MDNSInfo, error) {
 				}
 			}
 		}
+	}
+	for _, t := range txts {
+		if host, ok := srvTarget[t.owner]; ok {
+			if a, ok := addrOf[host]; ok && a != src {
+				continue
+			}
+		}
+		info.TXT = append(info.TXT, t.rec)
 	}
 	for _, it := range instances {
 		info.Instances = append(info.Instances, *it)

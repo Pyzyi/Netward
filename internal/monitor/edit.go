@@ -123,6 +123,12 @@ func (m *Monitor) DeleteDevice(ctx context.Context, id int64) error {
 // MergeDevices folds device from into device into (e.g. after a phone
 // rotated its private MAC address).
 func (m *Monitor) MergeDevices(ctx context.Context, from, into int64) (store.Device, error) {
+	v, err := m.mergeDevices(ctx, from, into)
+	m.softwareChanged()
+	return v, err
+}
+
+func (m *Monitor) mergeDevices(ctx context.Context, from, into int64) (store.Device, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	src, dst := m.byID[from], m.byID[into]
@@ -148,6 +154,14 @@ func (m *Monitor) MergeDevices(ctx context.Context, from, into int64) (store.Dev
 	for k, v := range src.names {
 		if dst.names[k] == "" {
 			dst.names[k] = v
+		}
+	}
+	// Same rule as the store: per source the newer row wins.
+	for k, row := range src.sw {
+		if old, ok := dst.sw[k]; !ok || row.SeenAt > old.SeenAt {
+			row.DeviceID = into
+			dst.sw[k] = row
+			m.swChanged = true
 		}
 	}
 	m.unindex(src)

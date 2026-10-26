@@ -70,14 +70,15 @@
         return t('security.unknown.title', { n: unknownCount });
       case 'software_outdated':
       case 'software_update': {
-        const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t(`software.product.${f.data.product}`);
+        const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
         return t(`security.software.title.${f.data.status}`, { name });
       }
     }
   }
   // Software findings explain themselves on the device page; here a short version.
   function softwareAdvice(f: Finding): string {
-    for (const key of [`software.advice.${f.data.product}.${f.data.status}`, `software.advice.${f.data.status}`]) {
+    const product = f.deviceId ? store.devices.get(f.deviceId)?.software?.product : '';
+    for (const key of [`software.advice.${product}.${f.data.status}`, `software.advice.${f.data.status}`]) {
       if (has(key)) return t(key);
     }
     return '';

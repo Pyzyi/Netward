@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/software"
@@ -31,7 +32,7 @@ func (m *Monitor) observeSoftware(e *entry, obs []software.Observation) {
 	now := m.nowMS()
 	changed := false
 	for _, o := range obs {
-		if o.Source == "" || o.Source == swManual || o.Source == swEdition {
+		if o.Source == "" || o.Source == swManual || o.Source == swEdition || !plausible(e.d, o) {
 			continue
 		}
 		row := store.Software{DeviceID: e.d.ID, Source: o.Source, Product: o.Product, Version: o.Version,
@@ -56,6 +57,25 @@ func (m *Monitor) observeSoftware(e *entry, obs []software.Observation) {
 	if changed {
 		m.swChanged = true
 	}
+}
+
+// plausible rejects announcements that cannot belong to this device: anyone
+// on the LAN can send them in another device's name (T-30). Active probes
+// and the FRITZ!Box answer are not filtered.
+func plausible(d store.Device, o software.Observation) bool {
+	vendor := strings.ToLower(d.Vendor + " " + d.VendorOfficial)
+	unknownVendor := strings.TrimSpace(vendor) == "" || d.MACKind == "random"
+	switch o.Product {
+	case software.FritzOS:
+		return strings.Contains(vendor, "avm") || d.IsGateway
+	case software.DSM:
+		return strings.Contains(vendor, "synology") || unknownVendor
+	case software.IOS, software.IPadOS, software.MacOS, software.TvOS, software.AudioOS:
+		return o.Source == software.SourceSMB || strings.Contains(vendor, "apple") || unknownVendor
+	case software.Android:
+		return !strings.Contains(vendor, "apple") && !strings.Contains(vendor, "avm") && !strings.Contains(vendor, "synology")
+	}
+	return true
 }
 
 // AddSoftware records observations made outside the monitor (active probes,

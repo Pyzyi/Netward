@@ -32,26 +32,32 @@ func (c *Checker) TriggerSoftware() {
 
 // WatchSoftware evaluates software findings until ctx ends.
 func (c *Checker) WatchSoftware(ctx context.Context) {
-	t := time.NewTimer(90 * time.Second) // let discovery settle after a start
+	due := time.Now().Add(90 * time.Second) // let discovery settle after a start
+	t := time.NewTimer(time.Until(due))
 	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-c.swTrigger:
-			// Bundle bursts (a discovery round reports many devices at once).
-			if !t.Stop() {
-				select {
-				case <-t.C:
-				default:
+			// Bundle bursts (a discovery round reports many devices at once),
+			// but never postpone a run that is already due sooner.
+			if soon := time.Now().Add(30 * time.Second); soon.Before(due) {
+				due = soon
+				if !t.Stop() {
+					select {
+					case <-t.C:
+					default:
+					}
 				}
+				t.Reset(time.Until(due))
 			}
-			t.Reset(30 * time.Second)
 			continue
 		case <-t.C:
 		}
 		c.EvaluateSoftware(ctx)
-		t.Reset(24 * time.Hour)
+		due = time.Now().Add(24 * time.Hour)
+		t.Reset(time.Until(due))
 	}
 }
 
@@ -89,9 +95,10 @@ func (c *Checker) EvaluateSoftware(ctx context.Context) {
 		default:
 			continue
 		}
-		// The version is not part of the identity: an update within the same
-		// verdict must not alert again.
-		data, _ := json.Marshal(map[string]string{"product": a.Product, "status": a.Status})
+		// Neither version nor product is part of the identity: an update within
+		// the same verdict, or announcements that alternate between systems
+		// (spoofing, T-30), must not alert again.
+		data, _ := json.Marshal(map[string]string{"status": a.Status})
 		f := store.Finding{CheckID: check, DeviceID: d.ID, Severity: sev, Data: data, LastSeen: runStart}
 		isNew, err := c.st.UpsertFinding(ctx, f)
 		if err != nil {

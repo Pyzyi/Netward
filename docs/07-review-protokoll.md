@@ -217,3 +217,46 @@ Die zwölf Pflichtänderungen und ihre Umsetzung stehen in [08 §11](08-software
 - Vor jeder Migration entsteht eine Sicherung.
 - `latest` steht nur für Releases.
 - Der GitHub-Release entsteht im CI.
+
+## Review 6 · Code- und Security-Review von 0.1
+
+Umfang: `22c75ba..63918eb` (Software und Support, Versionsabfrage, Release-Prozess). Zwei unabhängige Reviewer haben parallel geprüft, einer auf Sicherheit, einer auf Korrektheit, mit Wegwerf-Tests in einer Kopie des Repos und gegen die Demo-Instanz.
+
+### 6.1 Security-Review
+
+Ergebnis: nichts Kritisches oder Hohes. Ohne Befund geprüft:
+- Probes: nie AUTHENTICATE oder Zugangsdaten, alle Längen und Offsets geprüft, Timeouts.
+- RE2-Regex.
+- Bereinigung der Rohwerte.
+- Whitelist der TXT-Schlüssel.
+- Versionsabfrage: aus per Voreinstellung, feste URL, keine Weiterleitungen, Link geprüft.
+- FRITZ!Box: keine Seriennummer.
+- CSRF auf dem neuen Endpunkt.
+- Kein `{@html}`.
+- Release-Job mit Tag in Umgebungsvariable.
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Gefälschte passive Angaben im Namen **anderer** Geräte: ein altes iPhone wirkte durch gespoofte AirPlay-Version „aktuell“, eine NAS durch gespoofte SSDP-Kennung „FRITZ!OS 6, veraltet“; wechselnde Produkte erzeugten bei jeder Bewertung neue Befunde | mittel | Plausibilitätsprüfung je Produkt; Apple-Version über der Modellgrenze ⇒ Widerspruch, Modell entscheidet; mDNS-Versionen nur für eigene Dienste (Sleep-Proxy); Befund-Identität nur noch Status; T-30 korrigiert |
+| `PUT …/software` speicherte die gültige Hälfte einer teilweise ungültigen Anfrage | niedrig | Erst alles prüfen, dann speichern; Test |
+| Sicherung vor dem Update blieb unbegrenzt liegen und überstand das Zurücksetzen auf Werkseinstellungen (enthält alte Geheimnisse) | niedrig | Werksreset löscht alle Sicherungen; `pre-update-schema-*` wird nach 30 Tagen entfernt |
+| Fuzzer der neuen Parser liefen nicht im CI | niedrig | Paket in `make fuzz`, zusätzliche Fuzzer für TXT und DHCP |
+| mDNS-TXT von Sleep-Proxys wurde dem Proxy zugeordnet | niedrig | SRV-Ziel muss zur Absenderadresse passen; Test |
+| FRITZ!OS konnte beim Hostnamen statt IP einem fremden Gateway zugeordnet werden; Versionsabfrage lief auch im Demo-Modus; Release-Checkout behielt das Schreib-Token | Info | Zuordnung nur zu AVM-Routern; Demo ohne Abfrage; `persist-credentials: false`; fail2ban-Hinweis in T-32 |
+
+### 6.2 Code-Review
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Zusammenführen von Geräten verlor Software-Angaben im Speicher (erst nach Neustart sichtbar), Bewertung lief nicht neu | hoch | Zeilen werden übernommen (neuere gewinnt), Neubewertung angestoßen; Test |
+| Windows-Ausgabe „Enterprise/LTSC/Server“ war ein Topf: Enterprise 1809/21H2 fälschlich unterstützt, LTSC 2024/Server 2025 und Enterprise 23H2/25H2 mit falschen Enddaten | mittel | Drei Ausgaben (Home/Pro, Enterprise/Education, LTSC/Server) mit eigenen Enddaten je Build |
+| Debian 12 blieb nach LTS-Ende „unterstützt“ | mittel | Jedes „unterstützt bis“ wird gegen das aktuelle Datum geprüft |
+| Veraltete Beobachtung verdeckte das Urteil aus dem Modell | mittel | Modell entscheidet, „zuletzt erkannt“ bleibt sichtbar |
+| Fehlgeschlagene Sicherung vor dem Update blockierte jeden Start; Teilkopie hätte als gültig gegolten | mittel | Schreiben unter Temporärnamen, Umbenennen bei Erfolg; Fehler wird protokolliert, Start geht weiter; Container-Test verlangt die Sicherung, wenn das Schema steigt |
+| FRITZ!OS „unterstützt“, wenn die Update-Abfrage scheiterte | niedrig | Ohne Update-Status keine Beobachtung |
+| MacBook Air 2018/2019 (max. macOS 14), iMac Pro fehlten | niedrig | Ergänzt |
+| Viele Auslöser konnten die Bewertung immer weiter verschieben | niedrig | Frist wird nur vorgezogen, nie verschoben |
+| Vorabversionen wären als „neuestes Release“ erschienen | niedrig | `--prerelease` für Tags mit `-` |
+| FRITZ!OS-Laborversionen, Ubuntu 26.04 fehlten | niedrig | Ergänzt (OpenSSH 10.2p1 ⇒ 26.04) |
+
+Nachweis: `go vet`, `go test -race ./...`, `svelte-check` 0/0, UI-Tests, Fuzzing der neuen Parser im CI.

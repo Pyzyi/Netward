@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // GetSetting decodes the JSON value of key into v. It returns ErrNotFound if unset.
@@ -300,8 +303,23 @@ func (s *Store) DeleteChannel(ctx context.Context, id int64) error {
 }
 
 // FactoryReset removes accounts, sessions, notification channels and
-// settings. Devices, history and the activity log are kept.
+// settings. Devices, history and the activity log are kept. Backups are
+// deleted too: they are full copies that still hold the old secrets.
 func (s *Store) FactoryReset(ctx context.Context) error {
+	if err := s.factoryReset(ctx); err != nil {
+		return err
+	}
+	dir := filepath.Join(filepath.Dir(s.path), "backup")
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".db") || strings.HasSuffix(e.Name(), ".tmp") {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
+	return nil
+}
+
+func (s *Store) factoryReset(ctx context.Context) error {
 	return s.tx(ctx, func(tx *sql.Tx) error {
 		for _, q := range []string{
 			`DELETE FROM sessions`,

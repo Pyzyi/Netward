@@ -539,7 +539,7 @@ func TestSoftwareFindingsAndManual(t *testing.T) {
 	}
 	// Marking the PC as LTSC makes 19044 supported and clears the finding.
 	rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
-		body: map[string]any{"edition": "extended"}})
+		body: map[string]any{"edition": "ltsc"}})
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"status":"supported"`) {
 		t.Fatalf("edition: %d %s", rec.Code, rec.Body)
 	}
@@ -556,6 +556,14 @@ func TestSoftwareFindingsAndManual(t *testing.T) {
 		if rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf, body: body}); rec.Code != 400 {
 			t.Fatalf("accepted %v: %d", body, rec.Code)
 		}
+	}
+	// A bad field rejects the whole request; nothing is stored.
+	if rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
+		body: map[string]any{"manual": map[string]any{"product": "ipados", "version": "26"}, "edition": "bogus"}}); rec.Code != 400 {
+		t.Fatalf("mixed request: %d", rec.Code)
+	}
+	if sw, _ := h.mon.Software(id); sw.Source == software.SourceManual {
+		t.Fatalf("half of a rejected request was stored: %+v", sw)
 	}
 	rec = h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie, csrf: s.csrf,
 		body: map[string]any{"manual": map[string]any{"product": "ios", "version": "16"}}})

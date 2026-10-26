@@ -172,11 +172,14 @@ func (c *Client) Firmware(ctx context.Context) (Firmware, error) {
 		return Firmware{}, err
 	}
 	fw := Firmware{Version: textutil.Clean(info["NewSoftwareVersion"], 32)}
-	if ui, err := c.soap(ctx, base, "/upnp/control/userif", "urn:dslforum-org:service:UserInterface:1", "GetInfo", nil); err == nil {
-		fw.UpgradeAvailable = ui["NewUpgradeAvailable"] == "1"
-		if fw.UpgradeAvailable {
-			fw.NewVersion = textutil.Clean(ui["NewX_AVM-DE_Version"], 32)
-		}
+	// Without the update state the version alone would read as "up to date".
+	ui, err := c.soap(ctx, base, "/upnp/control/userif", "urn:dslforum-org:service:UserInterface:1", "GetInfo", nil)
+	if err != nil {
+		return Firmware{}, err
+	}
+	fw.UpgradeAvailable = ui["NewUpgradeAvailable"] == "1"
+	if fw.UpgradeAvailable {
+		fw.NewVersion = textutil.Clean(ui["NewX_AVM-DE_Version"], 32)
 	}
 	return fw, nil
 }

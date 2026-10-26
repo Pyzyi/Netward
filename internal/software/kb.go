@@ -23,23 +23,24 @@ const (
 
 // Reason codes for extra explanations in the UI.
 const (
-	NoteOlderBranch   = "older_branch"    // iOS 18 line: fixes, but no new major release
-	NoteCannotUpdate  = "cannot_update"   // model cannot run the current major release
-	NoteMacN2         = "macos_n2"        // last macOS that still gets fixes
-	NoteWinLTSC       = "win_ltsc"        // build only supported as LTSC/Server edition
-	NoteWinServer     = "win_server"      // shares the build with a Server edition
-	NoteWinESU        = "win10_esu"       // Windows 10: also the paid extension has ended
-	NoteDebianLTS     = "debian_lts"      // supported by Debian LTS
-	NoteAndroidOEM    = "android_oem"     // patches also depend on the manufacturer
-	NoteNewerThanKB   = "newer_than_kb"   // newer than the knowledge base: assumed supported
-	NoteFritzOld      = "fritz_old"       // FRITZ!OS 6 or older
-	NoteUbuntuESM     = "ubuntu_esm"      // only with Ubuntu Pro (ESM)
-	NoteUbuntuInterm  = "ubuntu_interim"  // short-lived interim release
-	NoteAppleTVUpdate = "apple_tv_update" // tvOS/audioOS: only the newest release is patched
-	NoteDSMOld        = "dsm_old"         // DSM 7.0/7.1: update to 7.2
-	NoteFritzEOM      = "fritz_eom"       // FRITZ!OS 7 without an update: model may be end of maintenance
-	NoteStale         = "stale"           // not seen for a long time
-	NoteWinExtended   = "win_extended"    // supported as Enterprise/LTSC/Server edition
+	NoteOlderBranch    = "older_branch"     // iOS 18 line: fixes, but no new major release
+	NoteCannotUpdate   = "cannot_update"    // model cannot run the current major release
+	NoteMacN2          = "macos_n2"         // last macOS that still gets fixes
+	NoteWinEditionHint = "win_edition_hint" // Home/Pro ended, another edition of the build is still serviced
+	NoteWinEnterprise  = "win_enterprise"   // judged as Enterprise/Education
+	NoteWinLTSCSet     = "win_ltsc"         // judged as LTSC/Server
+	NoteWinNoLTSC      = "win_no_ltsc"      // LTSC chosen, but this build has none
+	NoteWinESU         = "win10_esu"        // Windows 10: also the paid extension has ended
+	NoteDebianLTS      = "debian_lts"       // supported by Debian LTS
+	NoteAndroidOEM     = "android_oem"      // patches also depend on the manufacturer
+	NoteNewerThanKB    = "newer_than_kb"    // newer than the knowledge base: assumed supported
+	NoteFritzOld       = "fritz_old"        // FRITZ!OS 6 or older
+	NoteUbuntuESM      = "ubuntu_esm"       // only with Ubuntu Pro (ESM)
+	NoteUbuntuInterm   = "ubuntu_interim"   // short-lived interim release
+	NoteAppleTVUpdate  = "apple_tv_update"  // tvOS/audioOS: only the newest release is patched
+	NoteDSMOld         = "dsm_old"          // DSM 7.0/7.1: update to 7.2
+	NoteFritzEOM       = "fritz_eom"        // FRITZ!OS 7 without an update: model may be end of maintenance
+	NoteStale          = "stale"            // not seen for a long time
 )
 
 func judge(o Observation, now time.Time, edition string) (Assessment, bool) {
@@ -172,41 +173,38 @@ func judge(o Observation, now time.Time, edition string) (Assessment, bool) {
 	return a, false
 }
 
+// winBuild holds the end of servicing per edition group. An empty end means
+// "supported, end not yet announced". Dates from Microsoft's lifecycle pages.
 type winBuild struct {
-	build    int
-	name     string
-	status   string
-	since    string // end of updates (Home/Pro)
-	until    string // supported until
-	note     string
-	extUntil string // end for Enterprise/LTSC/Server sharing the build
+	build      int
+	name       string
+	home       string // Home, Pro
+	enterprise string // Enterprise, Education
+	ltsc       string // LTSC/LTSB and the Server edition sharing the build ("" = none)
 }
 
-// Windows client builds as reported in the NTLM version (major 10).
-// Dates are for Home/Pro; LTSC and Server editions are noted where a build
-// is shared.
 var winBuilds = []winBuild{
-	{10240, "Windows 10 1507", StatusOutdated, "2017-05-09", "", "", ""},
-	{10586, "Windows 10 1511", StatusOutdated, "2017-10-10", "", "", ""},
-	{14393, "Windows 10 1607", StatusOutdated, "2018-04-10", "", "", ""},
-	{15063, "Windows 10 1703", StatusOutdated, "2018-10-09", "", "", ""},
-	{16299, "Windows 10 1709", StatusOutdated, "2019-04-09", "", "", ""},
-	{17134, "Windows 10 1803", StatusOutdated, "2019-11-12", "", "", ""},
-	{17763, "Windows 10 1809", StatusOutdated, "2020-11-10", "", NoteWinLTSC, "2029-01-09"},
-	{18362, "Windows 10 1903", StatusOutdated, "2020-12-08", "", "", ""},
-	{18363, "Windows 10 1909", StatusOutdated, "2021-05-11", "", "", ""},
-	{19041, "Windows 10 2004", StatusOutdated, "2021-12-14", "", "", ""},
-	{19042, "Windows 10 20H2", StatusOutdated, "2022-05-10", "", "", ""},
-	{19043, "Windows 10 21H1", StatusOutdated, "2022-12-13", "", "", ""},
-	{19044, "Windows 10 21H2", StatusOutdated, "2023-06-13", "", NoteWinLTSC, "2027-01-12"},
-	{19045, "Windows 10 22H2", StatusOutdated, "2025-10-14", "", NoteWinESU, ""},
-	{20348, "Windows Server 2022", StatusSupported, "", "2031-10-14", "", ""},
-	{22000, "Windows 11 21H2", StatusOutdated, "2023-10-10", "", "", ""},
-	{22621, "Windows 11 22H2", StatusOutdated, "2024-10-08", "", "", ""},
-	{22631, "Windows 11 23H2", StatusOutdated, "2025-11-11", "", "", ""},
-	{26100, "Windows 11 24H2", StatusOutdated, "2026-10-13", "", NoteWinServer, "2027-10-12"},
-	{26200, "Windows 11 25H2", StatusSupported, "", "2027-10-12", "", ""},
-	{26300, "Windows 11 26H2", StatusSupported, "", "", "", ""},
+	{10240, "Windows 10 1507", "2017-05-09", "2017-05-09", "2025-10-14"},
+	{10586, "Windows 10 1511", "2017-10-10", "2018-04-10", ""},
+	{14393, "Windows 10 1607", "2018-04-10", "2019-10-08", "2027-01-12"}, // LTSB 2016 / Server 2016
+	{15063, "Windows 10 1703", "2018-10-09", "2019-10-08", ""},
+	{16299, "Windows 10 1709", "2019-04-09", "2020-10-13", ""},
+	{17134, "Windows 10 1803", "2019-11-12", "2021-05-11", ""},
+	{17763, "Windows 10 1809", "2020-11-10", "2021-05-11", "2029-01-09"}, // LTSC 2019 / Server 2019
+	{18362, "Windows 10 1903", "2020-12-08", "2020-12-08", ""},
+	{18363, "Windows 10 1909", "2021-05-11", "2022-05-10", ""},
+	{19041, "Windows 10 2004", "2021-12-14", "2021-12-14", ""},
+	{19042, "Windows 10 20H2", "2022-05-10", "2023-05-09", ""},
+	{19043, "Windows 10 21H1", "2022-12-13", "2022-12-13", ""},
+	{19044, "Windows 10 21H2", "2023-06-13", "2024-06-11", "2027-01-12"}, // LTSC 2021
+	{19045, "Windows 10 22H2", "2025-10-14", "2025-10-14", ""},
+	{20348, "Windows Server 2022", "2031-10-14", "2031-10-14", "2031-10-14"},
+	{22000, "Windows 11 21H2", "2023-10-10", "2024-10-08", ""},
+	{22621, "Windows 11 22H2", "2024-10-08", "2025-10-14", ""},
+	{22631, "Windows 11 23H2", "2025-11-11", "2026-11-10", ""},
+	{26100, "Windows 11 24H2", "2026-10-13", "2027-10-12", "2029-10-09"}, // LTSC 2024 / Server 2025
+	{26200, "Windows 11 25H2", "2027-10-12", "2028-10-10", ""},
+	{26300, "Windows 11 26H2", "", "", ""},
 }
 
 // judgeWindows reads "6.1.7601" or "10.0.26100" (major.minor.build).
@@ -258,12 +256,34 @@ func judgeWindows(v string, now time.Time, edition string) (Assessment, bool) {
 		}
 		return a, false
 	}
-	a.Name, a.Status, a.Since, a.Until, a.Note = best.name, best.status, best.since, best.until, best.note
-	if edition == EditionExtended && best.extUntil != "" {
-		a.Status, a.Since, a.Until, a.Note = StatusSupported, "", best.extUntil, NoteWinExtended
+	a.Name = best.name
+	end := best.home
+	switch edition {
+	case EditionEnterprise:
+		end, a.Note = best.enterprise, NoteWinEnterprise
+	case EditionLTSC:
+		if best.ltsc != "" {
+			end, a.Note = best.ltsc, NoteWinLTSCSet
+		} else {
+			end, a.Note = best.enterprise, NoteWinNoLTSC
+		}
 	}
-	if a.Status == StatusSupported && a.Until != "" && now.After(mustDate(a.Until)) {
-		a.Status, a.Since, a.Until = StatusOutdated, a.Until, ""
+	switch {
+	case end == "":
+		a.Status = StatusSupported
+	case now.After(mustDate(end)):
+		a.Status, a.Since = StatusOutdated, end
+	default:
+		a.Status, a.Until = StatusSupported, end
+	}
+	if edition == "" {
+		switch {
+		case build == 19045:
+			a.Note = NoteWinESU
+		case a.Status == StatusOutdated && (best.ltsc != "" && now.Before(mustDate(best.ltsc)) || best.enterprise != best.home && now.Before(mustDate(best.enterprise))):
+			// Another edition of the same build is still serviced.
+			a.Note = NoteWinEditionHint
+		}
 	}
 	return a, true
 }
@@ -283,6 +303,7 @@ var ubuntuReleases = []ubuntuRelease{
 	{"24.10", "2025-07-10", NoteUbuntuInterm, false},
 	{"25.04", "2026-01-15", NoteUbuntuInterm, false},
 	{"25.10", "2026-07-09", NoteUbuntuInterm, false},
+	{"26.04", "2031-05-31", "", true},
 }
 
 func judgeUbuntu(a Assessment, v string, now time.Time) (Assessment, bool) {
@@ -389,6 +410,7 @@ var appleModels = []modelRange{
 	{"MacBookPro", 15, MacOS, 15},
 	{"MacBookPro", 16, MacOS, 26},
 	{"MacBookAir", 7, MacOS, 12},
+	{"MacBookAir", 8, MacOS, 14},
 	{"MacBookAir", 9, MacOS, 15},
 	{"MacBook", 10, MacOS, 13},
 	{"iMac", 18, MacOS, 13},
@@ -398,6 +420,7 @@ var appleModels = []modelRange{
 	{"Macmini", 8, MacOS, 15},
 	{"MacPro", 6, MacOS, 12},
 	{"MacPro", 7, MacOS, 26},
+	{"iMacPro", 1, MacOS, 15},
 }
 
 // iPad generations 6 and 7 mix lines with different limits.
@@ -421,7 +444,7 @@ func appleMax(model string) (appleMaxOS, bool) {
 		return appleMaxOS{}, false
 	}
 	product := map[string]string{"iPhone": IOS, "iPad": IPadOS, "MacBookPro": MacOS, "MacBookAir": MacOS,
-		"MacBook": MacOS, "iMac": MacOS, "Macmini": MacOS, "MacPro": MacOS, "Mac": MacOS}[family]
+		"MacBook": MacOS, "iMac": MacOS, "iMacPro": MacOS, "Macmini": MacOS, "MacPro": MacOS, "Mac": MacOS}[family]
 	if product == "" {
 		return appleMaxOS{}, false
 	}

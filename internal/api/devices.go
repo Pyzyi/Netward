@@ -167,6 +167,7 @@ func (s *Server) handleDeviceSoftware(w http.ResponseWriter, r *http.Request, _ 
 	if !readJSON(w, r, &req) {
 		return
 	}
+	// Validate everything before changing anything.
 	if req.Manual != nil {
 		p, v := req.Manual.Product, req.Manual.Version
 		switch {
@@ -177,16 +178,20 @@ func (s *Server) handleDeviceSoftware(w http.ResponseWriter, r *http.Request, _ 
 			writeError(w, http.StatusBadRequest, "invalid_input", "manual")
 			return
 		}
-		if err := s.d.Monitor.SetSoftwareManual(r.Context(), id, p, v); err != nil {
+	}
+	if req.Edition != nil {
+		if e := *req.Edition; e != "" && e != software.EditionEnterprise && e != software.EditionLTSC {
+			writeError(w, http.StatusBadRequest, "invalid_input", "edition")
+			return
+		}
+	}
+	if req.Manual != nil {
+		if err := s.d.Monitor.SetSoftwareManual(r.Context(), id, req.Manual.Product, req.Manual.Version); err != nil {
 			s.fail(w, r, err)
 			return
 		}
 	}
 	if req.Edition != nil {
-		if *req.Edition != "" && *req.Edition != software.EditionExtended {
-			writeError(w, http.StatusBadRequest, "invalid_input", "edition")
-			return
-		}
 		if err := s.d.Monitor.SetEdition(r.Context(), id, *req.Edition); err != nil {
 			s.fail(w, r, err)
 			return

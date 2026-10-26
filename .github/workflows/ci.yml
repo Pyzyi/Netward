@@ -205,6 +205,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Create release from docs/releases/<tag>.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -212,4 +214,6 @@ jobs:
         run: |
           notes="docs/releases/${TAG}.md"
           [ -f "$notes" ] || { echo "::error::release notes $notes missing"; exit 1; }
-          gh release create "$TAG" --verify-tag --title "Netzwart ${TAG#v}" --notes-file "$notes"
+          pre=()
+          case "$TAG" in *-*) pre=(--prerelease) ;; esac
+          gh release create "$TAG" --verify-tag "${pre[@]}" --title "Netzwart ${TAG#v}" --notes-file "$notes"

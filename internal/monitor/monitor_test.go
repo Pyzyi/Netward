@@ -16,6 +16,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
 
@@ -464,5 +465,39 @@ func TestRouterHostsNameAndWLANPresence(t *testing.T) {
 	}
 	if _, ok := e.m.DeviceByIP(ip(99)); ok {
 		t.Fatal("device created from the router table")
+	}
+}
+
+func TestSoftwareMergeAndPlausibility(t *testing.T) {
+	e := newEnv(t)
+	e.sweep(map[byte][]byte{20: {0x20}, 21: {0x21}})
+	var a, b store.Device
+	for _, d := range e.m.Devices() {
+		switch d.IP {
+		case ip(20).String():
+			a = d
+		case ip(21).String():
+			b = d
+		}
+	}
+	hooked := 0
+	e.m.SetSoftwareHook(func() { hooked++ })
+	if err := e.m.SetSoftwareManual(e.ctx, a.ID, software.IOS, "16"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.m.MergeDevices(e.ctx, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	sw, _ := e.m.Software(b.ID)
+	if sw.Status != software.StatusOutdated || sw.Source != software.SourceManual {
+		t.Fatalf("manual entry lost in the merge: %+v", sw)
+	}
+	if hooked < 2 {
+		t.Fatalf("hook not run after the merge (%d)", hooked)
+	}
+	// A FRITZ!OS announcement for a device that is neither AVM nor the gateway is ignored.
+	e.m.AddSoftware(b.ID, software.FromSSDPServer("FRITZ!Box 7390 UPnP/1.0 AVM FRITZ!Box 7390 84.06.83"))
+	if sw, _ := e.m.Software(b.ID); sw.Product == software.FritzOS {
+		t.Fatalf("spoofed FRITZ!OS accepted: %+v", sw)
 	}
 }

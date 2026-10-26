@@ -123,15 +123,17 @@ func rank(s string) int {
 // longer decides the status; the UI shows when it was last seen instead.
 const StaleAfter = 90 * 24 * time.Hour
 
-// EditionExtended marks a Windows device as Enterprise, LTSC or Server, whose
-// builds are supported longer than Home/Pro.
-const EditionExtended = "extended"
+// Windows editions with longer servicing than Home/Pro (the default, "").
+const (
+	EditionEnterprise = "enterprise" // Enterprise, Education
+	EditionLTSC       = "ltsc"       // LTSC/LTSB, Server
+)
 
 // Input is everything the assessment looks at.
 type Input struct {
 	Model        string // Apple model identifier or marketing model
 	Observations []Observation
-	Edition      string // "" (Home/Pro) or EditionExtended
+	Edition      string // "" (Home/Pro), EditionEnterprise or EditionLTSC
 	Now          time.Time
 }
 
@@ -157,27 +159,51 @@ func Assess(in Input) Assessment {
 		a.Conflict = conflicting(obs, o, in.Model, stale)
 		return a
 	}
+	byModel := func() (Assessment, bool) {
+		mx, ok := appleMax(in.Model)
+		if !ok {
+			return Assessment{}, false
+		}
+		a := judgeAppleMax(mx)
+		a.Observations, a.DataAsOf, a.Edition = obs, DataAsOf, in.Edition
+		a.Source, a.Evidence = SourceModel, clip(in.Model, 40)
+		return a, true
+	}
 	for _, o := range obs {
 		if stale(o) {
 			continue
 		}
-		if a, ok := judge(o, in.Now, in.Edition); ok {
-			return finish(a, o)
+		a, ok := judge(o, in.Now, in.Edition)
+		if !ok {
+			continue
 		}
+		// A version above what the model can install cannot be right (a
+		// spoofed announcement for this address): the model decides.
+		if mx, ok := appleMax(in.Model); ok && family(o.Product) == "apple" && o.Source != SourceManual {
+			if m, ok := major(o.Version); ok && m > mx.major {
+				if b, ok := byModel(); ok {
+					b.Conflict = true
+					return expire(b, in.Now)
+				}
+			}
+		}
+		return expire(finish(a, o), in.Now)
 	}
-	// Only old observations: name what was seen, but decide nothing.
+	// Only old observations: the model may still decide; otherwise name what
+	// was seen, but decide nothing.
 	for _, o := range obs {
 		if a, ok := judge(o, in.Now, in.Edition); ok {
+			if b, ok := byModel(); ok && b.Status != StatusUnknown {
+				b.LastSeen = o.SeenAt
+				return b
+			}
 			a = finish(a, o)
 			a.Status, a.Note, a.Since, a.Until, a.LastSeen = StatusUnknown, NoteStale, "", "", o.SeenAt
 			return a
 		}
 	}
 	// No version: the model alone may still say "cannot be updated any more".
-	if mx, ok := appleMax(in.Model); ok {
-		a := judgeAppleMax(mx)
-		a.Observations, a.DataAsOf, a.Edition = obs, DataAsOf, in.Edition
-		a.Source, a.Evidence = SourceModel, clip(in.Model, 40)
+	if a, ok := byModel(); ok {
 		return a
 	}
 	// Something without a verdict (e.g. ESPHome): show it, status unknown.
@@ -186,6 +212,14 @@ func Assess(in Input) Assessment {
 		out.Source, out.Evidence = obs[0].Source, obs[0].Evidence
 	}
 	return out
+}
+
+// expire turns a "supported until" that has passed into "outdated since".
+func expire(a Assessment, now time.Time) Assessment {
+	if (a.Status == StatusSupported || a.Status == StatusAging) && a.Until != "" && now.After(mustDate(a.Until)) {
+		a.Status, a.Since, a.Until = StatusOutdated, a.Until, ""
+	}
+	return a
 }
 
 // family groups products that cannot run on the same device at once.

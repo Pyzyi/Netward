@@ -19,9 +19,14 @@ var ErrNotFound = errors.New("not found")
 
 // Store wraps the database handle.
 type Store struct {
-	db   *sql.DB
-	path string
+	db       *sql.DB
+	path     string
+	warnings []string
 }
+
+// Warnings returns problems from opening the database that did not stop it,
+// for the caller to log.
+func (s *Store) Warnings() []string { return s.warnings }
 
 // Open opens (and creates, with mode 0600) the database at path and applies
 // pending migrations.
@@ -85,14 +90,24 @@ func (s *Store) migrate(ctx context.Context) error {
 	if current > 0 && current < len(migrations) {
 		// Keep the last copy an older Netzwart can open, so an update can be
 		// rolled back. Daily backups would be overwritten with the new schema.
+		// Written under a temporary name, so a failed copy is never mistaken
+		// for a good one. A failure is reported but does not block the start:
+		// a full disk must not lock the user out of their installation.
 		dir := filepath.Join(filepath.Dir(s.path), "backup")
 		name := filepath.Join(dir, fmt.Sprintf("pre-update-schema-%d.db", current))
-		if _, err := os.Stat(name); errors.Is(err, os.ErrNotExist) {
-			if err := os.MkdirAll(dir, 0o700); err != nil {
-				return err
+		if _, err := os.Stat(name); err != nil {
+			tmp := name + ".tmp"
+			_ = os.Remove(tmp)
+			err := os.MkdirAll(dir, 0o700)
+			if err == nil {
+				err = s.Backup(ctx, tmp)
 			}
-			if err := s.Backup(ctx, name); err != nil {
-				return fmt.Errorf("backup before migration: %w", err)
+			if err == nil {
+				err = os.Rename(tmp, name)
+			}
+			if err != nil {
+				_ = os.Remove(tmp)
+				s.warnings = append(s.warnings, fmt.Sprintf("no backup before updating the database schema from version %d: %v", current, err))
 			}
 		}
 	}

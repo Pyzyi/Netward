@@ -18,7 +18,7 @@ test:
 	go test -race ./...
 
 fuzz:
-	@for pkg in ./internal/proto ./internal/textutil ./internal/l2 ./internal/fritzbox; do \
+	@for pkg in ./internal/proto ./internal/textutil ./internal/l2 ./internal/fritzbox ./internal/software; do \
 	  for f in $$(go test $$pkg -list '^Fuzz' | grep ^Fuzz); do \
 	    go test $$pkg -run '^$$' -fuzz "^$$f$$" -fuzztime $(FUZZTIME) || exit 1; \
 	  done; \

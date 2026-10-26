@@ -48,8 +48,9 @@ type Device struct {
 
 // SoftwareSummary is the part of the software assessment lists need.
 type SoftwareSummary struct {
-	Status string `json:"status"` // supported | aging | outdated | update | unknown
-	Name   string `json:"name"`   // "Windows 10 22H2"
+	Status  string `json:"status"`  // supported | aging | outdated | update | unknown
+	Product string `json:"product"` // "windows"
+	Name    string `json:"name"`    // "Windows 10 22H2"
 }
 
 const deviceCols = `id, ident, mac, ip, name, hostname, vendor, vendor_official, model, os, type, type_confidence,

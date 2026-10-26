@@ -18,7 +18,7 @@
   const s = $derived(software);
   const manual = $derived(s.observations.find((o) => o.source === 'manual'));
   const isWindows = $derived(s.product === 'windows');
-  const extended = $derived(s.edition === 'extended');
+  const edition = $derived(s.edition ?? '');
   // Phones and tablets hide their system version; let the user say it.
   const canManual = $derived(
     !isWindows && (['phone', 'tablet', 'watch', 'laptop', 'computer'].includes(device.type) || s.product === 'ios' || s.product === 'ipados' || s.product === 'macos' || s.product === 'android'),
@@ -42,7 +42,7 @@
 
   // Advice by product and status, falling back to a general text.
   const advice = $derived.by(() => {
-    if (s.status === 'supported' || (s.status === 'unknown' && s.note !== 'stale' && !s.maxOs)) return '';
+    if (s.status === 'supported' || s.status === 'unknown') return '';
     for (const key of [`software.advice.${s.product}.${s.status}`, `software.advice.${s.status}`]) {
       if (has(key)) return t(key);
     }
@@ -114,8 +114,9 @@
     <div class="edition">
       <span class="label" id="ed-{device.id}">{t('software.edition')}</span>
       <div class="seg" role="group" aria-labelledby="ed-{device.id}">
-        <button type="button" aria-pressed={!extended} disabled={busy || demo} onclick={() => send({ edition: '' })}>{t('software.edition.home')}</button>
-        <button type="button" aria-pressed={extended} disabled={busy || demo} onclick={() => send({ edition: 'extended' })}>{t('software.edition.extended')}</button>
+        {#each ['', 'enterprise', 'ltsc'] as ed (ed)}
+          <button type="button" aria-pressed={edition === ed} disabled={busy || demo} onclick={() => send({ edition: ed })}>{t(`software.edition.${ed || 'home'}`)}</button>
+        {/each}
       </div>
     </div>
   {/if}

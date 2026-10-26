@@ -164,7 +164,7 @@ var debianOpenSSH = map[string]string{"6.7": "8", "7.4": "9", "7.9": "10", "8.4"
 
 // OpenSSH version shipped by each Ubuntu release.
 var ubuntuOpenSSH = map[string]string{"6.6": "14.04", "7.2": "16.04", "7.6": "18.04", "8.2": "20.04", "8.9": "22.04",
-	"9.6": "24.04", "9.7": "24.10", "9.9": "25.04", "10.0": "25.10"}
+	"9.6": "24.04", "9.7": "24.10", "9.9": "25.04", "10.0": "25.10", "10.2": "26.04"}
 
 // FromSSHBanner reads an SSH identification line ("SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u7").
 func FromSSHBanner(line string) []Observation {
@@ -221,7 +221,11 @@ func FromNTLMVersion(major, minor uint8, build uint16) []Observation {
 // FromFritzBox reads what TR-064 says about the router's own firmware:
 // version "154.08.25" (hardware code, major, minor) and whether an update waits.
 func FromFritzBox(version string, upgradeAvailable bool, newVersion string) []Observation {
-	parts := strings.Split(strings.TrimSpace(version), ".")
+	version = strings.TrimSpace(version)
+	if i := strings.IndexByte(version, '-'); i > 0 { // lab builds: "154.07.59-112345"
+		version = version[:i]
+	}
+	parts := strings.Split(version, ".")
 	if len(parts) < 3 {
 		return nil
 	}
