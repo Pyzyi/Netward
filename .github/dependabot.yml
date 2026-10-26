@@ -10,6 +10,10 @@ updates:
     schedule: { interval: weekly }
     groups:
       web: { patterns: ['*'] }
+    ignore:
+      # svelte-check pins its TypeScript peer range; majors move together by hand.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
   - package-ecosystem: npm
     directory: /e2e
     schedule: { interval: monthly }
