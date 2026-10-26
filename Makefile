@@ -2,7 +2,7 @@ FUZZTIME ?= 30s
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: all web build test fuzz lint demo clean
+.PHONY: all web build test fuzz lint demo clean kev
 
 all: build
 
@@ -23,6 +23,14 @@ fuzz:
 	    go test $$pkg -run '^$$' -fuzz "^$$f$$" -fuzztime $(FUZZTIME) || exit 1; \
 	  done; \
 	done
+
+# Refresh the snapshot of known exploited vulnerabilities (docs/09, F6)
+# from the current state of both sources; run before every release.
+kev:
+	go run ./tools/kevgen \
+	  -kev $$(git ls-remote https://github.com/cisagov/kev-data HEAD | cut -f1) \
+	  -cve $$(git ls-remote https://github.com/CVEProject/cvelistV5 HEAD | cut -f1) \
+	  -out internal/vuln/kev.json
 
 demo: build
 	mkdir -p data && NETZWART_DEMO=1 NETZWART_DATA=$(CURDIR)/data ./bin/netzwart

@@ -47,6 +47,8 @@ jobs:
         run: go tool cover -func=coverage.out | tail -n 1
       - name: Fuzzing (short)
         run: make fuzz FUZZTIME=15s
+      - name: Vulnerability snapshot matches its sources (KEV, CVE List at fixed commits)
+        run: go run ./tools/kevgen -verify internal/vuln/kev.json
 
   govulncheck:
     name: Go – known vulnerabilities
