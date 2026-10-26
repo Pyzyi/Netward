@@ -22,6 +22,20 @@ const (
 // on the first evaluation after installing this version.
 const maxSingleAlerts = 3
 
+// nextRun returns a run timestamp strictly after the previous one: pruning
+// compares timestamps, and two runs within one millisecond must still tell
+// their findings apart.
+func (c *Checker) nextRun() int64 {
+	run := time.Now().UnixMilli()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if run <= c.swLastRun {
+		run = c.swLastRun + 1
+	}
+	c.swLastRun = run
+	return run
+}
+
 // TriggerSoftware asks for a re-evaluation soon; it never blocks.
 func (c *Checker) TriggerSoftware() {
 	select {
@@ -56,6 +70,7 @@ func (c *Checker) WatchSoftware(ctx context.Context) {
 		case <-t.C:
 		}
 		c.EvaluateSoftware(ctx)
+		c.EvaluateNetwork(ctx)
 		due = time.Now().Add(24 * time.Hour)
 		t.Reset(time.Until(due))
 	}
@@ -69,15 +84,7 @@ type swAlert struct {
 
 // EvaluateSoftware turns the software assessments into findings.
 func (c *Checker) EvaluateSoftware(ctx context.Context) {
-	// Pruning compares timestamps; two runs within one millisecond must still
-	// tell their findings apart.
-	runStart := time.Now().UnixMilli()
-	c.mu.Lock()
-	if runStart <= c.swLastRun {
-		runStart = c.swLastRun + 1
-	}
-	c.swLastRun = runStart
-	c.mu.Unlock()
+	runStart := c.nextRun()
 	var checked []int64
 	var alerts []swAlert
 	for _, d := range c.mon.Devices() {

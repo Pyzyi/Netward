@@ -8,22 +8,40 @@
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
   import { has, relTime, t } from '../lib/i18n.svelte';
-  import type { Finding } from '../lib/types';
+  import type { Finding, NetworkState } from '../lib/types';
 
   let findings = $state<Finding[]>([]);
   let status = $state<{ running: boolean; lastRunAt: number }>({ running: false, lastRunAt: 0 });
   let loading = $state(true);
   let showAccepted = $state(false);
+  // Router and DHCP server details for the network findings.
+  let net = $state<NetworkState>({ gateways: [], dhcpServers: [] });
+  let busy = $state(false);
 
   async function load() {
     try {
       const r = await api.security();
       findings = r.findings;
       status = r.status;
+      if (r.findings.some((f) => f.check === 'gateway_mac' || f.check === 'dhcp_rogue')) net = await api.network();
     } finally {
       loading = false;
     }
   }
+
+  async function acceptNetwork(f: Finding) {
+    busy = true;
+    try {
+      net = await api.acceptNetwork(f.check === 'gateway_mac' ? { ip: f.data.ip ?? '' } : { server: f.data.server ?? '' });
+      await load();
+    } catch (e) {
+      toast(errorText(e), 'error');
+    } finally {
+      busy = false;
+    }
+  }
+  const gateway = (f: Finding) => net.gateways.find((g) => g.ip === f.data.ip);
+  const server = (f: Finding) => net.dhcpServers.find((d) => d.serverId === f.data.server);
 
   $effect(() => {
     void store.overview?.security.running;
@@ -49,6 +67,7 @@
     }
   }
 
+  const demo = $derived(store.overview?.scanner.mode === 'demo');
   const running = $derived(status.running || (store.overview?.security.running ?? false));
   const open = $derived(findings.filter((f) => !f.dismissed));
   const accepted = $derived(findings.filter((f) => f.dismissed));
@@ -68,6 +87,10 @@
         return t('security.conflict.title', { ip: f.data.ip ?? '' });
       case 'unknown_devices':
         return t('security.unknown.title', { n: unknownCount });
+      case 'gateway_mac':
+        return t(`security.gateway.${f.data.kind}.title`, { ip: f.data.ip ?? '' });
+      case 'dhcp_rogue':
+        return t(f.severity === 'info' ? 'security.dhcp.titleAsk' : 'security.dhcp.title', { server: f.data.server ?? '' });
       case 'software_outdated':
       case 'software_update': {
         const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
@@ -86,11 +109,15 @@
   function why(f: Finding): string {
     if (f.check === 'software_outdated' || f.check === 'software_update') return t(`security.software.why.${f.data.status}`);
     if (f.check === 'risky_port') return t(`security.port.why.${f.data.service}`);
+    if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.why`);
+    if (f.check === 'dhcp_rogue') return t('security.dhcp.why') + (f.severity === 'critical' ? ' ' + t('security.dhcp.whyOther') : '');
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
   }
   function todo(f: Finding): string {
     if (f.check === 'software_outdated' || f.check === 'software_update') return softwareAdvice(f);
     if (f.check === 'risky_port') return t(`security.port.todo.${f.data.service}`);
+    if (f.check === 'gateway_mac') return t(`security.gateway.${f.data.kind}.todo`);
+    if (f.check === 'dhcp_rogue') return t('security.dhcp.todo');
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
   }
 </script>
@@ -149,7 +176,36 @@
               <h3>{t('security.todo')}</h3>
               <p>{todo(f)}</p>
             </details>
-            {#if f.check === 'unknown_devices'}
+            {#if f.check === 'gateway_mac'}
+              {@const g = gateway(f)}
+              {#if g}
+                <dl class="net">
+                  <div><dt>{g.change ? t('security.gateway.before') : t('security.gateway.yours')}</dt><dd>{g.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.mac}</span></dd></div>
+                  {#if g.change}
+                    <div><dt>{t('security.gateway.now')}</dt><dd>{g.change.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.change.mac}</span></dd></div>
+                  {/if}
+                </dl>
+                {#if g.change?.oldActive}<p class="notice warn small">{t('security.gateway.oldActive')}</p>{/if}
+                {#if g.change}
+                  <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => acceptNetwork(f)}>
+                    <Icon name="check" size={14} /> {t('security.gateway.accept')}
+                  </button>
+                {/if}
+              {/if}
+            {:else if f.check === 'dhcp_rogue'}
+              {@const d = server(f)}
+              {#if d}
+                <dl class="net">
+                  <div><dt>{t('security.net.device')}</dt><dd>{d.vendor || t('security.net.unknownVendor')} <span class="mono faint">{d.mac}</span></dd></div>
+                  {#if d.router || d.dns?.length}
+                    <div><dt>{t('security.dhcp.gives')}</dt><dd>{t('security.dhcp.announces', { router: d.router || '–', dns: d.dns?.join(', ') || '–' })}</dd></div>
+                  {/if}
+                </dl>
+              {/if}
+              <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => acceptNetwork(f)}>
+                <Icon name="check" size={14} /> {t('security.dhcp.accept')}
+              </button>
+            {:else if f.check === 'unknown_devices'}
               <a class="btn small" href="/devices?filter=unreviewed" use:link>{t('security.unknown.open')}</a>
             {/if}
           </div>
@@ -326,6 +382,26 @@
   }
   .accept {
     align-self: start;
+  }
+  .net {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    font-size: 14px;
+  }
+  .net div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .net dt {
+    color: var(--text-3);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .net dd {
+    margin: 0;
+    overflow-wrap: anywhere;
   }
   .hints {
     margin-top: 32px;

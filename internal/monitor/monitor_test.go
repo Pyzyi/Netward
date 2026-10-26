@@ -501,3 +501,62 @@ func TestSoftwareMergeAndPlausibility(t *testing.T) {
 		t.Fatalf("spoofed FRITZ!OS accepted: %+v", sw)
 	}
 }
+
+func TestGatewayReferenceAndChange(t *testing.T) {
+	e := newEnv(t) // gateway is ip(1)
+	e.sweep(map[byte][]byte{1: {0x01}})
+	if st := e.m.Network(); len(st.Gateways) != 1 || st.Gateways[0].MAC != mac(0x01).String() {
+		t.Fatalf("no reference: %+v", st)
+	}
+	// Within the first day a new router simply replaces the reference.
+	e.sweep(map[byte][]byte{1: {0x02}})
+	e.sweep(map[byte][]byte{1: {0x02}})
+	if g := e.m.Network().Gateways[0]; g.MAC != mac(0x02).String() || g.Change != nil {
+		t.Fatalf("settling: %+v", g)
+	}
+	e.clk.Add(48 * time.Hour)
+	// One sweep with another MAC is not enough; two in a row are.
+	e.sweep(map[byte][]byte{1: {0x03}})
+	if g := e.m.Network().Gateways[0]; g.Change != nil {
+		t.Fatalf("change after one sweep: %+v", g)
+	}
+	e.sweep(map[byte][]byte{1: {0x03}})
+	g := e.m.Network().Gateways[0]
+	if g.Change == nil || g.Change.MAC != mac(0x03).String() || g.MAC != mac(0x02).String() {
+		t.Fatalf("change not recorded: %+v", g)
+	}
+	if !e.m.AcceptGateway(e.ctx, ip(1).String()) {
+		t.Fatal("accept failed")
+	}
+	if g := e.m.Network().Gateways[0]; g.MAC != mac(0x03).String() || g.Change != nil {
+		t.Fatalf("accepted state: %+v", g)
+	}
+	// Two MACs for the router address in two sweeps: conflict.
+	e.sweep(map[byte][]byte{1: {0x03, 0x04}})
+	e.sweep(map[byte][]byte{1: {0x03, 0x04}})
+	if g := e.m.Network().Gateways[0]; !g.Conflict {
+		t.Fatalf("conflict not recorded: %+v", g)
+	}
+	e.sweep(map[byte][]byte{1: {0x03}})
+	if g := e.m.Network().Gateways[0]; g.Conflict {
+		t.Fatalf("conflict did not clear: %+v", g)
+	}
+}
+
+func TestDHCPServerTracking(t *testing.T) {
+	e := newEnv(t)
+	d := &proto.DHCP{Op: 2, MsgType: proto.DHCPOffer, ServerID: ip(53), Router: ip(53), DNS: []netip.Addr{ip(53)}}
+	e.m.Observe(e.ctx, l2.Sighting{MAC: mac(0x53), IP: ip(53), Iface: "eth0", Source: "dhcp-server", DHCP: d, At: e.clk.Now()})
+	st := e.m.Network()
+	if len(st.DHCPServers) != 1 || st.DHCPServers[0].Router != ip(53).String() || st.DHCPServers[0].MAC != mac(0x53).String() {
+		t.Fatalf("server not tracked: %+v", st.DHCPServers)
+	}
+	if len(e.m.Devices()) != 0 {
+		t.Fatal("a DHCP server sighting created a device")
+	}
+	// Survives a restart.
+	m2 := newEnvWithStore(t, e.st)
+	if len(m2.m.Network().DHCPServers) != 1 {
+		t.Fatal("servers not persisted")
+	}
+}

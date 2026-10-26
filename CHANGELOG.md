@@ -3,6 +3,13 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## Unveröffentlicht (0.2)
+
+### Neu
+- Zweiter DHCP-Server: Netzwart merkt sich passiv, welche Geräte Adressen verteilen, und meldet einen weiteren Verteiler – kritisch, wenn er einen anderen Router oder DNS-Server vorgibt. „Diesen Server kenne ich“ bestätigt bewusst betriebene Server (z. B. Pi-hole).
+- Router-Adresse: Antworten zwei Geräte auf die Router-Adresse oder gehört sie plötzlich einer anderen Hardware, gibt es einen Sicherheitshinweis (ARP-Spoofing-Erkennung). „Das ist mein neuer Router“ übernimmt einen echten Router-Tausch.
+- Bestätigungen erscheinen im Aktivitätsprotokoll.
+
 ## 0.1.0 – 2026-10-26
 
 ### Neu

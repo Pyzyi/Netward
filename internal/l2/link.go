@@ -28,7 +28,7 @@ type Sighting struct {
 	MAC    net.HardwareAddr
 	IP     netip.Addr // invalid when the packet does not prove an address
 	Iface  string
-	Source string // "arp", "sweep", "dhcp", "mdns", "probe"
+	Source string // "arp", "sweep", "dhcp", "mdns", "probe", "dhcp-server"
 	ARP    bool   // true if MAC and IP come from ARP sender fields
 	DHCP   *proto.DHCP
 	MDNS   *proto.MDNSInfo

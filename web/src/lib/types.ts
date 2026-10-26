@@ -159,13 +159,35 @@ export interface Overview {
 
 export interface Finding {
   id: number;
-  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update';
+  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue';
   deviceId?: number;
   severity: 'info' | 'warning' | 'critical';
-  data: { port?: number; service?: string; ip?: string; product?: string; status?: string };
+  data: { port?: number; service?: string; ip?: string; product?: string; status?: string; kind?: 'conflict' | 'changed'; server?: string };
   firstSeen: number;
   lastSeen: number;
   dismissed: boolean;
+}
+
+/** Who answers for the router address and who hands out addresses. */
+export interface NetworkState {
+  gateways: {
+    ip: string;
+    mac: string;
+    vendor?: string;
+    since: number;
+    change?: { mac: string; vendor?: string; at: number; oldActive: boolean };
+    conflict?: boolean;
+  }[];
+  dhcpServers: {
+    serverId: string;
+    mac: string;
+    vendor?: string;
+    router?: string;
+    dns?: string[];
+    firstSeen: number;
+    lastSeen: number;
+    accepted: boolean;
+  }[];
 }
 
 export interface MQTTSettings {

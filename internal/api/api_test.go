@@ -25,6 +25,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/netzwart/internal/proto"
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
@@ -578,5 +579,45 @@ func TestSoftwareFindingsAndManual(t *testing.T) {
 	if rec := h.do(req{method: "PUT", path: "/api/v1/devices/" + itoa(id) + "/software", cookie: s.cookie,
 		body: map[string]any{"edition": ""}}); rec.Code != 403 {
 		t.Fatalf("missing CSRF accepted: %d", rec.Code)
+	}
+}
+
+func TestRogueDHCPFindingAndAccept(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	ctx := context.Background()
+	gw := netip.MustParseAddr("192.168.1.1")
+	h.mon.SetNetwork([]netip.Addr{gw}, nil)
+	offer := func(mac byte, server, router string) {
+		d := &proto.DHCP{Op: 2, MsgType: proto.DHCPOffer, ServerID: netip.MustParseAddr(server),
+			Router: netip.MustParseAddr(router), DNS: []netip.Addr{netip.MustParseAddr(router)}}
+		h.mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0x3c, 0, 0, 0, 0, mac}, IP: d.ServerID, Iface: "eth0",
+			Source: "dhcp-server", DHCP: d, At: time.Now()})
+	}
+	offer(1, "192.168.1.1", "192.168.1.1")
+	h.srv.d.Security.EvaluateNetwork(ctx)
+	if fs, _ := h.st.ListFindings(ctx); len(fs) != 0 {
+		t.Fatalf("one server is no finding: %+v", fs)
+	}
+	offer(53, "192.168.1.53", "192.168.1.53") // hands out itself as router
+	h.srv.d.Security.EvaluateNetwork(ctx)
+	fs, _ := h.st.ListFindings(ctx)
+	if len(fs) != 1 || fs[0].CheckID != security.CheckDHCPRogue || fs[0].Severity != "critical" || strings.Contains(string(fs[0].Data), "3c:") {
+		t.Fatalf("rogue finding: %+v", fs)
+	}
+	rec := h.do(req{method: "POST", path: "/api/v1/network/accept", cookie: s.cookie, csrf: s.csrf, body: map[string]any{"server": "192.168.1.53"}})
+	if rec.Code != 200 {
+		t.Fatalf("accept: %d %s", rec.Code, rec.Body)
+	}
+	if fs, _ := h.st.ListFindings(ctx); len(fs) != 0 {
+		t.Fatalf("finding stays after accepting: %+v", fs)
+	}
+	for _, body := range []map[string]any{{"server": "x"}, {"ip": "192.168.1.1", "server": "192.168.1.53"}, {}} {
+		if rec := h.do(req{method: "POST", path: "/api/v1/network/accept", cookie: s.cookie, csrf: s.csrf, body: body}); rec.Code < 400 {
+			t.Fatalf("accepted %v: %d", body, rec.Code)
+		}
+	}
+	if rec := h.do(req{method: "GET", path: "/api/v1/network", cookie: s.cookie}); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"accepted":true`) {
+		t.Fatalf("network: %d %s", rec.Code, rec.Body)
 	}
 }

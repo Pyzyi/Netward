@@ -249,6 +249,9 @@ func (c *Checker) run(ctx context.Context) {
 			}
 			var d map[string]any
 			_ = json.Unmarshal(e.Data, &d)
+			if g, _ := d["gateway"].(bool); g {
+				continue // the router address has its own finding (gateway_mac)
+			}
 			ip, _ := d["ip"].(string)
 			if ip == "" || seen[ip] {
 				continue
@@ -318,6 +321,20 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return tr("IP-Konflikt bei ", "IP conflict on ") + ip, ""
 	case CheckUnknown:
 		return tr("Unbestätigte Geräte im Netz", "Unconfirmed devices on the network"), ""
+	case CheckGatewayMAC:
+		ip, _ := data["ip"].(string)
+		if k, _ := data["kind"].(string); k == "conflict" {
+			return tr("Zwei Geräte beanspruchen die Router-Adresse ", "Two devices claim the router address ") + ip,
+				tr("So wird Datenverkehr umgeleitet (ARP-Spoofing) – oder ein zweiter Router ist falsch eingerichtet.",
+					"This is how traffic gets redirected (ARP spoofing) – or a second router is misconfigured.")
+		}
+		return tr("Router-Adresse gehört jetzt einem anderen Gerät: ", "The router address now belongs to another device: ") + ip,
+			tr("Wenn du keinen neuen Router angeschlossen hast, prüfe das sofort.", "If you did not connect a new router, check this right away.")
+	case CheckDHCPRogue:
+		srv, _ := data["server"].(string)
+		return tr("Zwei Geräte verteilen Adressen im Netz: ", "Two devices hand out addresses on the network: ") + srv,
+			tr("Ein zweiter DHCP-Server kann Geräte auf einen falschen Router oder DNS-Server lenken.",
+				"A second DHCP server can point devices to a wrong router or DNS server.")
 	case CheckSoftwareOutdated:
 		if n, ok := data["count"].(int); ok {
 			return fmt.Sprintf(tr("%d Geräte bekommen keine Sicherheitsupdates mehr", "%d devices no longer get security updates"), n),

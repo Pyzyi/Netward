@@ -23,7 +23,7 @@ export type EventGroup = 'devices' | 'presence' | 'internet' | 'security' | 'sys
 export function eventGroup(kind: string): EventGroup {
   if (kind === 'device_online' || kind === 'device_offline') return 'presence';
   if (kind.startsWith('internet')) return 'internet';
-  if (kind === 'security_finding' || kind === 'ip_conflict' || kind === 'device_flood' || kind === 'auth_failed') return 'security';
+  if (groupKinds.security.includes(kind)) return 'security';
   if (kind.startsWith('device') || kind === 'ip_changed' || kind === 'scan_baseline') return 'devices';
   return 'system';
 }
@@ -32,8 +32,8 @@ export const groupKinds: Record<EventGroup, string[]> = {
   devices: ['device_new', 'ip_changed', 'device_removed', 'device_merged', 'scan_baseline'],
   presence: ['device_online', 'device_offline'],
   internet: ['internet_down', 'internet_up'],
-  security: ['security_finding', 'ip_conflict', 'device_flood', 'auth_failed'],
-  system: ['auth_setup', 'auth_login', 'auth_password', 'config_settings', 'config_channel'],
+  security: ['security_finding', 'ip_conflict', 'gateway_changed', 'dhcp_server_new', 'device_flood', 'auth_failed'],
+  system: ['auth_setup', 'auth_login', 'auth_password', 'config_settings', 'config_channel', 'config_network'],
 };
 
 /** Kinds worth showing on the overview: everything except routine sign-ins and settings changes. */

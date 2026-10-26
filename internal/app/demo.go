@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/store"
 )
@@ -86,6 +87,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	if err := st.SetSetting(ctx, "baseline_at", baseline.UnixMilli()); err != nil {
 		return err
 	}
+	var piholeID int64
 	for i, dd := range demoDevices {
 		first := baseline.Add(-time.Duration(rnd.IntN(200)) * 24 * time.Hour)
 		if dd.newDev {
@@ -174,11 +176,27 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		if dd.gateway {
 			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "upnp_igd", DeviceID: d.ID, Severity: "warning", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
 		}
+		if dd.mac == "dc:a6:32:91:0e:5b" {
+			piholeID = d.ID
+		}
 		if dd.mac == "04:42:1a:c3:55:12" {
 			fd, _ := json.Marshal(map[string]any{"port": 3389, "service": "rdp"})
 			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "risky_port", DeviceID: d.ID, Severity: "warning", Data: fd, LastSeen: now.UnixMilli()})
 		}
 	}
+	// The Pi-hole hands out addresses too, next to the FRITZ!Box: the classic
+	// "DHCP switched on in both places" mistake (docs/09, F1).
+	seen := now.Add(-2 * time.Hour).UnixMilli()
+	_ = st.SetSetting(ctx, "net_dhcp_servers", []monitor.DHCPServer{
+		{ServerID: "192.168.178.1", MAC: "3c:a6:2f:5e:11:01", Vendor: "AVM", Router: "192.168.178.1", DNS: []string{"192.168.178.80"},
+			FirstSeen: baseline.UnixMilli(), LastSeen: seen, Accepted: true},
+		{ServerID: "192.168.178.80", MAC: "dc:a6:32:91:0e:5b", Vendor: "Raspberry Pi", Router: "192.168.178.1", DNS: []string{"192.168.178.80"},
+			FirstSeen: now.Add(-26 * time.Hour).UnixMilli(), LastSeen: seen},
+	})
+	dsrv, _ := json.Marshal(map[string]any{"ip": "192.168.178.80", "vendor": "Raspberry Pi"})
+	events = append(events, store.Event{TS: now.Add(-26 * time.Hour).UnixMilli(), Kind: "dhcp_server_new", Data: dsrv})
+	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "dhcp_rogue", DeviceID: piholeID, Severity: "warning",
+		Data: json.RawMessage(`{"server":"192.168.178.80"}`), LastSeen: now.UnixMilli()})
 	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "unknown_devices", Severity: "info", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
 	_ = st.SetSetting(ctx, "security_last_run", now.Add(-3*time.Hour).UnixMilli())
 	out := now.Add(-20 * time.Hour)

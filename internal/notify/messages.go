@@ -135,6 +135,9 @@ func Render(ev Event, lang string, loc *time.Location) Message {
 	case KindIPConflict:
 		ip := str(ev.Data, "ip")
 		msg.Title = tr(lang, "IP-Konflikt bei ", "IP address conflict on ") + ip
+		if g, _ := ev.Data["gateway"].(bool); g {
+			msg.Title = tr(lang, "Zwei Geräte beanspruchen die Router-Adresse ", "Two devices claim the router address ") + ip
+		}
 		msg.Body = tr(lang, "Mehrere Geräte antworten auf diese Adresse: ", "Several devices answer for this address: ") +
 			strings.Trim(str(ev.Data, "macs"), "[]")
 	case KindInternetDown:

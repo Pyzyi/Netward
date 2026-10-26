@@ -70,6 +70,11 @@ func (l *Listener) handle(frame []byte, now time.Time) {
 			return
 		}
 		s := Sighting{MAC: d.ClientMAC, Iface: iface.Name, Source: "dhcp", DHCP: &d, At: now}
+		if d.Op == 2 && (d.MsgType == proto.DHCPOffer || d.MsgType == proto.DHCPAck) && d.ServerID.IsValid() && sport == 67 {
+			// Who hands out addresses here (F1): reported separately and never
+			// turned into a device by itself.
+			l.emit(Sighting{MAC: append(net.HardwareAddr(nil), srcMAC...), IP: src, Iface: iface.Name, Source: "dhcp-server", DHCP: &d, At: now})
+		}
 		if d.Op == 2 {
 			// A server ACK proves the lease, not that the client is present yet.
 			if d.MsgType != proto.DHCPAck || !iface.Prefix.Contains(d.YourIP) {

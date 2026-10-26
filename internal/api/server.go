@@ -152,6 +152,8 @@ func (s *Server) Handler() http.Handler {
 	authed("PATCH /api/v1/devices/{id}", s.handlePatchDevice)
 	authed("DELETE /api/v1/devices/{id}", s.handleDeleteDevice)
 	authed("PUT /api/v1/devices/{id}/software", s.handleDeviceSoftware)
+	authed("GET /api/v1/network", s.handleNetwork)
+	authed("POST /api/v1/network/accept", s.handleNetworkAccept)
 	authed("POST /api/v1/devices/{id}/merge", s.handleMerge)
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)
 	authed("GET /api/v1/presence/strips", s.handlePresenceStrips)

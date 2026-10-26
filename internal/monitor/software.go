@@ -100,8 +100,8 @@ func (m *Monitor) AddSoftware(id int64, obs []software.Observation) {
 // It must be called without m.mu held.
 func (m *Monitor) softwareChanged() {
 	m.mu.Lock()
-	fn, changed := m.swHook, m.swChanged
-	m.swChanged = false
+	fn, changed := m.swHook, m.swChanged || m.netChanged
+	m.swChanged, m.netChanged = false, false
 	m.mu.Unlock()
 	if changed && fn != nil {
 		fn()

@@ -18,6 +18,11 @@ const proxyThreshold = 3
 
 // ApplySweep processes the result of a complete sweep of one interface.
 func (m *Monitor) ApplySweep(ctx context.Context, iface string, res l2.SweepResult, at time.Time) {
+	m.applySweep(ctx, iface, res, at)
+	m.softwareChanged() // re-evaluate findings if the router address changed hands
+}
+
+func (m *Monitor) applySweep(ctx context.Context, iface string, res l2.SweepResult, at time.Time) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -44,6 +49,7 @@ func (m *Monitor) ApplySweep(ctx context.Context, iface string, res l2.SweepResu
 		}
 	}
 	m.detectConflicts(ctx, iface, res)
+	m.checkGateways(ctx, res)
 	m.lastSweepAt = m.now()
 	m.gateOpen = true
 	if m.baselineAt == 0 {
@@ -98,14 +104,21 @@ func (m *Monitor) detectConflicts(ctx context.Context, iface string, res l2.Swee
 		}
 		m.reported[dedup] = m.now()
 		data := map[string]any{"ip": ip.String(), "macs": strings.Split(key, ",")}
+		sev := "warning"
+		if m.gateways[ip] {
+			// Two devices claiming the router address is how traffic gets
+			// redirected (ARP spoofing) – or a misconfigured second router.
+			data["gateway"] = true
+			sev = "critical"
+		}
 		dev := m.byIP[ip]
 		if dev != nil {
 			v := m.view(dev)
-			m.addEvent(ctx, notify.KindIPConflict, "warning", &v, data)
-			m.notify.Notify(notify.Event{Kind: notify.KindIPConflict, Severity: "warning", TS: m.nowMS(), Device: &v, Data: data})
+			m.addEvent(ctx, notify.KindIPConflict, sev, &v, data)
+			m.notify.Notify(notify.Event{Kind: notify.KindIPConflict, Severity: sev, TS: m.nowMS(), Device: &v, Data: data})
 		} else {
-			m.addEvent(ctx, notify.KindIPConflict, "warning", nil, data)
-			m.notify.Notify(notify.Event{Kind: notify.KindIPConflict, Severity: "warning", TS: m.nowMS(), Data: data})
+			m.addEvent(ctx, notify.KindIPConflict, sev, nil, data)
+			m.notify.Notify(notify.Event{Kind: notify.KindIPConflict, Severity: sev, TS: m.nowMS(), Data: data})
 		}
 	}
 }

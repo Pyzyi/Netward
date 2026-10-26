@@ -112,6 +112,10 @@ type Monitor struct {
 
 	swHook    func() // see SetSoftwareHook
 	swChanged bool
+
+	dhcpServers map[string]*DHCPServer // server ID -> server
+	gatewayRefs map[string]*GatewayRef // router address -> reference MAC
+	netChanged  bool
 }
 
 // New loads the device table and prepares the monitor.
@@ -122,6 +126,7 @@ func New(ctx context.Context, st *store.Store, h *hub.Hub, n notify.Notifier, s 
 		proxies: map[string]bool{}, gateways: map[netip.Addr]bool{}, selfMACs: map[string]bool{},
 		stashed: map[string]stash{}, dirty: map[int64]int64{}, conflicts: map[string]map[netip.Addr]string{},
 		reported: map[string]time.Time{}, probeSem: make(chan struct{}, 8),
+		dhcpServers: map[string]*DHCPServer{}, gatewayRefs: map[string]*GatewayRef{},
 		admitTokens: admissionPerMinute,
 	}
 	if m.notify == nil {
@@ -135,6 +140,7 @@ func New(ctx context.Context, st *store.Store, h *hub.Hub, n notify.Notifier, s 
 	if err := m.recoverGap(ctx); err != nil {
 		return nil, err
 	}
+	m.loadNetwork(ctx)
 	if err := m.load(ctx); err != nil {
 		return nil, err
 	}
@@ -336,6 +342,10 @@ func provesPresence(s l2.Sighting) bool {
 
 func (m *Monitor) observeLocked(ctx context.Context, s l2.Sighting) {
 	if !proto.ValidUnicastMAC(s.MAC) {
+		return
+	}
+	if s.Source == "dhcp-server" {
+		m.observeDHCPServer(ctx, s)
 		return
 	}
 	mac := s.MAC.String()

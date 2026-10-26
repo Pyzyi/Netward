@@ -145,6 +145,21 @@ test('security, activity and settings pages render', async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+test('second DHCP server is explained with its device', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/security');
+  const item = page.locator('li.finding', { hasText: 'Ein weiteres Gerät verteilt Adressen (192.168.178.80)' });
+  await expect(item).toBeVisible();
+  await expect(item.getByText('Raspberry Pi')).toBeVisible();
+  await expect(item.getByText('Router 192.168.178.1 · DNS 192.168.178.80')).toBeVisible();
+  // Demo mode is read-only.
+  await expect(item.getByRole('button', { name: 'Diesen Server kenne ich' })).toBeDisabled();
+  await page.goto('/activity');
+  await expect(page.getByText('Adressverteiler (DHCP-Server) entdeckt: 192.168.178.80')).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test('no horizontal overflow on any page', async ({ page }) => {
   await login(page);
   for (const path of ['/', '/devices', '/devices/5', '/activity', '/security', '/settings/scanning']) {
