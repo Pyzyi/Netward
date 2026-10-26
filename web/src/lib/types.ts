@@ -188,6 +188,7 @@ export interface NetworkState {
     lastSeen: number;
     accepted: boolean;
   }[];
+  probe?: { at: number; answers: number };
 }
 
 export interface MQTTSettings {
@@ -218,6 +219,7 @@ export interface Settings {
   internetCheck: boolean;
   internetTargets: string[];
   securityScanDays: number;
+  dhcpCheck: boolean;
   updateCheck: boolean;
   mqtt: MQTTSettings;
   fritzbox: FritzBoxSettings;

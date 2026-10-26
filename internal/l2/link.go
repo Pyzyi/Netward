@@ -44,7 +44,10 @@ type Link struct {
 	iface netinfo.Interface
 
 	arp *os.File // ETH_P_ARP: sweep requests out, all ARP in
-	ip  *os.File // ETH_P_IP with BPF: DHCP and mDNS in
+	ip  *os.File // ETH_P_IP with BPF: DHCP and mDNS in, DHCP probe out
+
+	pmu   sync.Mutex
+	probe *dhcpWaiter // the DHCP probe in flight, if any
 }
 
 func htons(v uint16) uint16 { return v<<8 | v>>8 }

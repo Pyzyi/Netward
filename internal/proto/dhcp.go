@@ -22,6 +22,7 @@ const (
 type DHCP struct {
 	Op          uint8 // 1 = client request, 2 = server reply
 	MsgType     uint8
+	Xid         uint32 // transaction ID
 	ClientMAC   net.HardwareAddr
 	ClientIP    netip.Addr // ciaddr
 	YourIP      netip.Addr // yiaddr (server replies)
@@ -80,7 +81,7 @@ func DecodeDHCP(p []byte) (DHCP, error) {
 	if binary.BigEndian.Uint32(p[fixed:fixed+4]) != 0x63825363 {
 		return DHCP{}, errNotDHCP
 	}
-	d := DHCP{Op: p[0]}
+	d := DHCP{Op: p[0], Xid: binary.BigEndian.Uint32(p[4:8])}
 	if d.Op != 1 && d.Op != 2 {
 		return DHCP{}, errNotDHCP
 	}
@@ -175,4 +176,52 @@ func ParamListString(pl []byte) string {
 		parts[i] = strconv.Itoa(int(b))
 	}
 	return strings.Join(parts, ",")
+}
+
+// DHCPDiscoverFrame builds a broadcast DHCPDISCOVER as a complete Ethernet
+// frame (docs/09, F1b). src is the sending interface, chaddr the client
+// hardware address asked for; the broadcast flag makes every server answer
+// by broadcast, so the reply reaches us without an address of our own.
+// It asks for subnet mask, router and DNS servers (option 55).
+func DHCPDiscoverFrame(src, chaddr net.HardwareAddr, xid uint32) []byte {
+	const bootpLen = 300 // minimum BOOTP size some servers insist on
+	b := make([]byte, bootpLen)
+	b[0], b[1], b[2] = 1, 1, 6 // BOOTREQUEST, Ethernet, 6-byte addresses
+	binary.BigEndian.PutUint32(b[4:8], xid)
+	binary.BigEndian.PutUint16(b[10:12], 0x8000) // broadcast flag
+	copy(b[28:34], chaddr)
+	binary.BigEndian.PutUint32(b[236:240], 0x63825363)
+	copy(b[240:], []byte{53, 1, DHCPDiscover, 55, 3, 1, 3, 6, 255})
+
+	const ipLen = 20
+	frame := make([]byte, ethHeaderLen+ipLen+8+bootpLen)
+	copy(frame[0:6], []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+	copy(frame[6:12], src)
+	binary.BigEndian.PutUint16(frame[12:14], EtherTypeIPv4)
+	ip := frame[ethHeaderLen:]
+	ip[0] = 0x45
+	binary.BigEndian.PutUint16(ip[2:4], uint16(ipLen+8+bootpLen))
+	ip[8] = 64 // TTL
+	ip[9] = 17 // UDP
+	// Source 0.0.0.0 like any client without an address; destination broadcast.
+	copy(ip[16:20], []byte{255, 255, 255, 255})
+	binary.BigEndian.PutUint16(ip[10:12], ipChecksum(ip[:ipLen]))
+	udp := ip[ipLen:]
+	binary.BigEndian.PutUint16(udp[0:2], 68)
+	binary.BigEndian.PutUint16(udp[2:4], 67)
+	binary.BigEndian.PutUint16(udp[4:6], uint16(8+bootpLen))
+	// UDP checksum 0: allowed for IPv4 and accepted by DHCP servers.
+	copy(udp[8:], b)
+	return frame
+}
+
+func ipChecksum(h []byte) uint16 {
+	var sum uint32
+	for i := 0; i+1 < len(h); i += 2 {
+		sum += uint32(binary.BigEndian.Uint16(h[i : i+2]))
+	}
+	for sum > 0xffff {
+		sum = sum>>16 + sum&0xffff
+	}
+	return ^uint16(sum)
 }

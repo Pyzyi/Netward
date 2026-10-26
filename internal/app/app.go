@@ -142,6 +142,10 @@ func Run(ctx context.Context, o Options) error {
 		inet.SeedDemo(time.Now())
 	}
 	sec := security.New(st, mon, h, disp, log)
+	if sc != nil {
+		sec.SetDHCPProber(sc)
+	}
+	sec.SetDHCPCheck(settings.DHCPCheck)
 	bridge := mqtt.NewBridge(mon, h, policy, inet.Status, o.Version, log)
 	bridge.Configure(settings.MQTT, settings.Language)
 	fritz := fritzbox.NewPoller(st, h, policy.DialContext, func(ctx context.Context, hosts []fritzbox.Host, at time.Time) {
@@ -211,6 +215,7 @@ func Run(ctx context.Context, o Options) error {
 		inet.Configure(s.InternetCheck && !env.Demo, s.InternetTargets)
 		bridge.Configure(s.MQTT, s.Language)
 		upd.Configure(s.UpdateCheck && !env.Demo)
+		sec.SetDHCPCheck(s.DHCPCheck)
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)
 		}

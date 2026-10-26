@@ -18,6 +18,12 @@
     const err = await updateSettings((x) => (x.securityScanDays = Number(schedule)));
     toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
   }
+  let dhcpCheck = $state(init.dhcpCheck ?? true);
+  async function saveDhcpCheck(v: boolean) {
+    const err = await updateSettings((x) => (x.dhcpCheck = v));
+    if (err) dhcpCheck = !v;
+    toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
+  }
   let busy = $state(false);
   let error = $state('');
 
@@ -103,6 +109,7 @@
       <option value={7}>{t('settings.schedule.weekly')}</option>
     </select>
   </div>
+  <Toggle bind:checked={dhcpCheck} label={t('settings.dhcpCheck')} hint={t('settings.dhcpCheckHint')} onchange={saveDhcpCheck} />
 </SettingsCard>
 
 <style>

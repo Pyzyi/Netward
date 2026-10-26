@@ -11,12 +11,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/netip"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/hub"
+	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/scanner"
@@ -100,6 +102,47 @@ type Checker struct {
 	status    Status
 	swTrigger chan struct{}
 	swLastRun int64
+	prober    DHCPProber // nil without raw sockets or in demo mode
+	dhcpCheck bool
+}
+
+// DHCPProber sends the active DHCP check (implemented by the scanner).
+type DHCPProber interface {
+	ProbeDHCP(ctx context.Context, chaddr net.HardwareAddr, wait time.Duration) ([]l2.DHCPAnswer, bool)
+}
+
+// dhcpProbeWait is how long offers are collected; servers answer within
+// milliseconds, slow ones (mesh repeaters) within a second or two.
+const dhcpProbeWait = 3 * time.Second
+
+// SetDHCPProber enables the active DHCP check.
+func (c *Checker) SetDHCPProber(p DHCPProber) {
+	c.mu.Lock()
+	c.prober = p
+	c.mu.Unlock()
+}
+
+// SetDHCPCheck switches the active DHCP check on or off (settings).
+func (c *Checker) SetDHCPCheck(on bool) {
+	c.mu.Lock()
+	c.dhcpCheck = on
+	c.mu.Unlock()
+}
+
+// probeDHCP runs the active DHCP check if it is enabled.
+func (c *Checker) probeDHCP(ctx context.Context) {
+	c.mu.Lock()
+	p, on := c.prober, c.dhcpCheck
+	c.mu.Unlock()
+	if p == nil || !on {
+		return
+	}
+	answers, ok := p.ProbeDHCP(ctx, c.mon.DHCPProbeMAC(), dhcpProbeWait)
+	if !ok || ctx.Err() != nil {
+		return
+	}
+	c.log.Info("DHCP check finished", "servers", len(answers))
+	c.mon.ObserveDHCPProbe(ctx, answers)
 }
 
 // New creates a checker.
@@ -179,6 +222,13 @@ func (c *Checker) run(ctx context.Context) {
 		mu.Unlock()
 	}
 	var wg sync.WaitGroup
+	// Who hands out addresses (F1b): one DISCOVER, answers collected while
+	// the ports are scanned. The findings follow from the network evaluation.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.probeDHCP(ctx)
+	}()
 	sem := make(chan struct{}, 4)
 	var checked []int64
 	for _, d := range devs {

@@ -193,6 +193,10 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		{ServerID: "192.168.178.80", MAC: "dc:a6:32:91:0e:5b", Vendor: "Raspberry Pi", Router: "192.168.178.1", DNS: []string{"192.168.178.80"},
 			FirstSeen: now.Add(-26 * time.Hour).UnixMilli(), LastSeen: seen},
 	})
+	_ = st.SetSetting(ctx, "net_dhcp_probe", monitor.DHCPProbe{At: now.Add(-3 * time.Hour).UnixMilli(), Answers: 2})
+	_ = st.SetSetting(ctx, "net_gateway_refs", []monitor.GatewayRef{
+		{IP: "192.168.178.1", MAC: "3c:a6:2f:5e:11:01", Vendor: "AVM", Since: baseline.UnixMilli()},
+	})
 	dsrv, _ := json.Marshal(map[string]any{"ip": "192.168.178.80", "vendor": "Raspberry Pi"})
 	events = append(events, store.Event{TS: now.Add(-26 * time.Hour).UnixMilli(), Kind: "dhcp_server_new", Data: dsrv})
 	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "dhcp_rogue", DeviceID: piholeID, Severity: "warning",

@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"crypto/rand"
 	"net"
 	"net/netip"
 	"sort"
@@ -25,6 +26,8 @@ const (
 const (
 	keyDHCPServers = "net_dhcp_servers"
 	keyGatewayRefs = "net_gateway_refs"
+	keyProbeMAC    = "net_dhcp_probe_mac"
+	keyDHCPProbe   = "net_dhcp_probe"
 	maxDHCPServers = 16
 	// dhcpWindow: servers not seen for this long no longer count.
 	dhcpWindow = 7 * 24 * time.Hour
@@ -70,10 +73,17 @@ type GatewayChange struct {
 	OldActive bool   `json:"oldActive"` // the previous MAC is still on the network
 }
 
+// DHCPProbe is the outcome of the last active DHCP check (F1b).
+type DHCPProbe struct {
+	At      int64 `json:"at"`
+	Answers int   `json:"answers"`
+}
+
 // NetworkState is what the security evaluation and the UI read.
 type NetworkState struct {
 	Gateways    []GatewayRef `json:"gateways"`
 	DHCPServers []DHCPServer `json:"dhcpServers"`
+	Probe       *DHCPProbe   `json:"probe,omitempty"`
 }
 
 func vendorOf(mac string) string {
@@ -94,6 +104,25 @@ func (m *Monitor) loadNetwork(ctx context.Context) {
 			s := s
 			m.dhcpServers[s.ServerID] = &s
 		}
+	}
+	var probe DHCPProbe
+	if err := m.st.GetSetting(ctx, keyDHCPProbe, &probe); err == nil && probe.At > 0 {
+		m.dhcpProbe = &probe
+	}
+	// One fixed, locally administered client MAC per installation for the
+	// active DHCP check, so routers do not collect a new entry every time.
+	var mac string
+	if err := m.st.GetSetting(ctx, keyProbeMAC, &mac); err == nil {
+		if hw, err := net.ParseMAC(mac); err == nil && len(hw) == 6 {
+			m.probeMAC = hw
+		}
+	}
+	if m.probeMAC == nil {
+		hw := make(net.HardwareAddr, 6)
+		_, _ = rand.Read(hw)
+		hw[0] = hw[0]&0xfc | 0x02 // locally administered, unicast
+		m.probeMAC = hw
+		_ = m.st.SetSetting(ctx, keyProbeMAC, hw.String())
 	}
 	var refs []GatewayRef
 	if err := m.st.GetSetting(ctx, keyGatewayRefs, &refs); err == nil {
@@ -242,6 +271,28 @@ func (m *Monitor) checkGateways(ctx context.Context, res l2.SweepResult) {
 	}
 }
 
+// DHCPProbeMAC is the client MAC the active DHCP check asks with.
+func (m *Monitor) DHCPProbeMAC() net.HardwareAddr {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append(net.HardwareAddr(nil), m.probeMAC...)
+}
+
+// ObserveDHCPProbe records the offers an active DHCP check received.
+func (m *Monitor) ObserveDHCPProbe(ctx context.Context, answers []l2.DHCPAnswer) {
+	m.mu.Lock()
+	now := m.nowMS()
+	for _, a := range answers {
+		d := a.DHCP
+		m.observeDHCPServer(ctx, l2.Sighting{MAC: a.MAC, IP: a.IP, Source: "dhcp-server", DHCP: &d, At: time.UnixMilli(now)})
+	}
+	m.dhcpProbe = &DHCPProbe{At: now, Answers: len(answers)}
+	_ = m.st.SetSetting(ctx, keyDHCPProbe, m.dhcpProbe)
+	m.netChanged = true
+	m.mu.Unlock()
+	m.softwareChanged()
+}
+
 // macActiveElsewhere reports whether mac was seen recently at another address.
 func (m *Monitor) macActiveElsewhere(mac string, ip netip.Addr) bool {
 	e := m.byIdent[mac]
@@ -253,6 +304,10 @@ func (m *Monitor) Network() NetworkState {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	st := NetworkState{Gateways: []GatewayRef{}, DHCPServers: []DHCPServer{}}
+	if m.dhcpProbe != nil {
+		p := *m.dhcpProbe
+		st.Probe = &p
+	}
 	for _, r := range m.gatewayRefs {
 		st.Gateways = append(st.Gateways, *r)
 	}

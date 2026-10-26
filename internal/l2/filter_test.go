@@ -1,11 +1,14 @@
 package l2
 
 import (
+	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
 	"net/netip"
+	"os"
 	"testing"
 	"time"
 
@@ -205,4 +208,72 @@ func FuzzParseNeighborDump(f *testing.F) {
 		var out []Neighbor
 		_, _ = parseNeighborDump(b, &out)
 	})
+}
+
+func TestProbeDHCPCollectsMatchingOffers(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	link := &Link{iface: testIf, ip: w}
+	out := make(chan Sighting, 8)
+	lis := NewListener(link, out, quiet)
+	chaddr := net.HardwareAddr{0x06, 1, 2, 3, 4, 5}
+	router := net.HardwareAddr{0x3c, 0xa6, 0x2f, 1, 2, 3}
+
+	offer := func(xid uint32, client net.HardwareAddr, server [4]byte) []byte {
+		b := make([]byte, 240)
+		b[0], b[1], b[2] = 2, 1, 6
+		binary.BigEndian.PutUint32(b[4:8], xid)
+		copy(b[28:34], client)
+		binary.BigEndian.PutUint32(b[236:240], 0x63825363)
+		b = append(b, 53, 1, proto.DHCPOffer, 54, 4, server[0], server[1], server[2], server[3], 3, 4, 192, 168, 1, 1, 255)
+		return udpFrame(router, server, 67, 68, b, false)
+	}
+
+	type result struct {
+		answers []DHCPAnswer
+		err     error
+	}
+	done := make(chan result, 1)
+	go func() {
+		a, err := link.ProbeDHCP(context.Background(), chaddr, 300*time.Millisecond)
+		done <- result{a, err}
+	}()
+	frame := make([]byte, 1600)
+	n, err := r.Read(frame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, _, payload, err := proto.UDPPayload(frame[:n])
+	if err != nil {
+		t.Fatal(err)
+	}
+	disc, err := proto.DecodeDHCP(payload)
+	if err != nil || disc.ClientMAC.String() != chaddr.String() || string(frame[6:12]) != string(testIf.MAC) {
+		t.Fatalf("discover %+v err %v", disc, err)
+	}
+	if _, err := link.ProbeDHCP(context.Background(), chaddr, time.Millisecond); !errors.Is(err, ErrProbeBusy) {
+		t.Fatalf("second probe: %v, want busy", err)
+	}
+	now := time.Now()
+	lis.handle(offer(disc.Xid, chaddr, [4]byte{192, 168, 1, 1}), now)
+	lis.handle(offer(disc.Xid, chaddr, [4]byte{192, 168, 1, 1}), now)   // retransmit
+	lis.handle(offer(disc.Xid+1, chaddr, [4]byte{192, 168, 1, 9}), now) // someone else's transaction
+	lis.handle(offer(disc.Xid, phoneMAC, [4]byte{192, 168, 1, 8}), now) // other client
+	res := <-done
+	if res.err != nil || len(res.answers) != 1 {
+		t.Fatalf("answers %+v err %v", res.answers, res.err)
+	}
+	a := res.answers[0]
+	if a.DHCP.ServerID.String() != "192.168.1.1" || a.MAC.String() != router.String() || a.DHCP.Router.String() != "192.168.1.1" {
+		t.Fatalf("answer %+v", a)
+	}
+	// The probe's offers never become a device sighting of the probe MAC.
+	for len(out) > 0 {
+		if s := <-out; s.MAC.String() == chaddr.String() {
+			t.Fatalf("probe MAC turned into a sighting: %+v", s)
+		}
+	}
 }

@@ -70,6 +70,9 @@ func (l *Listener) handle(frame []byte, now time.Time) {
 			return
 		}
 		s := Sighting{MAC: d.ClientMAC, Iface: iface.Name, Source: "dhcp", DHCP: &d, At: now}
+		if d.Op == 2 && d.MsgType == proto.DHCPOffer && d.ServerID.IsValid() && sport == 67 {
+			l.link.deliverProbe(srcMAC, src, d)
+		}
 		if d.Op == 2 && (d.MsgType == proto.DHCPOffer || d.MsgType == proto.DHCPAck) && d.ServerID.IsValid() && sport == 67 {
 			// Who hands out addresses here (F1): reported separately and never
 			// turned into a device by itself.

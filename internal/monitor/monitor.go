@@ -116,6 +116,8 @@ type Monitor struct {
 	dhcpServers map[string]*DHCPServer // server ID -> server
 	gatewayRefs map[string]*GatewayRef // router address -> reference MAC
 	netChanged  bool
+	dhcpProbe   *DHCPProbe       // last active DHCP check
+	probeMAC    net.HardwareAddr // client MAC of the active DHCP check, never a device
 }
 
 // New loads the device table and prepares the monitor.
@@ -347,6 +349,9 @@ func (m *Monitor) observeLocked(ctx context.Context, s l2.Sighting) {
 	if s.Source == "dhcp-server" {
 		m.observeDHCPServer(ctx, s)
 		return
+	}
+	if string(s.MAC) == string(m.probeMAC) {
+		return // our own DHCP check, not a device
 	}
 	mac := s.MAC.String()
 	e := m.lookup(mac, s.IP)

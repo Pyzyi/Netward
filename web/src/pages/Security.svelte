@@ -7,7 +7,7 @@
   import { auth, clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
-  import { has, relTime, t } from '../lib/i18n.svelte';
+  import { dateLong, has, relTime, t } from '../lib/i18n.svelte';
   import type { Finding, NetworkState } from '../lib/types';
 
   let findings = $state<Finding[]>([]);
@@ -23,7 +23,7 @@
       const r = await api.security();
       findings = r.findings;
       status = r.status;
-      if (r.findings.some((f) => f.check === 'gateway_mac' || f.check === 'dhcp_rogue')) net = await api.network();
+      net = await api.network();
     } finally {
       loading = false;
     }
@@ -217,6 +217,31 @@
     </ol>
   {/if}
 
+  {#if !loading && (net.gateways.length || net.dhcpServers.length || net.probe)}
+    <section class="netinfo">
+      <h2 class="eyebrow">{t('security.net.title')}</h2>
+      <dl class="net">
+        {#each net.gateways as g (g.ip)}
+          <div>
+            <dt>{t('security.net.router', { ip: g.ip })}</dt>
+            <dd>{g.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.mac}</span> <span class="faint">· {t('security.net.since', { d: dateLong(new Date(g.since).toLocaleDateString('sv')) })}</span></dd>
+          </div>
+        {/each}
+        {#each net.dhcpServers as d (d.serverId)}
+          <div>
+            <dt>{t('security.net.dhcp', { ip: d.serverId })}</dt>
+            <dd>{d.vendor || t('security.net.unknownVendor')} <span class="mono faint">{d.mac}</span>{#if d.accepted}{' '}<span class="faint">· {t('security.net.accepted')}</span>{/if}</dd>
+          </div>
+        {/each}
+      </dl>
+      <p class="faint small">
+        {#if store.settings && !store.settings.dhcpCheck}{t('security.net.probeOff')}
+        {:else if net.probe}{t(`security.net.probe.${net.probe.answers > 1 ? 'n' : net.probe.answers}`, { t: relTime(net.probe.at, clock.now), n: net.probe.answers })}
+        {:else}{t('security.net.probeNever')}{/if}
+      </p>
+    </section>
+  {/if}
+
   {#if auth.state && !auth.state.https}
     <section class="hints">
       <h2 class="eyebrow">{t('security.hints')}</h2>
@@ -389,6 +414,14 @@
     margin: 0;
     font-size: 14px;
   }
+  .netinfo {
+    margin-top: 32px;
+    display: grid;
+    gap: 10px;
+  }
+  .netinfo .net div {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
   .net div {
     display: grid;
     grid-template-columns: 110px minmax(0, 1fr);
@@ -421,6 +454,10 @@
     border-bottom: 1px solid var(--border);
   }
   @media (max-width: 640px) {
+    .netinfo .net div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
     .run {
       justify-items: start;
     }

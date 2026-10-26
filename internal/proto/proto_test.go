@@ -299,3 +299,30 @@ func TestDecodeDHCPServerOptions(t *testing.T) {
 		t.Fatalf("server options: %+v", d)
 	}
 }
+
+func TestDHCPDiscoverFrame(t *testing.T) {
+	src := net.HardwareAddr{0x02, 0x42, 0xac, 0x11, 0x00, 0x02}
+	chaddr := net.HardwareAddr{0x06, 0x11, 0x22, 0x33, 0x44, 0x55}
+	f := DHCPDiscoverFrame(src, chaddr, 0xdeadbeef)
+	if string(f[6:12]) != string(src) || string(f[0:6]) != "\xff\xff\xff\xff\xff\xff" {
+		t.Fatalf("ethernet header: % x", f[:14])
+	}
+	if ipChecksum(f[14:34]) != 0 {
+		t.Fatal("IPv4 header checksum does not verify")
+	}
+	s, dst, sport, dport, payload, err := UDPPayload(f)
+	if err != nil || sport != 68 || dport != 67 || !s.IsUnspecified() || dst.String() != "255.255.255.255" {
+		t.Fatalf("udp: %v %v %d %d %v", s, dst, sport, dport, err)
+	}
+	d, err := DecodeDHCP(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Op != 1 || d.MsgType != DHCPDiscover || d.Xid != 0xdeadbeef || d.ClientMAC.String() != chaddr.String() ||
+		ParamListString(d.ParamList) != "1,3,6" {
+		t.Fatalf("decoded %+v", d)
+	}
+	if payload[10]&0x80 == 0 {
+		t.Fatal("broadcast flag not set")
+	}
+}

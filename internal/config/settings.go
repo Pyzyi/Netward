@@ -56,6 +56,7 @@ type Settings struct {
 	InternetCheck      bool     `json:"internetCheck"`
 	InternetTargets    []string `json:"internetTargets"`
 	SecurityScanDays   int      `json:"securityScanDays"` // 0 = only on demand
+	DHCPCheck          bool     `json:"dhcpCheck"`        // the security check asks once who hands out addresses
 	UpdateCheck        bool     `json:"updateCheck"`      // ask GitHub daily for a new release (off by default)
 	MQTT               MQTT     `json:"mqtt"`
 	FritzBox           FritzBox `json:"fritzbox"`
@@ -76,6 +77,7 @@ func Defaults() Settings {
 		ExpireRandomDays:   14,
 		RetentionDays:      90,
 		InternetCheck:      true,
+		DHCPCheck:          true,
 		InternetTargets:    []string{"1.1.1.1:443", "9.9.9.9:443", "dns.google:443"},
 		MQTT:               MQTT{Port: 1883, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"},
 		FritzBox:           FritzBox{Host: "fritz.box"},
