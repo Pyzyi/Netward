@@ -48,8 +48,7 @@
     width: calc(100% - 32px);
     padding: 0;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    border-top: 3px solid var(--text);
+    border-radius: var(--radius-l);
     background: var(--surface);
     color: var(--text);
     box-shadow: var(--shadow-pop);

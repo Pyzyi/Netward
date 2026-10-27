@@ -82,8 +82,7 @@
     min-width: 2px;
   }
   .on {
-    background: var(--ok);
-    opacity: 0.85;
+    background: var(--signal);
   }
   .gap,
   .gap-sw {
@@ -115,7 +114,7 @@
     border: 1px solid var(--border);
   }
   .on-sw {
-    background: var(--ok);
+    background: var(--signal);
   }
   .off-sw {
     background: var(--surface-2);

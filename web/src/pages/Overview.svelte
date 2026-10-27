@@ -117,8 +117,8 @@
   const deviceName = (id?: number) => (id ? store.devices.get(id) : undefined);
   // The ring is drawn for the space it gets (labels need ~60 px on each side).
   let ringBox = $state(0);
-  const ringLabels = $derived(ringBox >= 380);
-  const ringSize = $derived(Math.min(380, ringBox - (ringLabels ? 120 : 30)));
+  const ringLabels = $derived(ringBox >= 400);
+  const ringSize = $derived(Math.min(420, ringBox - (ringLabels ? 150 : 24)));
 
   // Who is at home (docs/09, F4). The live state comes from the device list,
   // "since" from the server; it is reloaded when someone comes or goes.
@@ -148,41 +148,38 @@
 <section class="stage" aria-labelledby="net-title">
   <div class="stage-inner">
     <div class="stage-text">
-      <!-- Network name and subnet are in the band above; the stage leads with the count. -->
-      <h1 id="net-title" class="sr-only">{ov?.networkName || store.settings?.networkName || t('overview.unnamed')}</h1>
-      <p class="eyebrow on-ink">
+      <p class="where">
         {#each active as i (i.name)}<span>{i.name}</span>{/each}
-        {#if scanner?.gateways?.length}<span>{t('overview.gateway')} {scanner.gateways[0]}</span>{/if}
+        {#if scanner?.gateways?.length}<span>{t('overview.gateway')} <span class="mono">{scanner.gateways[0]}</span></span>{/if}
       </p>
 
-      <a class="headline" href="/devices?filter=online" use:link>
-        <span class="big num">{store.loading ? '–' : number(online)}</span>
-        <span class="big-of">
-          <span>{t('overview.onlineOf')}</span>
-          <strong>{t('overview.devicesCount', { n: devices.length })}</strong>
-        </span>
-      </a>
-
-      <dl class="metrics">
-        <a class="metric" href="/devices?filter=new" use:link>
-          <dt>{t('overview.new')}</dt>
-          <dd class="num" class:amber={fresh.length > 0}>{fresh.length}</dd>
+      <h1 id="net-title" class="headline">
+        <a href="/devices?filter=online" use:link>
+          <span class="hl-num num">{store.loading ? '–' : number(online)}</span>
+          {t('overview.headline', { n: devices.length })}
         </a>
-        <a class="metric" href="/devices?filter=offline" use:link>
+      </h1>
+
+      <dl class="facts">
+        <a class="fact" href="/devices?filter=new" use:link>
+          <dt>{t('overview.new')}</dt>
+          <dd class="num">{#if fresh.length > 0}<span class="dot warn"></span>{/if}{fresh.length}</dd>
+        </a>
+        <a class="fact" href="/devices?filter=offline" use:link>
           <dt>{t('overview.offline')}</dt>
           <dd class="num">{devices.length - online}</dd>
         </a>
-        <div class="metric inet">
+        <div class="fact inet">
           <dt>{t('overview.internet')}</dt>
           <dd>
             <span class="inet-state" class:ok={inetOk} class:bad={inetState === 'offline' || inetState === 'lan_down'}>
               {t(`internet.${inetState}`)}
             </span>
             {#if inetOk && ov?.internet.latencyMs !== undefined && ov.internet.latencyMs >= 0}
-              <span class="lat">{ov.internet.latencyMs} ms</span>
+              <span class="lat num">{ov.internet.latencyMs} ms</span>
             {/if}
           </dd>
-          {#if history.length > 1}<span class="spark"><Sparkline points={history} height={22} /></span>{/if}
+          {#if history.length > 1}<span class="spark"><Sparkline points={history} height={20} /></span>{/if}
         </div>
       </dl>
 
@@ -190,7 +187,14 @@
     </div>
 
     <div class="stage-ring" bind:clientWidth={ringBox}>
-      {#if devices.length && ringBox}<NetRing {devices} size={ringSize} labels={ringLabels} />{/if}
+      {#if devices.length && ringBox}
+        <NetRing {devices} size={ringSize} labels={ringLabels} />
+        <ul class="legend" aria-hidden="true">
+          <li><span class="key on"></span>{t('overview.online')}</li>
+          <li><span class="key"></span>{t('overview.offline')}</li>
+          <li><span class="key new"></span>{t('overview.new')}</li>
+        </ul>
+      {/if}
     </div>
   </div>
 </section>
@@ -222,7 +226,7 @@
     <div class="col">
       <section class="section" aria-labelledby="att">
         <div class="section-head">
-          <h2 id="att">{t('overview.attention')} <span class="eyebrow">{fresh.length}</span></h2>
+          <h2 id="att">{t('overview.attention')} <span class="count-label">{fresh.length}</span></h2>
           {#if fresh.length > 1}
             <button class="btn small" type="button" onclick={() => (confirmAll = true)}><Icon name="check" size={14} /> {t('overview.markAllKnown')}</button>
           {/if}
@@ -242,7 +246,7 @@
                     <span class="sub">{subtitle(d) || typeLabel(d.type)}</span>
                   </span>
                   <span class="mono ip">{d.ip}</span>
-                  <span class="mono faint seen">{relTime(d.firstSeen, clock.now)}</span>
+                  <span class="faint seen">{relTime(d.firstSeen, clock.now)}</span>
                 </a>
                 <button class="btn small" type="button" onclick={() => markKnown(d.id)}><Icon name="check" size={14} /> {t('overview.markKnown')}</button>
               </li>
@@ -351,10 +355,11 @@
             {@const dev = deviceName(e.deviceId)}
             {@const day = shortDay(e.ts, clock.now)}
             <li class={e.severity}>
-              <time class="mono" datetime={new Date(e.ts).toISOString()} title={new Date(e.ts).toLocaleString()}>
+              <time class="num" datetime={new Date(e.ts).toISOString()} title={new Date(e.ts).toLocaleString()}>
                 {time(e.ts)}{#if day}<span class="day">{day}</span>{/if}
               </time>
               <span class="feed-text">
+                {#if e.severity === 'warning' || e.severity === 'critical'}<span class="dot {e.severity === 'critical' ? 'danger' : 'warn'}"></span>{/if}
                 {#if dev}
                   <a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>
                 {:else}
@@ -391,10 +396,11 @@
 </div>
 
 <style>
-  /* Stage: the ink band continues into the page */
+  /* Stage: the dark band continues into the page and carries the ring. */
   .stage {
     background: var(--ink);
     color: var(--on-ink);
+    border-bottom: 1px solid var(--ink-line);
   }
   .stage :focus-visible {
     outline-color: var(--on-ink);
@@ -402,122 +408,108 @@
   .stage-inner {
     max-width: var(--page);
     margin: 0 auto;
-    padding: 30px 28px 40px;
+    padding: 24px 32px 28px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 40px;
+    gap: 48px;
     align-items: center;
   }
   .stage-text {
     display: grid;
-    gap: 18px;
+    gap: 22px;
     align-content: center;
     min-width: 0;
+    max-width: 520px;
   }
-  .eyebrow.on-ink {
-    color: var(--on-ink-2);
+  .where {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 14px;
-  }
-  .headline {
-    display: flex;
-    align-items: flex-end;
-    gap: 16px;
-    color: var(--on-ink);
-    text-decoration: none;
-  }
-  .headline:hover {
-    text-decoration: none;
-  }
-  .big {
-    font-size: 120px;
-    line-height: 0.82;
-    font-weight: 800;
-    letter-spacing: -0.06em;
-    color: var(--signal);
-  }
-  .big-of {
-    display: grid;
-    padding-bottom: 6px;
-    font-size: 16px;
-    line-height: 1.25;
+    gap: 4px 0;
+    font-size: 13px;
     color: var(--on-ink-2);
   }
-  .big-of strong {
-    color: var(--on-ink);
-    font-weight: 600;
-    font-size: 20px;
+  .where > span + span::before {
+    content: '·';
+    margin: 0 8px;
+    opacity: 0.6;
+  }
+  .where .mono {
+    font-size: 12px;
+  }
+  .headline {
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 500;
     letter-spacing: -0.015em;
   }
-  .metrics {
+  .headline a {
+    color: var(--on-ink);
+  }
+  .headline a:hover {
+    text-decoration: none;
+  }
+  .headline a:hover .hl-num {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+  }
+  .hl-num {
+    font-weight: 600;
+    color: var(--signal);
+  }
+  .facts {
     display: grid;
     grid-template-columns: auto auto minmax(0, 1fr);
-    margin: 4px 0 0;
+    gap: 0 36px;
+    margin: 0;
+    padding-top: 18px;
     border-top: 1px solid var(--ink-line);
   }
-  .metric {
+  .fact {
     display: grid;
     gap: 2px;
     align-content: start;
-    padding: 14px 28px 0 0;
-    margin-right: 28px;
-    border-right: 1px solid var(--ink-line);
     color: var(--on-ink);
     text-decoration: none;
   }
-  .metric:hover {
+  a.fact:hover {
     text-decoration: none;
   }
-  .metric:hover dt {
-    color: var(--on-ink);
+  a.fact:hover dd {
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
-  .metric.inet {
-    border-right: 0;
-    margin-right: 0;
-    padding-right: 0;
-  }
-  .metric dt {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  .fact dt {
+    font-size: 13px;
     color: var(--on-ink-2);
   }
-  .metric dd {
+  .fact dd {
     margin: 0;
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
     display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-  .metric dd.amber {
-    color: var(--amber);
+    align-items: center;
+    gap: 8px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.3;
   }
   .inet-state {
-    font-size: 20px;
-    font-weight: 800;
-    line-height: 1.35;
+    font-size: 16px;
   }
   .inet-state.ok {
     color: var(--signal);
   }
   .inet-state.bad {
-    color: #ff7b6e;
+    color: #ff8478;
   }
   .lat {
-    font-family: var(--mono);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--on-ink-2);
-    letter-spacing: 0;
   }
   .spark {
     display: block;
-    max-width: 260px;
-    margin-top: 4px;
+    max-width: 220px;
+    margin-top: 6px;
   }
   .stage-actions {
     display: flex;
@@ -525,18 +517,46 @@
   }
   .stage-ring {
     display: grid;
-    place-items: center;
-    width: 510px;
-    padding: 34px 0;
+    justify-items: center;
+    gap: 6px;
+    width: 580px;
+  }
+  .legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--on-ink-2);
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend .key {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1.5px solid var(--on-ink-2);
+  }
+  .legend .key.on {
+    background: var(--signal);
+    border-color: var(--signal);
+  }
+  .legend .key.new {
+    background: var(--amber);
+    border-color: var(--amber);
   }
 
-  /* Paper */
+  /* Canvas */
   .wrap {
     max-width: var(--page);
     margin: 0 auto;
-    padding: 28px 28px 56px;
+    padding: 24px 32px 56px;
     display: grid;
-    gap: 16px;
+    gap: 12px;
   }
   .row-notice {
     align-items: center;
@@ -547,78 +567,66 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-    gap: 40px;
-    margin-top: 12px;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 4px;
     align-items: start;
   }
   .col {
     display: grid;
-    gap: 40px;
+    gap: 16px;
     min-width: 0;
   }
   h2 {
     display: flex;
     align-items: baseline;
-    gap: 10px;
+    gap: 8px;
     white-space: nowrap;
   }
   .small {
     font-size: 13px;
   }
+  .section-head a.small {
+    color: var(--text-2);
+    font-weight: 500;
+  }
+  .section-head a.small:hover {
+    color: var(--text);
+  }
   .empty {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 0;
+    padding: 4px 0;
     color: var(--text-2);
   }
+  .empty :global(svg) {
+    color: var(--ok);
+  }
   .sk-row {
-    height: 52px;
+    height: 48px;
     margin: 4px 0;
   }
 
-  .swl {
+  .fresh,
+  .swl,
+  .people,
+  .feed {
     list-style: none;
-    margin: 0;
+    margin: 0 -16px;
     padding: 0;
   }
-  .swl a {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    color: inherit;
-    text-decoration: none;
-  }
-  .swl a:hover .fresh-name {
-    text-decoration: underline;
-  }
-  .sw-tally {
-    margin-top: 2px;
-  }
-  .sw-why summary {
-    font-size: 13px;
-    color: var(--text-2);
-    cursor: pointer;
-  }
-  .sw-why p {
-    margin-top: 6px;
-    color: var(--text-2);
-    max-width: 62ch;
-  }
-  .fresh {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .fresh li + li,
+  .swl li + li,
+  .people li + li,
+  .feed li + li {
+    border-top: 1px solid var(--border);
   }
   .fresh li {
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 1px solid var(--border);
+    padding-right: 16px;
   }
   .fresh-main {
     flex: 1;
@@ -626,12 +634,13 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 14px;
-    padding: 10px 0;
+    gap: 12px;
+    padding: 10px 0 10px 16px;
     color: inherit;
     text-decoration: none;
   }
-  .fresh-main:hover .fresh-name {
+  .fresh-main:hover .fresh-name,
+  .swl a:hover .fresh-name {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -640,7 +649,7 @@
     min-width: 0;
   }
   .fresh-name {
-    font-weight: 600;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -652,20 +661,51 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .seen {
+    font-size: 13px;
+  }
   .more {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     margin-top: 10px;
-    font-weight: 600;
+    font-weight: 500;
+  }
+
+  .swl a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .swl a:hover {
+    background: var(--surface-2);
+  }
+  .sw-tally {
+    margin-top: 12px;
+  }
+  .sw-why summary {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .sw-why p {
+    margin-top: 6px;
+    color: var(--text-2);
+    max-width: 62ch;
   }
 
   /* Device mix */
   .mixbar {
     display: flex;
-    height: 12px;
+    height: 8px;
     gap: 2px;
-    margin: 6px 0 16px;
+    margin: 2px 0 16px;
+    border-radius: 4px;
+    overflow: hidden;
   }
   .mixbar span {
     flex-basis: 0;
@@ -675,26 +715,26 @@
     background: var(--text);
   }
   .seg-1 {
-    background: color-mix(in srgb, var(--text) 78%, var(--bg));
+    background: color-mix(in srgb, var(--text) 78%, var(--surface));
   }
   .seg-2 {
-    background: color-mix(in srgb, var(--text) 60%, var(--bg));
+    background: color-mix(in srgb, var(--text) 60%, var(--surface));
   }
   .seg-3 {
-    background: color-mix(in srgb, var(--text) 44%, var(--bg));
+    background: color-mix(in srgb, var(--text) 44%, var(--surface));
   }
   .seg-4 {
-    background: color-mix(in srgb, var(--text) 30%, var(--bg));
+    background: color-mix(in srgb, var(--text) 30%, var(--surface));
   }
   .seg-5 {
-    background: color-mix(in srgb, var(--text) 20%, var(--bg));
+    background: color-mix(in srgb, var(--text) 20%, var(--surface));
   }
   .seg-6 {
-    background: color-mix(in srgb, var(--text) 12%, var(--bg));
+    background: color-mix(in srgb, var(--text) 12%, var(--surface));
   }
   .mix {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     gap: 14px 24px;
     margin: 0;
   }
@@ -702,11 +742,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    font-weight: 500;
   }
   .key {
     width: 10px;
     height: 10px;
+    border-radius: 3px;
     flex: none;
   }
   .mix dd {
@@ -724,34 +765,26 @@
   }
 
   /* Activity */
-  .feed {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
   .feed li {
     display: grid;
-    grid-template-columns: 8ch minmax(0, 1fr);
+    grid-template-columns: 7ch minmax(0, 1fr);
     gap: 12px;
-    padding: 8px 0 8px 12px;
-    border-left: 2px solid var(--border-strong);
-    font-size: 14px;
-  }
-  .feed li.warning {
-    border-left-color: var(--amber);
-  }
-  .feed li.critical {
-    border-left-color: var(--danger);
+    padding: 9px 16px;
   }
   .feed time {
-    color: var(--text-3);
+    color: var(--text-2);
+    font-size: 13px;
     padding-top: 1px;
     white-space: nowrap;
     overflow: hidden;
   }
   .feed .day {
     display: block;
-    font-size: 11px;
+    font-size: 12px;
+  }
+  .feed-text .dot {
+    margin-right: 8px;
+    vertical-align: 1px;
   }
   .feed-text a {
     color: var(--text);
@@ -770,44 +803,79 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 6px 0;
+    margin: 0 -16px -16px;
+    padding: 12px 16px;
+    border-radius: 0 0 var(--radius) var(--radius);
     color: var(--text);
     text-decoration: none;
   }
   .sec:hover {
     text-decoration: none;
+    background: var(--surface-2);
   }
   .sec-figures {
     display: flex;
-    gap: 22px;
+    gap: 20px;
   }
   .sec-figures strong {
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-size: 20px;
+    font-weight: 600;
     margin-right: 4px;
   }
   .crit {
     color: var(--danger);
-    font-weight: 600;
+    font-weight: 500;
   }
   .warnc {
     color: var(--warn);
-    font-weight: 600;
+    font-weight: 500;
   }
   .sec-ok {
     display: flex;
     align-items: center;
     gap: 8px;
     color: var(--ok);
-    font-weight: 600;
+    font-weight: 500;
   }
   .sec > :global(:last-child) {
     margin-left: auto;
+    color: var(--text-2);
   }
   .http {
-    margin-top: 10px;
+    margin-top: 14px;
   }
+
+  /* People */
+  .people li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px;
+  }
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--text-2);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .home .avatar {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+  .who {
+    display: grid;
+    min-width: 0;
+  }
+  .pname {
+    font-weight: 500;
+  }
+
   @media (max-width: 480px) {
     /* The check time goes under the figures instead of wrapping beside them. */
     .sec {
@@ -819,7 +887,6 @@
       flex-basis: 100%;
     }
   }
-
   @media (max-width: 1100px) {
     .fresh-main {
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -830,19 +897,19 @@
   }
   @media (max-width: 1180px) {
     .stage-ring {
-      width: 400px;
-    }
-    .big {
-      font-size: 96px;
+      width: 460px;
     }
   }
-  @media (max-width: 900px) {
+  @media (max-width: 960px) {
     .stage-inner {
       grid-template-columns: minmax(0, 1fr);
+      gap: 28px;
+    }
+    .stage-text {
+      max-width: none;
     }
     .stage-ring {
       width: 100%;
-      padding: 10px 0 0;
     }
     .grid {
       grid-template-columns: minmax(0, 1fr);
@@ -850,38 +917,26 @@
   }
   @media (max-width: 640px) {
     .stage-inner {
-      padding: 22px 16px 28px;
-      gap: 24px;
+      padding: 20px 16px 24px;
     }
-    .big {
-      font-size: 88px;
+    .headline {
+      font-size: 26px;
     }
-    .metrics {
-      grid-template-columns: auto auto minmax(0, 1fr);
+    .facts {
+      gap: 0 24px;
     }
-    .metric {
-      padding-right: 16px;
-      margin-right: 16px;
-    }
-    .metric dd {
-      font-size: 30px;
-    }
-    .inet-state {
-      font-size: 16px;
+    .fact dd {
+      font-size: 20px;
     }
     .spark,
     .lat {
-      display: none;
-    }
-    /* Phones: the answer first; the ring needs room to be useful. */
-    .stage-ring {
       display: none;
     }
     .section-head {
       flex-wrap: wrap;
     }
     .wrap {
-      padding: 20px 16px 40px;
+      padding: 16px 16px 40px;
     }
     .fresh-main {
       grid-template-columns: auto minmax(0, 1fr);
@@ -890,41 +945,5 @@
     .fresh-main .seen {
       display: none;
     }
-  }
-  .people {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-  }
-  .people li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .avatar {
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    color: var(--text-2);
-    font-weight: 700;
-    font-size: 13px;
-  }
-  .home .avatar {
-    background: var(--ok);
-    color: var(--bg);
-  }
-  .who {
-    display: grid;
-    min-width: 0;
-  }
-  .pname {
-    font-weight: 600;
   }
 </style>

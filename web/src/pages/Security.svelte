@@ -263,7 +263,7 @@
 
   {#if !loading && (net.gateways.length || net.dhcpServers.length || net.probe)}
     <section class="netinfo">
-      <h2 class="eyebrow">{t('security.net.title')}</h2>
+      <h2>{t('security.net.title')}</h2>
       <dl class="net">
         {#each net.gateways as g (g.ip)}
           <div>
@@ -288,7 +288,7 @@
 
   {#if auth.state && !auth.state.https}
     <section class="hints">
-      <h2 class="eyebrow">{t('security.hints')}</h2>
+      <h2>{t('security.hints')}</h2>
       <p class="muted">{t('overview.http')}</p>
     </section>
   {/if}
@@ -314,9 +314,6 @@
 </div>
 
 <style>
-  .wrap > :global(*) {
-    max-width: 1000px;
-  }
   .run {
     display: grid;
     justify-items: end;
@@ -330,30 +327,29 @@
   }
   .tally {
     display: flex;
-    gap: 0;
-    margin: 0 0 22px;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
   }
   .tally div {
-    padding: 0 32px 0 0;
-    margin-right: 32px;
-    border-right: 1px solid var(--border);
-  }
-  .tally div:last-child {
-    border-right: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
   }
   .tally dt {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-3);
+    order: 2;
+    font-size: 13px;
+    color: var(--text-2);
   }
   .tally dd {
     margin: 0;
-    font-size: 40px;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 1.1;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
   }
   .tally .critical dd {
     color: var(--danger);
@@ -362,47 +358,57 @@
     color: var(--warn);
   }
   .tally .zero dd {
-    color: var(--text-3);
+    color: var(--text-2);
   }
   .all-good {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 22px 0;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     color: var(--ok);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 500;
   }
   .findings {
     list-style: none;
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .finding {
     display: grid;
-    grid-template-columns: 110px minmax(0, 1fr) auto;
-    gap: 18px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--border);
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    gap: 16px;
+    padding: 16px;
+  }
+  .finding + .finding {
+    border-top: 1px solid var(--border);
   }
   .sev {
     align-self: start;
-    padding: 3px 0 3px 10px;
-    border-left: 3px solid var(--text-3);
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    margin-top: 1px;
+    padding: 0 8px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 500;
     color: var(--text-2);
   }
   .critical .sev {
-    border-left-color: var(--danger);
+    background: var(--danger-soft);
     color: var(--danger);
   }
   .warning .sev {
-    border-left-color: var(--amber);
+    background: var(--warn-soft);
     color: var(--warn);
   }
   .f-body {
@@ -412,29 +418,29 @@
     min-width: 0;
   }
   .f-body h2 {
-    font-size: 16px;
+    font-size: 15px;
   }
   .dev {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     color: var(--text);
-    font-weight: 600;
+    font-weight: 500;
   }
   details {
     width: 100%;
-    max-width: 66ch;
+    max-width: 70ch;
     color: var(--text-2);
   }
   summary {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 0;
+    padding: 2px 0;
     cursor: pointer;
     list-style: none;
-    font-weight: 600;
-    color: var(--link);
+    font-weight: 500;
+    color: var(--text);
   }
   summary::-webkit-details-marker {
     display: none;
@@ -451,10 +457,11 @@
   }
   .accept {
     align-self: start;
+    color: var(--text-2);
   }
   .net {
     display: grid;
-    gap: 4px;
+    gap: 6px;
     margin: 0;
     font-size: 14px;
   }
@@ -463,10 +470,15 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  .netinfo {
-    margin-top: 32px;
+  .netinfo,
+  .hints {
+    margin-top: 16px;
     display: grid;
     gap: 10px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .netinfo .net div {
     grid-template-columns: 220px minmax(0, 1fr);
@@ -477,30 +489,29 @@
     gap: 10px;
   }
   .net dt {
-    color: var(--text-3);
-    font-family: var(--mono);
-    font-size: 12px;
+    color: var(--text-2);
+    font-size: 13px;
   }
   .net dd {
     margin: 0;
     overflow-wrap: anywhere;
   }
-  .hints {
-    margin-top: 32px;
-    display: grid;
-    gap: 8px;
-  }
   .hidden-findings {
-    margin-top: 26px;
+    margin-top: 16px;
   }
   .accepted {
     list-style: none;
     margin: 8px 0 0;
-    padding: 0;
+    padding: 0 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .accepted li {
     padding: 8px 0;
-    border-bottom: 1px solid var(--border);
+  }
+  .accepted li + li {
+    border-top: 1px solid var(--border);
   }
   @media (max-width: 640px) {
     .netinfo .net div {
@@ -517,13 +528,6 @@
     .accept {
       justify-self: start;
       padding-left: 0;
-    }
-    .tally div {
-      padding-right: 18px;
-      margin-right: 18px;
-    }
-    .tally dd {
-      font-size: 32px;
     }
   }
 </style>

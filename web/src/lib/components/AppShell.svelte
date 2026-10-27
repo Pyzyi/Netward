@@ -130,10 +130,10 @@
     max-width: var(--page);
     margin: 0 auto;
     height: 56px;
-    padding: 0 28px;
+    padding: 0 32px;
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 20px;
   }
   .brand {
     display: flex;
@@ -146,9 +146,8 @@
     text-decoration: none;
   }
   .brand-name {
-    font-weight: 800;
-    font-size: 16px;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    font-size: 15px;
   }
   .net {
     display: flex;
@@ -167,43 +166,36 @@
   }
   .net-prefix {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--on-ink-2);
   }
   .tabs {
     display: flex;
-    align-self: stretch;
+    align-items: center;
     gap: 2px;
-    margin-left: 8px;
+    margin-left: 4px;
   }
   .tabs a {
-    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px;
+    gap: 7px;
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 7px;
     color: var(--on-ink-2);
-    font-weight: 600;
+    font-weight: 500;
     font-size: 14px;
     text-decoration: none;
   }
   .tabs a:hover {
     color: var(--on-ink);
+    background: rgb(255 255 255 / 0.06);
   }
   .tabs a[aria-current='page'] {
     color: var(--on-ink);
-  }
-  .tabs a[aria-current='page']::after {
-    content: '';
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: 0;
-    height: 3px;
-    background: var(--on-ink);
+    background: rgb(255 255 255 / 0.11);
   }
   .count {
-    font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
     min-width: 18px;
@@ -211,12 +203,13 @@
     padding: 0 5px;
     display: inline-grid;
     place-items: center;
-    border-radius: 3px;
+    border-radius: 9px;
     background: var(--amber);
-    color: #1a1204;
+    color: #1d1404;
+    font-variant-numeric: tabular-nums;
   }
   .count.danger {
-    background: #ff7b6e;
+    background: #ff8478;
     color: #2a0904;
   }
   .right {
@@ -229,7 +222,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--mono);
     font-size: 13px;
     color: var(--on-ink-2);
     white-space: nowrap;
@@ -276,7 +268,7 @@
     width: 32px;
     height: 32px;
     border: 0;
-    border-radius: 4px;
+    border-radius: 7px;
     background: transparent;
     color: var(--on-ink);
     cursor: pointer;
@@ -335,8 +327,8 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       padding: 0 4px env(safe-area-inset-bottom);
-      background: var(--bg);
-      border-top: 1px solid var(--text);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
     }
     .tabbar a {
       position: relative;
@@ -346,20 +338,11 @@
       padding: 8px 0 7px;
       color: var(--text-2);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       text-decoration: none;
     }
     .tabbar a[aria-current='page'] {
-      color: var(--text);
-    }
-    .tabbar a[aria-current='page']::before {
-      content: '';
-      position: absolute;
-      top: -1px;
-      left: 22%;
-      right: 22%;
-      height: 3px;
-      background: var(--text);
+      color: var(--accent);
     }
     .tab-icon {
       position: relative;
@@ -369,14 +352,13 @@
       top: -4px;
       right: -12px;
       min-width: 17px;
-      height: 16px;
+      height: 17px;
       padding: 0 4px;
-      border-radius: 3px;
+      border-radius: 9px;
       background: var(--amber);
-      color: #1a1204;
-      font-family: var(--mono);
+      color: #1d1404;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 600;
       display: grid;
       place-items: center;
     }

@@ -219,7 +219,7 @@
       {:else}
         {#each groups as g (g.key)}
           {#if g.label}
-            <h2 class="group-label eyebrow">{g.label} <span class="num">{g.items.length}</span></h2>
+            <h2 class="group-label">{g.label} <span class="num">{g.items.length}</span></h2>
           {/if}
           {#each g.items as d (d.id)}
             <DeviceRow device={d} href="/devices/{d.id}{qs}" selected={selected === d.id} wide={selected === undefined} />
@@ -238,10 +238,10 @@
   .layout {
     max-width: var(--page);
     margin: 0 auto;
-    padding: 26px 28px 56px;
+    padding: 28px 32px 56px;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
+    gap: 20px;
     min-width: 0;
   }
   .layout.with-detail {
@@ -256,11 +256,8 @@
     gap: 12px;
   }
   .total {
-    font-family: var(--mono);
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--text-3);
-    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--text-2);
   }
   .toolbar {
     display: flex;
@@ -291,9 +288,10 @@
     transform: translateY(-50%);
     font-family: var(--mono);
     font-size: 11px;
+    line-height: 18px;
     padding: 0 6px;
-    border: 1px solid var(--control-border);
-    border-radius: 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
     color: var(--text-2);
   }
   .selects {
@@ -302,49 +300,40 @@
   }
   .selects .select {
     width: auto;
-    background-color: transparent;
   }
   .filters {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    margin: 14px 0 0;
+    margin: 12px 0 0;
   }
   .scroll {
     min-width: 0;
-    max-width: calc(100% + 8px);
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
-    padding: 4px;
-    margin: -4px;
-  }
-  .filters .seg {
-    border-bottom: 0;
-  }
-  .filters .seg button {
-    padding: 0 12px 0 0;
-  }
-  .filters .seg button[aria-pressed='true']::after {
-    left: 0;
-    right: 12px;
   }
   .type-pill {
     gap: 6px;
   }
   .list {
-    margin-top: 6px;
-    border-top: 1px solid var(--text);
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
   .list-head {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 140px 192px 104px;
+    grid-template-columns: 36px minmax(0, 1fr) 140px 192px 104px;
     gap: 16px;
-    padding: 10px 12px 8px;
+    padding: 9px 16px 8px;
     border-bottom: 1px solid var(--border);
+    background: var(--surface);
   }
   .list-head.narrow {
-    grid-template-columns: 38px minmax(0, 1fr) 120px 104px;
+    grid-template-columns: 36px minmax(0, 1fr) 120px 104px;
   }
   .list-head.narrow .beat-col {
     display: none;
@@ -356,16 +345,23 @@
     display: flex;
     gap: 8px;
     align-items: baseline;
-    padding: 20px 12px 6px;
+    padding: 8px 16px;
     border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
     color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
   }
   .group-label .num {
-    color: var(--text-3);
+    font-weight: 400;
+    color: var(--text-2);
   }
   .sk {
-    height: 52px;
-    margin: 6px 0;
+    height: 44px;
+    margin: 8px 16px;
+  }
+  .list :global(.empty) {
+    padding: 40px 16px;
   }
   @media (max-width: 1280px) {
     .layout.with-detail {
@@ -387,7 +383,7 @@
   }
   @media (max-width: 639px) {
     .layout {
-      padding: 18px 16px 40px;
+      padding: 20px 16px 40px;
     }
     .list-head {
       display: none;

@@ -87,19 +87,19 @@
   {:else}
     {#each grouped as g, gi (`${g.day}-${gi}`)}
       <section class="day">
-        <h2 class="eyebrow day-label">{g.day} <span>{g.count}</span></h2>
+        <h2 class="day-label">{g.day} <span class="count-label">{g.count}</span></h2>
         <ol>
           {#each g.runs as run (run.e.id)}
             {@const e = run.e}
             {@const dev = e.deviceId ? store.devices.get(e.deviceId) : undefined}
             <li class={e.severity}>
-              <time class="mono" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
+              <time class="num" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
               <span class="ev-icon"><Icon name={icons[e.kind] ?? 'gear-six'} size={16} /></span>
               <span class="text">
-                {#if run.count > 1}<span class="times mono">{run.count}×</span>{/if}
+                {#if run.count > 1}<span class="times num">{run.count}×</span>{/if}
                 {#if dev}<a href="/devices/{dev.id}" use:link>{textOf(e)}</a>{:else}{textOf(e)}{/if}
                 {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono"> ({t('activity.before')} {e.data.from})</span>{/if}
-                {#if run.count > 1}<span class="faint mono span">{time(run.firstTs)}–{time(e.ts)}</span>{/if}
+                {#if run.count > 1}<span class="faint num span">{time(run.firstTs)}–{time(e.ts)}</span>{/if}
               </span>
             </li>
           {/each}
@@ -113,29 +113,29 @@
 </div>
 
 <style>
-  .wrap > :global(*) {
-    max-width: 1000px;
-  }
   .filters {
-    border-bottom: 0;
     overflow-x: auto;
-    max-width: calc(100% + 8px);
     scrollbar-width: none;
-    padding: 4px;
-    margin: -4px;
   }
   .sk {
     height: 40px;
     margin: 6px 0;
   }
+  .day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
   .day + .day {
-    margin-top: 26px;
+    margin-top: 16px;
   }
   .day-label {
     display: flex;
-    justify-content: space-between;
-    padding-bottom: 8px;
+    align-items: baseline;
+    gap: 8px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
+    font-size: 14px;
   }
   ol {
     list-style: none;
@@ -144,21 +144,24 @@
   }
   li {
     display: grid;
-    grid-template-columns: 56px 30px minmax(0, 1fr);
+    grid-template-columns: 48px 28px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    padding: 8px 16px;
+  }
+  li + li {
+    border-top: 1px solid var(--border);
   }
   time {
-    color: var(--text-3);
+    color: var(--text-2);
+    font-size: 13px;
   }
   .ev-icon {
     display: grid;
     place-items: center;
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: 7px;
     background: var(--tile);
     color: var(--text-2);
   }
@@ -181,11 +184,15 @@
   .text a:hover {
     text-decoration: underline;
   }
+  .text .faint {
+    font-size: 13px;
+  }
   .times {
     margin-right: 6px;
-    padding: 0 5px;
-    border: 1px solid var(--border-strong);
-    border-radius: 3px;
+    padding: 1px 6px;
+    border-radius: 5px;
+    background: var(--surface-2);
+    font-size: 12px;
     color: var(--text-2);
   }
   .span {
@@ -194,12 +201,13 @@
   .more {
     display: flex;
     justify-content: center;
-    padding: 24px 0 0;
+    padding: 20px 0 0;
   }
   @media (max-width: 640px) {
     li {
-      grid-template-columns: 44px 28px minmax(0, 1fr);
-      gap: 8px;
+      grid-template-columns: 40px 28px minmax(0, 1fr);
+      gap: 10px;
+      padding: 8px 12px;
     }
   }
 </style>

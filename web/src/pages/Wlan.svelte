@@ -46,7 +46,7 @@
 <div class="wrap">
   <header class="page-head">
     <div>
-      <p class="eyebrow"><a href="/devices" use:link>{t('nav.devices')}</a></p>
+      <a class="crumb" href="/devices" use:link><Icon name="caret-left" size={14} /> {t('nav.devices')}</a>
       <h1>{t('wlan.title')}</h1>
       <p class="lead">{t('wlan.lead')}</p>
     </div>
@@ -68,7 +68,7 @@
       {#if view.status !== 'auth' && view.status !== 'error' && view.fritzbox !== 'error'}<EmptyState text={t('wlan.pending')} />{/if}
     {:else}
       <section class="hints">
-        <h2 class="eyebrow">{t('wlan.hints')}</h2>
+        <h2>{t('wlan.hints')}</h2>
         {#if hints.length === 0}
           <p class="all-good"><Icon name="check-circle" size={20} /> {t('wlan.noHints')}</p>
         {:else}
@@ -143,19 +143,13 @@
 </div>
 
 <style>
-  .wrap > :global(*) {
-    max-width: 1000px;
-  }
-  .eyebrow a {
-    color: inherit;
-  }
   .small {
     font-size: 13px;
   }
   .hints {
     display: grid;
     gap: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 16px;
   }
   .hints ul {
     list-style: none;
@@ -168,16 +162,16 @@
     display: grid;
     gap: 4px;
     padding: 10px 14px;
-    border-left: 3px solid var(--amber);
+    border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+    border-radius: var(--radius-s);
     background: var(--warn-soft);
-    max-width: 75ch;
   }
   .hints li.strong {
-    border-left-color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 30%, transparent);
     background: var(--danger-soft);
   }
   .hints li p:first-child {
-    font-weight: 600;
+    font-weight: 500;
   }
   .todo {
     color: var(--text-2);
@@ -188,12 +182,14 @@
     align-items: center;
     gap: 10px;
     color: var(--ok);
-    font-weight: 600;
+    font-weight: 500;
   }
   .ap {
-    margin-top: 26px;
-    border-top: 1px solid var(--text);
-    padding-top: 14px;
+    margin-top: 16px;
+    padding: 16px 16px 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .ap-head {
     display: flex;
@@ -203,7 +199,7 @@
     margin-bottom: 10px;
   }
   .ap-head h2 {
-    font-size: 18px;
+    font-size: 16px;
   }
   .ap-head h2 a {
     color: var(--text);
@@ -218,11 +214,10 @@
   }
   .meta.warn {
     color: var(--warn);
-    font-weight: 600;
+    font-weight: 500;
   }
   .count {
-    font-family: var(--mono);
-    font-size: 12px;
+    font-size: 13px;
     white-space: nowrap;
   }
   table {
@@ -242,12 +237,9 @@
   }
   th {
     text-align: left;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-3);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
     padding: 6px 10px 6px 0;
     border-bottom: 1px solid var(--border);
   }
@@ -256,12 +248,15 @@
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
   td.name a {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     color: var(--text);
-    font-weight: 600;
+    font-weight: 500;
   }
   td.signal {
     white-space: nowrap;
@@ -294,6 +289,9 @@
       padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
+    tbody tr:last-child {
+      border-bottom: 0;
+    }
     td {
       padding: 0;
       border: 0;
@@ -305,11 +303,8 @@
     td[data-label]::before {
       content: attr(data-label) ' ';
       display: block;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-3);
+      font-size: 11px;
+      color: var(--text-2);
     }
   }
 </style>

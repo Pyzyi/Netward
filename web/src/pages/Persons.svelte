@@ -108,7 +108,7 @@
 <div class="wrap">
   <header class="page-head">
     <div>
-      <p class="eyebrow"><a href="/" use:link>{t('nav.overview')}</a></p>
+      <a class="crumb" href="/" use:link><Icon name="caret-left" size={14} /> {t('nav.overview')}</a>
       <h1>{t('persons.page')}</h1>
       <p class="lead">{t('persons.lead')}</p>
     </div>
@@ -126,6 +126,7 @@
   {:else if people.length === 0}
     <p class="muted">{t('persons.empty')}</p>
   {:else}
+    <div class="people">
     {#each people as p (p.id)}
       {@const home = isHome(p, store.devices)}
       <section class="person" class:home aria-labelledby="p-{p.id}">
@@ -208,10 +209,11 @@
         <button class="btn small ghost danger-text" type="button" onclick={() => { deleteFor = p; deleteOpen = true; }}><Icon name="trash" size={14} /> {t('persons.delete')}</button>
       </section>
     {/each}
+    </div>
   {/if}
 
   <section class="hints">
-    <h2 class="eyebrow">{t('security.hints')}</h2>
+    <h2>{t('security.hints')}</h2>
     <p class="muted small">{t('persons.hintPrivateMac')}</p>
     <p class="muted small">{t('persons.hintHA')}</p>
   </section>
@@ -239,30 +241,34 @@
 </Dialog>
 
 <style>
-  .wrap > :global(*) {
-    max-width: 860px;
-  }
-  .eyebrow a {
-    color: inherit;
-  }
   .small {
     font-size: 13px;
   }
   .add {
     display: flex;
     gap: 10px;
-    margin: 18px 0 8px;
+    margin: 16px 0;
   }
   .add .input {
     max-width: 320px;
   }
+  .people {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
   .person {
     display: grid;
     gap: 10px;
-    margin-top: 22px;
-    padding-top: 16px;
-    border-top: 1px solid var(--text);
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     justify-items: start;
+  }
+  .person > .eyebrow {
+    margin-top: 6px;
   }
   .p-head {
     display: grid;
@@ -275,7 +281,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 18px;
+    font-size: 16px;
   }
   .rename {
     display: flex;
@@ -291,13 +297,13 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--surface-2);
+    background: var(--surface-3);
     color: var(--text-2);
-    font-weight: 700;
+    font-weight: 600;
   }
   .home .avatar {
-    background: var(--ok);
-    color: var(--bg);
+    background: var(--ok-soft);
+    color: var(--ok);
   }
   .sub {
     color: var(--text-2);
@@ -316,14 +322,16 @@
     align-items: center;
     gap: 10px;
     padding: 6px 0;
-    border-bottom: 1px solid var(--border);
+  }
+  .devs li + li {
+    border-top: 1px solid var(--border);
   }
   .dname {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     color: var(--text);
-    font-weight: 600;
+    font-weight: 500;
     min-width: 0;
   }
   .addsel {
@@ -354,11 +362,13 @@
     align-items: flex-end;
     width: 22px;
     height: 60px;
+    border-radius: 4px;
+    overflow: hidden;
     background: var(--surface-2);
   }
   .bar span {
     width: 100%;
-    background: var(--ok);
+    background: var(--signal);
   }
   .wd {
     color: var(--text-3);
@@ -367,9 +377,13 @@
     color: var(--danger);
   }
   .hints {
-    margin-top: 32px;
+    margin-top: 16px;
     display: grid;
     gap: 6px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   @media (max-width: 560px) {
     .add {

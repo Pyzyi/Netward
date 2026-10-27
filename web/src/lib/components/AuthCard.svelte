@@ -57,7 +57,7 @@
       <button type="button" aria-pressed={i18n.lang === 'de'} onclick={() => setLang('de')}>DE</button>
       <button type="button" aria-pressed={i18n.lang === 'en'} onclick={() => setLang('en')}>EN</button>
     </div>
-    <div class="panel">{@render children()}</div>
+    <div class="form-box">{@render children()}</div>
   </main>
 </div>
 
@@ -79,9 +79,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-weight: 800;
-    font-size: 20px;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    font-size: 18px;
   }
   .ring-wrap {
     position: relative;
@@ -100,13 +99,13 @@
   .arc {
     fill: none;
     stroke: var(--on-ink-2);
-    stroke-width: 1.5;
+    stroke-width: 2;
     stroke-linecap: round;
-    opacity: 0.55;
+    opacity: 0.35;
   }
   .spoke {
     stroke: var(--on-ink-2);
-    opacity: 0.22;
+    opacity: 0.18;
   }
   .on {
     fill: var(--signal);
@@ -128,7 +127,7 @@
     place-items: center;
     width: 18%;
     aspect-ratio: 1;
-    border-radius: 12px;
+    border-radius: 50%;
     background: var(--ink-2);
     border: 1px solid var(--ink-line);
     color: var(--on-ink);
@@ -139,13 +138,22 @@
     padding: 0;
     display: grid;
     gap: 8px;
-    font-family: var(--mono);
-    font-size: 13px;
+    font-size: 14px;
     color: var(--on-ink-2);
   }
+  .facts li {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
   .facts li::before {
-    content: '— ';
-    color: var(--signal);
+    content: '';
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--signal);
+    transform: translateY(-2px);
   }
   .form-side {
     position: relative;
@@ -159,10 +167,10 @@
     right: 28px;
   }
   .lang button {
-    height: 30px;
-    padding: 0 8px;
+    height: 26px;
+    padding: 0 9px;
   }
-  .panel {
+  .form-box {
     width: min(400px, 100%);
   }
   @media (max-width: 820px) {

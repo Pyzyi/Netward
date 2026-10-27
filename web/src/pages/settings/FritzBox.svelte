@@ -102,8 +102,8 @@
   }
   .howto summary {
     cursor: pointer;
-    font-weight: 600;
-    color: var(--text-1);
+    font-weight: 500;
+    color: var(--text);
   }
   .howto ol {
     margin: 10px 0 8px;

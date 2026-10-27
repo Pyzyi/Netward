@@ -50,17 +50,19 @@ const pairs = [
   ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-2', 4.5],
   ['text-2', 'bg', 4.5], ['text-2', 'surface', 4.5], ['text-2', 'surface-2', 4.5],
   ['accent', 'surface', 4.5], ['accent', 'bg', 4.5], ['accent-text', 'accent', 4.5],
+  ['on-primary', 'primary', 4.5], ['on-primary', 'primary-hover', 4.5], ['primary', 'bg', 4.5], ['primary', 'surface', 4.5],
+  ['text', 'surface-3', 4.5], ['text-2', 'accent-soft', 4.5], ['text', 'accent-soft', 4.5],
   ['ok', 'surface', 4.5], ['ok', 'bg', 4.5], ['ok', 'ok-soft', 4.5],
   ['warn', 'surface', 4.5], ['warn', 'bg', 4.5], ['warn', 'warn-soft', 4.5],
-  ['danger', 'surface', 4.5], ['danger', 'danger-soft', 4.5], ['accent', 'accent-soft', 4.5],
+  ['danger', 'surface', 4.5], ['danger', 'bg', 4.5], ['danger', 'danger-soft', 4.5], ['accent', 'accent-soft', 4.5],
   ['text-3', 'bg', 4.5], ['text-3', 'surface', 4.5], ['text-3', 'surface-2', 4.5],
   ['control-border', 'surface', 3.0], ['control-border', 'bg', 3.0], // WCAG 1.4.11 non-text contrast
   ['link', 'bg', 4.5], ['link', 'surface', 4.5],
   ['on-ink', 'ink', 4.5], ['on-ink-2', 'ink', 4.5], ['on-ink-2', 'ink-2', 4.5],
-  ['text', 'tile', 4.5], ['text-2', 'surface-3', 4.5],
-  ['signal', 'ink', 3.0], ['signal', 'bg', 2.5], // online marks are always accompanied by text
+  ['text', 'tile', 4.5], ['text-2', 'surface-3', 4.5], ['text-2', 'tile', 4.5],
+  ['signal', 'ink', 3.0], ['signal', 'bg', 2.5], ['signal', 'surface', 2.5], // online marks are always accompanied by text
   ['amber', 'ink', 3.0],
-  ['off', 'bg', 2.0], // status dots are always accompanied by text
+  ['off', 'bg', 2.0], ['off', 'surface', 2.0], // status dots are always accompanied by text
 ];
 
 let failed = 0;

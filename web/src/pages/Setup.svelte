@@ -140,15 +140,12 @@
     margin-bottom: 4px;
   }
   .step {
-    font-family: var(--mono);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--text-3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: var(--text-2);
   }
   h1 {
-    font-size: 28px;
+    font-size: 24px;
   }
   .grow {
     flex: 1;

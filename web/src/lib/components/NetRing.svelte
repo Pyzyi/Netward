@@ -16,7 +16,7 @@
   const gateway = $derived(devices.find((d) => d.isGateway));
 
   type Point = { d: Device; x: number; y: number; r: number };
-  type Label = { text: string; x: number; y: number; anchor: string; arc: string };
+  type Label = { name: string; count: number; x: number; y: number; anchor: string; arc: string };
 
   const layout = $derived.by(() => {
     const others = devices
@@ -46,12 +46,13 @@
       const a0 = ang(startSlot - 0.35);
       const a1 = ang(slot - 1 + 0.35);
       const mid = (a0 + a1) / 2;
-      const ar = radii[radii.length - 1] + 13; // arc just outside the points
+      const ar = radii[radii.length - 1] + 14; // arc just outside the points
       const pt = (a: number, r: number) => `${(c + r * Math.cos(a)).toFixed(1)},${(c + r * Math.sin(a)).toFixed(1)}`;
       const arc = `M${pt(a0, ar)}A${ar},${ar} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${pt(a1, ar)}`;
-      const lr = ar + 14;
+      const lr = ar + 16;
       labels.push({
-        text: `${t(`category.${category(g[0].type)}`)} ${g.length}`,
+        name: t(`category.${category(g[0].type)}`),
+        count: g.length,
         x: c + lr * Math.cos(mid),
         y: c + lr * Math.sin(mid) + 4,
         anchor: Math.abs(Math.cos(mid)) < 0.3 ? 'middle' : Math.cos(mid) > 0 ? 'start' : 'end',
@@ -90,9 +91,9 @@
           x2={c + ((p.x - c) * (p.r - 8)) / p.r} y2={c + ((p.y - c) * (p.r - 8)) / p.r} />
       {/if}
     {/each}
-    {#each layout.labels as l (l.text)}
+    {#each layout.labels as l (l.name)}
       <path class="arc" d={l.arc} />
-      {#if labels}<text class="cat" x={l.x} y={l.y} text-anchor={l.anchor}>{l.text}</text>{/if}
+      {#if labels}<text class="cat" x={l.x} y={l.y} text-anchor={l.anchor}>{l.name} <tspan class="n">{l.count}</tspan></text>{/if}
     {/each}
     {#each layout.points as p (p.d.id)}
       <g
@@ -106,7 +107,7 @@
       >
         <circle class="hit" cx={p.x} cy={p.y} r={layout.hit} />
         {#if p.d.new}<circle class="halo" cx={p.x} cy={p.y} r={layout.dot * 2} />{/if}
-        <circle class="dot" cx={p.x} cy={p.y} r={hover?.id === p.d.id ? layout.dot + 2 : layout.dot} />
+        <circle class="mark" cx={p.x} cy={p.y} r={hover?.id === p.d.id ? layout.dot + 2 : layout.dot} />
       </g>
     {/each}
   </svg>
@@ -136,7 +137,7 @@
   .spoke {
     stroke: var(--on-ink-2);
     stroke-width: 1;
-    opacity: 0.22;
+    opacity: 0.18;
     transition: opacity 120ms var(--ease);
   }
   .spoke.hot {
@@ -146,15 +147,17 @@
   .arc {
     fill: none;
     stroke: var(--on-ink-2);
-    stroke-width: 1.5;
+    stroke-width: 2;
     stroke-linecap: round;
-    opacity: 0.55;
+    opacity: 0.35;
   }
   .cat {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--on-ink);
+  }
+  .cat .n {
+    font-weight: 400;
     fill: var(--on-ink-2);
   }
   .pt {
@@ -163,17 +166,17 @@
   .hit {
     fill: transparent;
   }
-  .dot {
+  .mark {
     fill: var(--ink);
     stroke: var(--on-ink-2);
     stroke-width: 1.5;
     transition: r 120ms var(--ease);
   }
-  .pt.on .dot {
+  .pt.on .mark {
     fill: var(--signal);
     stroke: var(--signal);
   }
-  .pt.fresh .dot {
+  .pt.fresh .mark {
     fill: var(--amber);
     stroke: var(--amber);
   }
@@ -210,9 +213,9 @@
   .hub {
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     background: var(--ink-2);
     border: 1px solid var(--ink-line);
     color: var(--on-ink);
@@ -227,7 +230,7 @@
   }
   .core-ip {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--on-ink-2);
   }
 </style>

@@ -40,30 +40,26 @@
   }
   .text {
     display: grid;
-    gap: 3px;
+    gap: 2px;
   }
   label {
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
   }
   .switch {
     flex: none;
     position: relative;
-    width: 40px;
+    width: 38px;
     height: 22px;
     margin-top: 1px;
-    border: 1.5px solid var(--control-border);
-    border-radius: 4px;
-    background: transparent;
+    border: 0;
+    border-radius: 11px;
+    background: var(--control-border);
     cursor: pointer;
     transition: background 150ms var(--ease);
   }
   .switch[aria-checked='true'] {
     background: var(--accent);
-    border-color: var(--accent);
-  }
-  .switch[aria-checked='true'] .knob {
-    background: var(--accent-text);
   }
   .switch:disabled {
     opacity: 0.5;
@@ -73,14 +69,14 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 15px;
-    height: 15px;
-    border-radius: 2px;
-    background: var(--control-border);
-    transition: transform 150ms var(--ease), background 150ms var(--ease);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
     transition: transform 150ms var(--ease);
   }
   .switch[aria-checked='true'] .knob {
-    transform: translateX(18px);
+    transform: translateX(16px);
   }
 </style>

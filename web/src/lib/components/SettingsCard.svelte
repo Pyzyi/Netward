@@ -42,39 +42,52 @@
 
 <style>
   .block {
-    border-top: 1px solid var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .block-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 12px 0 4px;
+    padding: 16px 20px 0;
   }
   .titles {
     display: grid;
-    gap: 4px;
+    gap: 2px;
     max-width: 64ch;
   }
   .block-title {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -0.015em;
+    font-size: 15px;
+    font-weight: 600;
   }
   .body {
     display: grid;
     gap: 18px;
-    padding: 14px 0 4px;
+    padding: 16px 20px 20px;
   }
   footer {
     display: flex;
     align-items: center;
     gap: 14px;
-    min-height: 50px;
-    padding: 16px 0 0;
+    min-height: 52px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
   }
   .unchanged {
     font-size: 13px;
     color: var(--text-2);
+  }
+  @media (max-width: 640px) {
+    .block-head {
+      padding: 14px 16px 0;
+    }
+    .body {
+      padding: 14px 16px 16px;
+    }
+    footer {
+      padding: 10px 16px;
+    }
   }
 </style>

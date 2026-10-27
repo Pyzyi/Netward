@@ -26,7 +26,7 @@
 
 <div class="row-item" class:compact class:selected class:narrow={!wide}>
   <a class="main" {href} use:link aria-current={selected ? 'true' : undefined}>
-    <DeviceIcon type={d.type} online={d.online} fresh={d.new} size={compact ? 34 : 38} />
+    <DeviceIcon type={d.type} online={d.online} fresh={d.new} size={compact ? 32 : 36} />
     <span class="names">
       <span class="name">
         <span class="text">{name}</span>
@@ -62,12 +62,14 @@
     gap: 8px;
     border-bottom: 1px solid var(--border);
   }
+  .row-item:last-child {
+    border-bottom: 0;
+  }
   .row-item:hover {
     background: var(--surface-2);
   }
   .row-item.selected {
-    background: var(--surface-3);
-    box-shadow: inset 3px 0 0 var(--text);
+    background: var(--accent-soft);
   }
   .main {
     flex: 1;
@@ -76,7 +78,7 @@
     grid-template-columns: auto minmax(0, 1fr) 140px 192px 104px;
     align-items: center;
     gap: 16px;
-    padding: 8px 12px;
+    padding: 8px 16px;
     color: inherit;
     text-decoration: none;
   }
@@ -107,7 +109,7 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
-    font-weight: 600;
+    font-weight: 500;
   }
   .text {
     overflow: hidden;
@@ -138,7 +140,7 @@
   }
   .seen.on {
     color: var(--ok);
-    font-weight: 600;
+    font-weight: 500;
   }
   /* With the heartbeat visible, the word "Online" is redundant; without it, it is not. */
   .on-text {
@@ -153,11 +155,12 @@
     display: block;
   }
   .seen .state {
-    font-weight: 600;
+    font-weight: 500;
+    color: var(--text);
   }
   .seen .ago {
-    font-size: 13px;
-    color: var(--text-3);
+    font-size: 12px;
+    color: var(--text-2);
   }
   .actions {
     display: flex;
@@ -185,7 +188,7 @@
     .compact .main {
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 12px;
-      padding: 9px 2px;
+      padding: 9px 14px;
     }
     .ip {
       display: none;

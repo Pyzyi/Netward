@@ -67,43 +67,37 @@
 <style>
   .layout {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 40px;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 32px;
     align-items: start;
   }
   .subnav {
     position: sticky;
     top: 80px;
     display: grid;
+    gap: 2px;
   }
   .subnav a {
-    padding: 8px 0 8px 14px;
-    border-left: 1px solid var(--border-strong);
+    padding: 7px 10px;
+    border-radius: 7px;
     color: var(--text-2);
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: none;
   }
   .subnav a:hover {
     color: var(--text);
+    background: var(--surface-2);
   }
   .subnav a[aria-current='page'] {
     color: var(--text);
-    border-left: 3px solid var(--text);
-    padding-left: 12px;
+    background: var(--surface-3);
   }
-  /* Every settings page uses one measure: fields, rules, notices, buttons. */
+  /* Every settings page uses one measure: fields, notices, buttons. */
   .content {
     display: grid;
-    gap: 36px;
+    gap: 16px;
     min-width: 0;
-    max-width: 680px;
-  }
-  /* The page rule above already separates the first section. */
-  .content > :global(.block:first-of-type) {
-    border-top: 0;
-  }
-  .content > :global(.block:first-of-type .block-head) {
-    padding-top: 0;
+    max-width: 760px;
   }
   .account-mobile {
     display: none;
@@ -116,25 +110,17 @@
     }
     .layout {
       grid-template-columns: 1fr;
-      gap: 18px;
+      gap: 16px;
     }
     .subnav {
       position: static;
       display: flex;
+      gap: 2px;
       overflow-x: auto;
       scrollbar-width: none;
-      border-bottom: 1px solid var(--border);
     }
     .subnav a {
       white-space: nowrap;
-      border-left: 0;
-      padding: 8px 12px 10px 0;
-      margin-right: 6px;
-    }
-    .subnav a[aria-current='page'] {
-      border-left: 0;
-      padding-left: 0;
-      box-shadow: inset 0 -2px 0 var(--text);
     }
   }
 </style>

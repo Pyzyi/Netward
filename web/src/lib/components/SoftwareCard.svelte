@@ -223,6 +223,7 @@
     flex: none;
     width: 9px;
     height: 9px;
+    border-radius: 50%;
     background: var(--text-3);
     transform: translateY(-1px);
   }
@@ -247,7 +248,7 @@
     color: var(--ok);
   }
   .system {
-    font-weight: 600;
+    font-weight: 500;
   }
   .why {
     color: var(--text-2);
@@ -258,7 +259,7 @@
     display: grid;
     gap: 4px;
     padding: 10px 12px;
-    border-left: 3px solid var(--text);
+    border-radius: var(--radius-s);
     background: var(--surface-2);
     font-size: 14px;
   }
@@ -268,11 +269,8 @@
     align-items: center;
     gap: 6px 14px;
   }
-  .edition .seg {
-    border-bottom: 0;
-  }
   .edition .seg button {
-    height: 28px;
+    height: 26px;
     font-size: 13px;
   }
   .sw > :global(.btn) {
@@ -324,13 +322,14 @@
     display: grid;
     gap: 6px;
     padding: 10px 12px;
-    border-left: 3px solid var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+    border-radius: var(--radius-s);
     background: var(--danger-soft);
     font-size: 14px;
   }
   .exploited.manual,
   .exploited.uncertain {
-    border-left-color: var(--amber);
+    border-color: color-mix(in srgb, var(--amber) 35%, transparent);
     background: var(--warn-soft);
   }
   .x-title {

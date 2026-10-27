@@ -15,7 +15,7 @@ Go standard library and runtime              BSD-3-Clause   https://go.dev
 Web interface (bundled into the binary)
 ---------------------------------------
 Svelte                                       MIT            https://svelte.dev
-Lucide icons (@lucide/svelte)                ISC            https://lucide.dev
+Phosphor Icons (@phosphor-icons/core)        MIT            https://phosphoricons.com
 IBM Plex Sans / IBM Plex Mono                SIL OFL 1.1    https://github.com/IBM/plex
   (via @fontsource; the fonts are unmodified)
 

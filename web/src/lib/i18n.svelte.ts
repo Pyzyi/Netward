@@ -298,6 +298,7 @@ const de = {
   'category.peripheral': 'Peripherie',
   'category.unknown': 'Unbekannt',
   'overview.onlineOf': 'online von',
+  'overview.headline': 'von {n} {n|Gerät|Geräten} online',
   'overview.devicesCount': '{n} {n|Gerät|Geräten}',
   'security.count.warningWord': '{n|Warnung|Warnungen}',
   'overview.ringLabel': 'Netzring: {online} von {total} Geräten online',
@@ -628,7 +629,7 @@ const de = {
   'settings.about.db': 'Datenbank',
   'settings.about.memory': 'Speicher',
   'settings.about.uptime': 'Läuft seit',
-  'settings.about.license': 'Netzwart ist Open Source (MIT). Herstellerdaten: IEEE Registration Authority. Icons: Phosphor (MIT). Schriften: Schibsted Grotesk, JetBrains Mono (OFL).',
+  'settings.about.license': 'Netzwart ist Open Source (MIT). Herstellerdaten: IEEE Registration Authority. Icons: Phosphor (MIT). Schriften: IBM Plex Sans und IBM Plex Mono (OFL).',
 
   'event.kind.device_new': 'Neues Gerät',
   'event.kind.device_online': 'Gerät online',
@@ -1182,6 +1183,7 @@ const en: Record<Key, string> = {
   'category.peripheral': 'Peripherals',
   'category.unknown': 'Unknown',
   'overview.onlineOf': 'online of',
+  'overview.headline': 'of {n} {n|device|devices} online',
   'overview.devicesCount': '{n} {n|device|devices}',
   'security.count.warningWord': '{n|warning|warnings}',
   'overview.ringLabel': 'Network ring: {online} of {total} devices online',
@@ -1512,7 +1514,7 @@ const en: Record<Key, string> = {
   'settings.about.db': 'Database',
   'settings.about.memory': 'Memory',
   'settings.about.uptime': 'Running since',
-  'settings.about.license': 'Netzwart is open source (MIT). Vendor data: IEEE Registration Authority. Icons: Phosphor (MIT). Typefaces: Schibsted Grotesk, JetBrains Mono (OFL).',
+  'settings.about.license': 'Netzwart is open source (MIT). Vendor data: IEEE Registration Authority. Icons: Phosphor (MIT). Typefaces: IBM Plex Sans and IBM Plex Mono (OFL).',
 
   'event.kind.device_new': 'New device',
   'event.kind.device_online': 'Device online',

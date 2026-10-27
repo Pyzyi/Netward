@@ -35,7 +35,7 @@
     align-items: center;
     gap: 9px;
     padding: 10px 14px;
-    border-radius: 4px;
+    border-radius: 8px;
     background: var(--text);
     color: var(--bg);
     box-shadow: var(--shadow-pop);

@@ -197,7 +197,7 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 
 ### ADR-006 · Svelte 5 + Vite, ohne UI-Framework
 - **Entscheidung:** Svelte 5 (Runes) mit TypeScript und eigenem, kleinem Designsystem (CSS-Variablen).
-  Icons: Lucide (ISC). Schrift: IBM Plex Sans / Mono, selbst gehostet.
+  Icons: Phosphor (MIT). Schrift: IBM Plex Sans / Mono, selbst gehostet.
 - **Begründung:** Kleines Bundle (< 150 kB gz), kein generischer Komponenten-Look, volle Kontrolle über die Optik.
 - **Konsequenz:** Das Frontend wird zur Build-Zeit per `go:embed` in das Binary eingebettet.
 

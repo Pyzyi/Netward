@@ -26,7 +26,7 @@
     display: inline-grid;
     place-items: center;
     flex: none;
-    border-radius: 10px;
+    border-radius: 9px;
     color: var(--text);
     background: var(--tile);
   }
@@ -37,9 +37,9 @@
     width: 11px;
     height: 11px;
     border-radius: 50%;
-    background: var(--bg);
+    background: var(--surface);
     border: 2px solid var(--off);
-    box-shadow: 0 0 0 2px var(--bg);
+    box-shadow: 0 0 0 2px var(--surface);
   }
   .mark.on {
     background: var(--signal);

@@ -184,7 +184,7 @@
   }
   .help summary {
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text);
     padding: 4px 0;
   }
