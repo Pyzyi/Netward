@@ -55,8 +55,8 @@ aber auf jedem Linux-Host mit Docker.
   Neu in 0.2: WLAN-Diagnose (welches Gerät hängt an welchem Repeater, in welchem Band, wie gut) und die
   Leitungsdaten (Sync-Raten, Neueinwahlen).
 - **Werkzeuge:** Portscan pro Gerät, Wake-on-LAN, Geräte zusammenführen, CSV/JSON-Export.
-- **Oberfläche:** hell und dunkel, Deutsch und Englisch, funktioniert auf dem Handy und lässt sich zum
-  Startbildschirm hinzufügen.
+- **Oberfläche:** ruhig und übersichtlich (neu gestaltet in 0.2.1), hell und dunkel, Deutsch und Englisch,
+  funktioniert auf dem Handy und lässt sich zum Startbildschirm hinzufügen.
 
 <table>
   <tr>
@@ -65,7 +65,11 @@ aber auf jedem Linux-Host mit Docker.
   </tr>
   <tr>
     <td><img src="docs/screenshots/overview-dark.png" alt="Übersicht im dunklen Design"></td>
-    <td align="center"><img src="docs/screenshots/mobile.png" width="260" alt="Ansicht auf dem Handy"></td>
+    <td align="center"><img src="docs/screenshots/mobile.png" width="260" alt="Ansicht auf dem Handy mit Netzring"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/wlan.png" alt="WLAN-Diagnose: Hinweise und Signal je Gerät"></td>
+    <td><img src="docs/screenshots/persons.png" alt="Personen: wer zu Hause ist"></td>
   </tr>
 </table>
 
