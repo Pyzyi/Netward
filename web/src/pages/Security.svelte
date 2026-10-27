@@ -174,12 +174,12 @@
   {/if}
 
   {#if !loading && open.length}
-    <dl class="tally">
+    <p class="tally">
       {#each ['critical', 'warning', 'info'] as sev (sev)}
         {@const n = open.filter((f) => f.severity === sev).length}
-        <div class={sev} class:zero={n === 0}><dt>{t(`security.${sev}`)}</dt><dd class="num">{n}</dd></div>
+        <span class={sev} class:zero={n === 0}><strong class="num">{n}</strong> {t(`security.count.${sev}Word`, { n })}</span>
       {/each}
-    </dl>
+    </p>
   {/if}
 
   {#if loading}
@@ -194,9 +194,8 @@
       {#each [...open].sort((a, b) => order[a.severity] - order[b.severity]) as f (f.id)}
         {@const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined}
         <li class="finding {f.severity}">
-          <span class="sev">{t(`security.${f.severity}`)}</span>
           <div class="f-body">
-            <h2>{title(f)}</h2>
+            <h2><span class="sev">{t(`security.${f.severity}`)}</span> {title(f)}</h2>
             {#if dev}
               <a class="dev" href="/devices/{dev.id}" use:link><DeviceIcon type={dev.type} size={24} /> {displayName(dev)} <span class="mono faint">{dev.ip}</span></a>
             {/if}
@@ -328,36 +327,23 @@
   .tally {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 0 0 16px;
-  }
-  .tally div {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 6px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-  }
-  .tally dt {
-    order: 2;
-    font-size: 13px;
+    gap: 4px 20px;
+    margin: 0 0 14px;
     color: var(--text-2);
   }
-  .tally dd {
-    margin: 0;
+  .tally strong {
     font-size: 18px;
     font-weight: 600;
-    line-height: 1.3;
+    margin-right: 2px;
+    color: var(--text);
   }
-  .tally .critical dd {
+  .tally .critical strong {
     color: var(--danger);
   }
-  .tally .warning dd {
+  .tally .warning strong {
     color: var(--warn);
   }
-  .tally .zero dd {
+  .tally .zero strong {
     color: var(--text-2);
   }
   .all-good {
@@ -382,7 +368,7 @@
   }
   .finding {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px;
     padding: 16px;
   }
@@ -390,13 +376,12 @@
     border-top: 1px solid var(--border);
   }
   .sev {
-    align-self: start;
-    justify-self: start;
     display: inline-flex;
     align-items: center;
-    height: 22px;
-    margin-top: 1px;
-    padding: 0 8px;
+    height: 20px;
+    margin-right: 6px;
+    padding: 0 7px;
+    vertical-align: 2px;
     border-radius: 5px;
     background: var(--surface-2);
     font-size: 12px;
@@ -419,6 +404,7 @@
   }
   .f-body h2 {
     font-size: 15px;
+    line-height: 1.5;
   }
   .dev {
     display: inline-flex;

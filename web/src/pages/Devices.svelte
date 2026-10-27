@@ -181,7 +181,7 @@
         </select>
         <select class="select" bind:value={sort} aria-label={t('devices.sort')}>
           {#each ['status', 'name', 'ip', 'lastSeen', 'firstSeen'] as s (s)}
-            <option value={s}>{t(`devices.sort.${s}`)}</option>
+            <option value={s}>{t('devices.sort')}: {t(`devices.sort.${s}`)}</option>
           {/each}
         </select>
       </div>

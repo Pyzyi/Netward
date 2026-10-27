@@ -64,7 +64,7 @@
     device_new: 'user-plus', device_online: 'sign-in', device_offline: 'sign-out', ip_changed: 'shuffle',
     ip_conflict: 'warning', internet_down: 'wifi-slash', internet_up: 'globe-simple', security_finding: 'shield-warning',
     device_flood: 'warning', device_removed: 'trash', device_merged: 'git-merge', scan_baseline: 'broadcast',
-    auth_login: 'key', auth_failed: 'shield-warning', auth_setup: 'key', auth_password: 'key',
+    auth_login: 'key', auth_failed: 'shield-warning', auth_setup: 'check-circle', auth_password: 'key',
     config_settings: 'gear-six', config_channel: 'gear-six', config_network: 'gear-six',
     gateway_changed: 'shield-warning', dhcp_server_new: 'broadcast', identity_changed: 'shield-warning', port_new: 'plus',
   };
@@ -93,13 +93,14 @@
             {@const e = run.e}
             {@const dev = e.deviceId ? store.devices.get(e.deviceId) : undefined}
             <li class={e.severity}>
-              <time class="num" datetime={new Date(e.ts).toISOString()}>{time(e.ts)}</time>
+              <time class="num" datetime={new Date(e.ts).toISOString()}>
+                {time(e.ts)}{#if run.count > 1 && time(run.firstTs) !== time(e.ts)}<span class="from">{t('activity.since', { t: time(run.firstTs) })}</span>{/if}
+              </time>
               <span class="ev-icon"><Icon name={icons[e.kind] ?? 'gear-six'} size={16} /></span>
               <span class="text">
-                {#if run.count > 1}<span class="times num">{run.count}×</span>{/if}
                 {#if dev}<a href="/devices/{dev.id}" use:link>{textOf(e)}</a>{:else}{textOf(e)}{/if}
-                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint mono"> ({t('activity.before')} {e.data.from})</span>{/if}
-                {#if run.count > 1}<span class="faint num span">{time(run.firstTs)}–{time(e.ts)}</span>{/if}
+                {#if e.kind === 'ip_changed' && e.data.from}<span class="faint"> ({t('activity.before')} {e.data.from})</span>{/if}
+                {#if run.count > 1}<span class="faint num"> · {run.count}×</span>{/if}
               </span>
             </li>
           {/each}
@@ -153,16 +154,23 @@
     border-top: 1px solid var(--border);
   }
   time {
+    align-self: start;
+    padding-top: 5px;
     color: var(--text-2);
     font-size: 13px;
+    line-height: 1.3;
+  }
+  .from {
+    display: block;
+    font-size: 12px;
   }
   .ev-icon {
+    align-self: start;
     display: grid;
     place-items: center;
     width: 28px;
     height: 28px;
     border-radius: 7px;
-    background: var(--tile);
     color: var(--text-2);
   }
   li.warning .ev-icon {
@@ -175,6 +183,7 @@
   }
   .text {
     min-width: 0;
+    padding-top: 3px;
     overflow-wrap: anywhere;
   }
   .text a {
@@ -186,17 +195,6 @@
   }
   .text .faint {
     font-size: 13px;
-  }
-  .times {
-    margin-right: 6px;
-    padding: 1px 6px;
-    border-radius: 5px;
-    background: var(--surface-2);
-    font-size: 12px;
-    color: var(--text-2);
-  }
-  .span {
-    margin-left: 8px;
   }
   .more {
     display: flex;

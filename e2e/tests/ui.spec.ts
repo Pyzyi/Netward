@@ -123,11 +123,11 @@ test('settings: saved values become the new baseline', async ({ page }) => {
   const card = page.locator('.block').filter({ has: name });
   await name.fill('Zuhause 2');
   await card.getByRole('button', { name: 'Speichern' }).click();
-  await expect(card.getByText('Keine Änderungen')).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
   // Going back to the old value is a change again and must be savable.
   await name.fill('Zuhause');
   await card.getByRole('button', { name: 'Speichern' }).click();
-  await expect(card.getByText('Keine Änderungen')).toBeVisible();
+  await expect(card.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
   expect(problems).toEqual([]);
 });
 

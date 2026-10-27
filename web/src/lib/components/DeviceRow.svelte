@@ -34,7 +34,7 @@
         {#if d.watch}<Icon name="bell" size={13} class="watch" label={t('device.actions.watch')} />{/if}
         {#if d.new}<span class="badge warn">{t('devices.newBadge')}</span>{/if}
         {#if d.software?.status === 'outdated'}<span class="badge danger" title={d.software.name}>{t('devices.outdatedBadge')}</span>{/if}
-        {#if d.software?.status === 'update'}<span class="badge warn" title={d.software.name}>{t('devices.updateBadge')}</span>{/if}
+        {#if d.software?.status === 'update'}<span class="badge" title={d.software.name}>{t('devices.updateBadge')}</span>{/if}
         {#if d.isSelf}<span class="badge accent">{t('devices.thisServer')}</span>{/if}
         {#if d.isGateway}<span class="badge accent">{t('devices.router')}</span>{/if}
       </span>
@@ -44,7 +44,6 @@
     <span class="beat"><Heartbeat strip={store.strips[d.id] ?? ''} /></span>
     <span class="seen" class:on={d.online}>
       {#if d.online}
-        <!-- The green mark on the tile and the heartbeat already say it. -->
         <span class="on-text">{t('devices.onlineNow')}</span>
       {:else}
         <span class="state">{t('common.offline')}</span>
@@ -142,14 +141,6 @@
     color: var(--ok);
     font-weight: 500;
   }
-  /* With the heartbeat visible, the word "Online" is redundant; without it, it is not. */
-  .on-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
   .seen .state,
   .seen .ago {
     display: block;
@@ -173,12 +164,6 @@
     }
     .beat {
       display: none;
-    }
-    .on-text {
-      position: static;
-      width: auto;
-      height: auto;
-      clip: auto;
     }
   }
   @media (max-width: 639px) {

@@ -23,14 +23,16 @@
       .filter((d) => !d.isGateway)
       .sort((a, b) => order.indexOf(category(a.type)) - order.indexOf(category(b.type)) || displayName(a).localeCompare(displayName(b)));
     // Rings from the inside out; the number of points per ring follows its circumference.
-    const radii = [size * 0.36, size * 0.445].filter((_, i) => i === 0 || others.length > 40);
+    // Without labels the ring can use the room they would take.
+    const outer = labels ? 0.445 : 0.47;
+    const radii = [size * (labels ? 0.36 : 0.4), size * outer].filter((_, i) => i === 0 || others.length > 40);
     const spacing = others.length > 120 ? 9 : 15;
     const capacity = radii.map((r) => Math.floor((2 * Math.PI * r) / spacing));
     const groups = order.map((cat) => others.filter((d) => category(d.type) === cat)).filter((g) => g.length);
     const gap = groups.length > 1 ? 2.6 : 0; // empty slots between categories
     const total = others.length + gap * groups.length;
     const points: Point[] = [];
-    const labels: Label[] = [];
+    const groupLabels: Label[] = [];
     let slot = 0;
     for (const g of groups) {
       const startSlot = slot;
@@ -43,16 +45,19 @@
         slot += 1;
       }
       const ang = (k: number) => (k / total) * 2 * Math.PI - Math.PI / 2;
-      const a0 = ang(startSlot - 0.35);
-      const a1 = ang(slot - 1 + 0.35);
+      // A group of one gets a short arc, not a stub.
+      const pad = g.length === 1 ? 0.9 : 0.35;
+      const a0 = ang(startSlot - pad);
+      const a1 = ang(slot - 1 + pad);
       const mid = (a0 + a1) / 2;
-      const ar = radii[radii.length - 1] + 14; // arc just outside the points
+      const ar = radii[radii.length - 1] + (labels ? 14 : 10); // arc just outside the points
       const pt = (a: number, r: number) => `${(c + r * Math.cos(a)).toFixed(1)},${(c + r * Math.sin(a)).toFixed(1)}`;
       const arc = `M${pt(a0, ar)}A${ar},${ar} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${pt(a1, ar)}`;
       const lr = ar + 16;
-      labels.push({
+      groupLabels.push({
         name: t(`category.${category(g[0].type)}`),
-        count: g.length,
+        // The router in the centre belongs to its category too.
+        count: g.length + (gateway && category(g[0].type) === category(gateway.type) ? 1 : 0),
         x: c + lr * Math.cos(mid),
         y: c + lr * Math.sin(mid) + 4,
         anchor: Math.abs(Math.cos(mid)) < 0.3 ? 'middle' : Math.cos(mid) > 0 ? 'start' : 'end',
@@ -66,7 +71,7 @@
     const pitch = ((2 * Math.PI * radii[0]) / Math.max(1, total)) * rings;
     const dot = Math.max(2, Math.min(5.5, pitch / 2.6));
     const hit = Math.max(dot + 1, Math.min(11, pitch / 2));
-    return { points, labels, radii, dot, hit };
+    return { points, labels: groupLabels, radii, dot, hit };
   });
 
   let hover = $state<Device | null>(null);
@@ -119,6 +124,12 @@
     {/if}
   </div>
 </div>
+{#if !labels}
+  <!-- Small screens: the categories as a list under the ring, in ring order. -->
+  <ul class="cats" aria-hidden="true">
+    {#each layout.labels as l (l.name)}<li>{l.name} <span class="num">{l.count}</span></li>{/each}
+  </ul>
+{/if}
 
 <style>
   .ring {
@@ -184,19 +195,30 @@
     fill: none;
     stroke: var(--amber);
     stroke-width: 1.5;
+    opacity: 0.45;
     transform-box: fill-box;
     transform-origin: center;
     animation: halo 2.4s var(--ease) infinite;
   }
   @keyframes halo {
-    from {
-      transform: scale(0.55);
-      opacity: 0.9;
+    50% {
+      transform: scale(1.25);
+      opacity: 0.15;
     }
-    to {
-      transform: scale(1.5);
-      opacity: 0;
-    }
+  }
+  .cats {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 14px;
+    font-size: 12px;
+    color: var(--on-ink);
+  }
+  .cats span {
+    color: var(--on-ink-2);
   }
   .core {
     position: absolute;

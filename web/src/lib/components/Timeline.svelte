@@ -117,7 +117,8 @@
     background: var(--signal);
   }
   .off-sw {
-    background: var(--surface-2);
+    background: var(--surface-3);
+    border-color: var(--border-strong);
   }
   .ticks .now {
     right: 0;

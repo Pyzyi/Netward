@@ -65,7 +65,10 @@
     padding: 0;
     border: 0;
     background: none;
-    color: var(--accent);
+    color: var(--text-2);
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
     cursor: pointer;
     font-size: 13px;
   }

@@ -74,9 +74,9 @@
     --text: #e7eaee;
     --text-2: #9ea7b3;
     --text-3: #9ea7b3;
-    --ink: #0a0e14;
-    --ink-2: #151b24;
-    --ink-line: #222a35;
+    --ink: #151c27;
+    --ink-2: #1e2734;
+    --ink-line: #2b3545;
     --on-ink: #e7eaee;
     --on-ink-2: #9aa4b1;
     --primary: #e7eaee;
@@ -116,9 +116,9 @@
   --text: #e7eaee;
   --text-2: #9ea7b3;
   --text-3: #9ea7b3;
-  --ink: #0a0e14;
-  --ink-2: #151b24;
-  --ink-line: #222a35;
+  --ink: #151c27;
+  --ink-2: #1e2734;
+  --ink-line: #2b3545;
   --on-ink: #e7eaee;
   --on-ink-2: #9aa4b1;
   --primary: #e7eaee;
@@ -809,7 +809,7 @@ details[open] > summary:not(.custom)::before {
   margin-top: 4px;
   color: var(--text-2);
   max-width: 64ch;
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 
 /* Back link above a page title: "‹ Geräte" */

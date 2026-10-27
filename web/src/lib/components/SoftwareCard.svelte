@@ -216,8 +216,11 @@
   .verdict {
     display: flex;
     align-items: baseline;
-    gap: 9px;
-    font-size: 16px;
+    gap: 8px;
+    font-size: 15px;
+  }
+  .verdict strong {
+    font-weight: 600;
   }
   .mark {
     flex: none;

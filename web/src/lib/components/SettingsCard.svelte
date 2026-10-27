@@ -28,12 +28,12 @@
     </div>
   {/if}
   <div class="body">{@render children()}</div>
-  {#if onsave}
+  <!-- The save bar appears with the first change and leaves once it is saved. -->
+  {#if onsave && (dirty || busy || error)}
     <footer>
       {#if dirty || busy}
         <button class="btn primary" type="button" disabled={busy} onclick={onsave}>{t('common.save')}</button>
-      {:else}
-        <span class="unchanged">{t('common.noChanges')}</span>
+        <span class="unchanged">{t('common.unsaved')}</span>
       {/if}
       {#if error}<p class="error-text" role="alert">{error}</p>{/if}
     </footer>

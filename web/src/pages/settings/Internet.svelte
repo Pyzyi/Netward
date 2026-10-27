@@ -79,8 +79,8 @@
       <ul class="outages">
         {#each data.outages.slice(0, 8) as o (o.id)}
           <li>
-            <span>{dateTime(o.start)}{#if o.kind === 'router'}{' '}<span class="faint">· {t('internet.kind.router')}</span>{/if}</span>
-            <span class="muted">{o.end ? duration(o.end - o.start) : '…'}</span>
+            <span class="when">{dateTime(o.start)}{#if o.kind === 'router'}<span class="faint small">{t('internet.kind.router')}</span>{/if}</span>
+            <span class="muted num">{o.end ? duration(o.end - o.start) : '…'}</span>
           </li>
         {/each}
       </ul>
@@ -104,13 +104,22 @@
     list-style: none;
     padding: 0;
     margin: 6px 0 0;
-    display: grid;
-    gap: 4px;
   }
   .outages li {
     display: flex;
     justify-content: space-between;
-    max-width: 380px;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .outages li + li {
+    border-top: 1px solid var(--border);
+  }
+  .when {
+    display: grid;
+  }
+  .small {
+    font-size: 13px;
   }
   .warn {
     color: var(--warn);

@@ -342,15 +342,24 @@
       text-decoration: none;
     }
     .tabbar a[aria-current='page'] {
-      color: var(--accent);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .tabbar a[aria-current='page'] .tab-icon {
+      background: var(--surface-3);
     }
     .tab-icon {
       position: relative;
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 28px;
+      border-radius: 14px;
     }
     .tab-badge {
       position: absolute;
       top: -4px;
-      right: -12px;
+      right: 2px;
       min-width: 17px;
       height: 17px;
       padding: 0 4px;

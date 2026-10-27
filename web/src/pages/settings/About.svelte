@@ -38,10 +38,10 @@
   <div class="brand"><Logo size={40} /><div><strong>Netzwart</strong><p class="muted">{info?.version ?? ''}</p></div></div>
   {#if info}
     <dl class="dl">
-      <dt>{t('settings.about.version')}</dt><dd class="mono">{info.version} ({info.goVersion})</dd>
+      <dt>{t('settings.about.version')}</dt><dd>{info.version} <span class="faint">({info.goVersion})</span></dd>
       <dt>{t('settings.about.softwareData')}</dt><dd>{dateLong(info.softwareDataAsOf)}</dd>
       <dt>{t('settings.about.mode')}</dt><dd>{t(`settings.mode.${info.mode}`)}</dd>
-      <dt>{t('settings.about.user')}</dt><dd class="mono">UID {info.uid}</dd>
+      <dt>{t('settings.about.user')}</dt><dd>UID {info.uid}</dd>
       <dt>{t('settings.about.uptime')}</dt><dd>{duration(clock.now - info.startedAt)}</dd>
       <dt>{t('settings.about.db')}</dt><dd>{bytes(info.dbSize)}</dd>
       <dt>{t('settings.about.memory')}</dt><dd>{bytes(info.memory)}</dd>
@@ -51,8 +51,7 @@
 </SettingsCard>
 
 <SettingsCard title={t('settings.updates')} lead={t('settings.updates.lead')} {dirty} {busy} {error} onsave={save}>
-  <Toggle bind:checked={check} label={t('settings.updates.check')} />
-  <p class="hint">{t('settings.updates.privacy')}</p>
+  <Toggle bind:checked={check} label={t('settings.updates.check')} hint={t('settings.updates.privacy')} />
   {#if upd?.enabled}
     {#if upd.available && upd.url}
       <p class="notice info">

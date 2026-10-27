@@ -74,9 +74,13 @@
         {:else}
           <ul>
             {#each hints as it, i (i)}
-              <li class:strong={it.h === 'very_weak' || it.h === 'backhaul_weak'}>
-                <p>{hintText(it.h, it.c, it.ap, store.devices)}</p>
-                {#if hints.findIndex((x) => hintTodo(x.h) === hintTodo(it.h)) === i}<p class="todo">{hintTodo(it.h)}</p>{/if}
+              {@const strong = it.h === 'very_weak' || it.h === 'backhaul_weak'}
+              <li>
+                <span class="dot {strong ? 'danger' : 'warn'}" aria-hidden="true"></span>
+                <div>
+                  <p>{hintText(it.h, it.c, it.ap, store.devices)}</p>
+                  {#if hints.findIndex((x) => hintTodo(x.h) === hintTodo(it.h)) === i}<p class="todo">{hintTodo(it.h)}</p>{/if}
+                </div>
               </li>
             {/each}
           </ul>
@@ -94,14 +98,14 @@
               </h2>
               <p class="meta">
                 <span class="badge accent">{ap.master ? t('wlan.master') : t('wlan.repeater')}</span>
-                {#if ap.model}<span class="faint">{ap.model}</span>{/if}
-                {#if ap.bands?.length}<span class="faint">· {ap.bands.map(bandLabel).join(' / ')}</span>{/if}
+                {#if ap.model}<span class="faint sep">{ap.model}</span>{/if}
+                {#if ap.bands?.length}<span class="faint sep">{ap.bands.map(bandLabel).join(' / ')}</span>{/if}
               </p>
               {#if ap.backhaul}
                 <p class="meta" class:warn={ap.hints.includes('backhaul_weak')}>
-                  {ap.backhaul.type === 'lan' ? t('wlan.backhaul.lan') : t('wlan.backhaul.wlan', { band: bandLabel(ap.backhaul.band) })}
-                  {#if ap.backhaul.signalDbm}<span class="mono">· {t('wlan.dbm', { v: ap.backhaul.signalDbm })}</span>{/if}
-                  {#if ap.backhaul.rate}<span class="mono">· {t('wlan.rate', { v: ap.backhaul.rate })}</span>{/if}
+                  <span class="sep">{ap.backhaul.type === 'lan' ? t('wlan.backhaul.lan') : t('wlan.backhaul.wlan', { band: bandLabel(ap.backhaul.band) })}</span>
+                  {#if ap.backhaul.signalDbm}<span class="sep num">{t('wlan.dbm', { v: ap.backhaul.signalDbm })}</span>{/if}
+                  {#if ap.backhaul.rate}<span class="sep num">{t('wlan.rate', { v: ap.backhaul.rate })}</span>{/if}
                 </p>
               {/if}
             </div>
@@ -124,13 +128,13 @@
                         <a href="/devices/{dev.id}" use:link><DeviceIcon type={dev.type} size={22} /> {clientName(c, store.devices)}</a>
                       {:else}<span class="muted">{clientName(c, store.devices)}</span>{/if}
                     </td>
-                    <td class="mono" data-label={t('wlan.col.band')}>{bandLabel(c.band)}</td>
+                    <td class="num" data-label={t('wlan.col.band')}>{bandLabel(c.band)}</td>
                     <td class="signal {lvl}" data-label={t('wlan.col.signal')}>
                       <SignalBars level={lvl} />
-                      <span class="mono">{signalText(c)}</span>
+                      <span class="num val">{signalText(c)}</span>
                       <span class="sr-only">{t(`wlan.signal.${lvl}`)}</span>
                     </td>
-                    <td class="mono" data-label={t('wlan.col.rate')}>{rateText(c)}</td>
+                    <td class="num rate" data-label={t('wlan.col.rate')}>{rateText(c)}</td>
                   </tr>
                 {/each}
               </tbody>
@@ -154,21 +158,22 @@
   .hints ul {
     list-style: none;
     margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 10px;
+    padding: 0 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
   .hints li {
     display: grid;
-    gap: 4px;
-    padding: 10px 14px;
-    border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
-    border-radius: var(--radius-s);
-    background: var(--warn-soft);
+    grid-template-columns: 8px minmax(0, 1fr);
+    gap: 12px;
+    padding: 11px 0;
   }
-  .hints li.strong {
-    border-color: color-mix(in srgb, var(--danger) 30%, transparent);
-    background: var(--danger-soft);
+  .hints li + li {
+    border-top: 1px solid var(--border);
+  }
+  .hints li .dot {
+    margin-top: 7px;
   }
   .hints li p:first-child {
     font-weight: 500;
@@ -211,6 +216,11 @@
     gap: 6px;
     margin-top: 4px;
     font-size: 14px;
+  }
+  .meta .sep + .sep::before {
+    content: '·';
+    margin-right: 6px;
+    color: var(--text-2);
   }
   .meta.warn {
     color: var(--warn);
@@ -265,10 +275,13 @@
     margin-right: 6px;
     vertical-align: -2px;
   }
-  td.weak .mono {
+  td.rate {
+    white-space: nowrap;
+  }
+  td.weak .val {
     color: var(--warn);
   }
-  td.very_weak .mono {
+  td.very_weak .val {
     color: var(--danger);
   }
   @media (max-width: 640px) {
@@ -303,6 +316,7 @@
     td[data-label]::before {
       content: attr(data-label) ' ';
       display: block;
+      font-family: var(--font);
       font-size: 11px;
       color: var(--text-2);
     }

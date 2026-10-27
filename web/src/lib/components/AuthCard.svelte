@@ -46,11 +46,7 @@
     </svg>
     <span class="hub"><Icon name="duo:router" size={32} /></span>
     </div>
-    <ul class="facts">
-      <li>{t('auth.fact1')}</li>
-      <li>{t('auth.fact2')}</li>
-      <li>{t('auth.fact3')}</li>
-    </ul>
+    <p class="facts">{t('auth.fact1')}</p>
   </aside>
   <main class="form-side">
     <div class="lang seg" role="group" aria-label="Language">
@@ -133,27 +129,9 @@
     color: var(--on-ink);
   }
   .facts {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 8px;
-    font-size: 14px;
+    max-width: 40ch;
+    font-size: 13px;
     color: var(--on-ink-2);
-  }
-  .facts li {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-  .facts li::before {
-    content: '';
-    flex: none;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--signal);
-    transform: translateY(-2px);
   }
   .form-side {
     position: relative;

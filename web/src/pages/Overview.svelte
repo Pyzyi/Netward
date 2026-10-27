@@ -163,7 +163,7 @@
       <dl class="facts">
         <a class="fact" href="/devices?filter=new" use:link>
           <dt>{t('overview.new')}</dt>
-          <dd class="num">{#if fresh.length > 0}<span class="dot warn"></span>{/if}{fresh.length}</dd>
+          <dd class="num" class:amber={fresh.length > 0}>{fresh.length}</dd>
         </a>
         <a class="fact" href="/devices?filter=offline" use:link>
           <dt>{t('overview.offline')}</dt>
@@ -358,8 +358,8 @@
               <time class="num" datetime={new Date(e.ts).toISOString()} title={new Date(e.ts).toLocaleString()}>
                 {time(e.ts)}{#if day}<span class="day">{day}</span>{/if}
               </time>
+              <span class="sev" aria-hidden="true">{#if e.severity === 'warning' || e.severity === 'critical'}<span class="dot {e.severity === 'critical' ? 'danger' : 'warn'}"></span>{/if}</span>
               <span class="feed-text">
-                {#if e.severity === 'warning' || e.severity === 'critical'}<span class="dot {e.severity === 'critical' ? 'danger' : 'warn'}"></span>{/if}
                 {#if dev}
                   <a href="/devices/{dev.id}" use:link>{eventText(e, displayName(dev))}</a>
                 {:else}
@@ -499,7 +499,10 @@
     color: var(--signal);
   }
   .inet-state.bad {
-    color: #ff8478;
+    color: #ff8478; /* readable on the dark stage in both themes */
+  }
+  .fact dd.amber {
+    color: var(--amber);
   }
   .lat {
     font-size: 13px;
@@ -727,10 +730,10 @@
     background: color-mix(in srgb, var(--text) 30%, var(--surface));
   }
   .seg-5 {
-    background: color-mix(in srgb, var(--text) 20%, var(--surface));
+    background: color-mix(in srgb, var(--text) 22%, var(--surface));
   }
   .seg-6 {
-    background: color-mix(in srgb, var(--text) 12%, var(--surface));
+    background: color-mix(in srgb, var(--text) 16%, var(--surface));
   }
   .mix {
     display: grid;
@@ -767,9 +770,15 @@
   /* Activity */
   .feed li {
     display: grid;
-    grid-template-columns: 7ch minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 6ch 8px minmax(0, 1fr);
+    gap: 10px;
     padding: 9px 16px;
+  }
+  .feed .sev {
+    padding-top: 7px;
+  }
+  .feed .sev .dot {
+    display: block;
   }
   .feed time {
     color: var(--text-2);
@@ -781,10 +790,6 @@
   .feed .day {
     display: block;
     font-size: 12px;
-  }
-  .feed-text .dot {
-    margin-right: 8px;
-    vertical-align: 1px;
   }
   .feed-text a {
     color: var(--text);
@@ -917,7 +922,14 @@
   }
   @media (max-width: 640px) {
     .stage-inner {
-      padding: 20px 16px 24px;
+      padding: 18px 16px 20px;
+      gap: 16px;
+    }
+    .stage-text {
+      gap: 14px;
+    }
+    .facts {
+      padding-top: 12px;
     }
     .headline {
       font-size: 26px;

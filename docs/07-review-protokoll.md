@@ -326,3 +326,30 @@ Geprüft und in Ordnung:
 | Bericht immer in der Sprache der Einstellungen; WLAN-Seite zeigte Fehler und „erste Abfrage läuft“ zugleich | niedrig | Sprache der Oberfläche; nur der Fehler |
 
 Nachweis: `go vet`, `staticcheck`, `go test -race ./...`, `svelte-check` 0/0, 30 UI-Tests (Desktop und Handy), `qpdf --check` und `kevgen -verify` im CI.
+
+## Review 9 · Design-Review von 0.2.1 („Klartext“)
+
+Unabhängige Prüfung der neuen Oberfläche anhand von Screenshots aller Seiten: Desktop und Handy, hell und dunkel.
+Die neue Designsprache trägt, der Netzring wirkt als Erkennungszeichen. Behoben:
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Spalte „Status“ in der Geräteliste blieb bei Online-Geräten leer, mit offenem Detail ganz ohne Status | hoch | „Online“ steht immer sichtbar in der Statusspalte |
+| WLAN-Seite: fünf getönte Kästen vor den Daten; Band, Signal und Rate in Monospace; „·“ am Zeilenanfang auf dem Handy | mittel | Hinweise als ein Panel mit Punkt je Schweregrad; Werte in der Grundschrift mit tabellarischen Ziffern; Trennpunkte per CSS |
+| Netzring auf dem Handy ohne Kategorienamen und mit leerem Rand; „Netzwerk 1“ im Ring gegenüber „Netzwerk 2“ bei den Gerätetypen; Gruppe mit einem Gerät zeigte einen Bogenstummel | mittel | Größerer Radius ohne Beschriftung, Kategorien als Liste unter dem Ring; Router zählt zu seiner Kategorie; Mindestbogen für Einzelgeräte |
+| Personen: Lücke im zweispaltigen Raster, Eingabefeld auf dem Handy schmaler als der Knopf | mittel | Spalten wie in einer Zeitung; Feld volle Breite |
+| Letzte Aktivität: Zeilen mit Warnpunkt rückten ein; Zähler „Neu ● 2“ nicht bündig | niedrig | Feste Spalte für den Punkt; Zahl in Bernstein statt Punkt |
+| Ausfallmarke im Latenzverlauf wirkte wie ein Pixelfehler | niedrig | Ausfälle als durchscheinendes Band über die volle Höhe |
+| Aktivität: wiederholte Zeitspanne „22:09–22:09“, Zähler verschob den Textanfang | niedrig | Spanne nur bei verschiedenen Minuten, unter der Uhrzeit; Zähler hinter dem Text |
+| Monospace für Adressen in Sätzen und für Version/UID | niedrig | Monospace nur noch in Listen, Tabellen und Feldern |
+| Dunkelmodus: Band kaum vom Grund zu unterscheiden | niedrig | Band im Dunkelmodus heller als der Grund |
+| Anmeldung mit drei Werbesätzen; Link „Passwort vergessen?“ in Blau | niedrig | Ein Satz; Link in Textfarbe, unterstrichen |
+| Mobile Navigation markierte Aktives blau, Desktop neutral | niedrig | Neutral mit hinterlegtem Symbol |
+| Sortierung wirkte wie ein Filter („Status“) | niedrig | „Sortieren: Status“ |
+| Sicherheit: „4 Warnung“ (Einzahl), Zählkästen wirkten wie Knöpfe; breite Spalte für den Schweregrad | niedrig | Mehrzahl, Zahlen als Textzeile; Schweregrad-Chip vor dem Titel |
+| Einstellungen: dauerhafte Leiste „Keine Änderungen“; Hinweis vom Schalter getrennt (Updates); Titel „Allgemein“ doppelt | niedrig | Speichern-Leiste erst bei Änderungen; Hinweis am Schalter; doppelter Titel entfernt |
+| Kleinigkeiten | niedrig | „Update“ als neutraler Chip, damit es sich von „Neu“ unterscheidet; ruhigere Software-Zeile im Detail; sichtbares Feld für „Offline“ in der Legende; Ausfallliste mit Trennlinien; sanfter Halo statt ausblendendem Ring |
+
+Bewusst offen: Initialen-Avatare bei Personen, Speichen des Netzrings, Datumsfelder des Browsers im Bericht.
+
+Nachweis: `svelte-check` 0/0, `npm run contrast` (hell und dunkel), 30 UI-Tests (Desktop und Handy).

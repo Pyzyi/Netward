@@ -252,13 +252,15 @@
   .add .input {
     max-width: 320px;
   }
+  /* Two columns that fill up like a newspaper, so cards of different
+     height leave no holes. */
   .people {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
-    gap: 16px;
-    align-items: start;
+    columns: 2 440px;
+    column-gap: 16px;
   }
   .person {
+    break-inside: avoid;
+    margin-bottom: 16px;
     display: grid;
     gap: 10px;
     padding: 16px;
@@ -375,9 +377,10 @@
   }
   .danger-text {
     color: var(--danger);
+    margin-left: -9px;
   }
   .hints {
-    margin-top: 16px;
+    margin-top: 0;
     display: grid;
     gap: 6px;
     padding: 16px;
@@ -388,6 +391,9 @@
   @media (max-width: 560px) {
     .add {
       flex-direction: column;
+    }
+    .add .input {
+      max-width: none;
     }
     .devs li {
       grid-template-columns: minmax(0, 1fr) auto;

@@ -57,7 +57,7 @@
   }
 </script>
 
-<SettingsCard title={t('settings.general')} {dirty} {busy} {error} onsave={save}>
+<SettingsCard {dirty} {busy} {error} onsave={save}>
   <div class="field">
     <label for="nn">{t('settings.networkName')}</label>
     <input id="nn" class="input" bind:value={networkName} maxlength="64" placeholder={t('setup.networkPlaceholder')} />
