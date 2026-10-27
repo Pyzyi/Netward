@@ -3,7 +3,7 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
-## Unveröffentlicht (0.2)
+## 0.2.0 – 2026-10-27
 
 ### Behoben
 - Home Assistant (MQTT): Nach dem Start brach die erste Verbindung sofort wieder ab und kam erst nach 5 Sekunden zurück.
@@ -19,7 +19,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 - Nachweis-Bericht für den Provider (Einstellungen → Internet): PDF mit Verfügbarkeit, allen Störungen nach Art, Latenz je Tag, Sync-Raten gegen die Vertragswerte (maximal/normalerweise/minimal) mit Diagrammen; dazu die Rohdaten als CSV, deren SHA-256 im PDF steht. Name, Kundennummer und Anschrift landen nur im PDF und werden nicht gespeichert. Der Bericht weist darauf hin, dass für eine Minderung nach § 57 TKG die Breitbandmessung der Bundesnetzagentur maßgeblich ist. Eigener kleiner PDF-Schreiber, im CI mit `qpdf --check` geprüft.
 - Bekannte, aktiv ausgenutzte Lücken offline abgleichen: Netzwart bringt einen Schnappschuss des CISA-KEV-Katalogs mit den betroffenen Versionen aus den CVE-Datensätzen mit (iOS, iPadOS, macOS, tvOS; Stand im Gerätedetail, Warnung ab 90 Tagen). Bei genauer Version (z. B. tvOS 26.4 per AirPlay oder eine genaue eigene Angabe wie 18.6.2) gibt es einen kritischen Hinweis mit den CVEs und der Version, die sie behebt; bei eigenen Angaben stattdessen die Frage, ob die Version noch stimmt. Netzwart sagt nie „keine Lücken“.
 - Eigene Systemangabe: optional die genaue Version.
-- Personen statt Geräte: Personen anlegen, Geräte zuordnen, „Wer ist zu Hause“ auf der Übersicht („zu Hause seit …“ / „unterwegs seit …“). Die Zeit im Heimnetz je Tag ist pro Person einschaltbar und verlangt die Bestätigung, dass die Person Bescheid weiß. Home Assistant bekommt je Person einen device_tracker (IDs aus der Personennummer, nie aus dem Namen). Keine Kommen/Gehen-Benachrichtigungen.
+- Personen statt Geräte: Personen anlegen, Geräte zuordnen, „Wer ist zu Hause“ auf der Übersicht („zu Hause seit …“ / „unterwegs seit …“). Die Zeit im Heimnetz je Tag ist pro Person einschaltbar und verlangt die Bestätigung, dass die Person Bescheid weiß. Home Assistant bekommt je Person auf Wunsch einen device_tracker (standardmäßig aus, mit derselben Bestätigung; IDs aus der Personennummer, nie aus dem Namen). Keine Kommen/Gehen-Benachrichtigungen.
 - Verhaltens-Baseline (bewusst klein): Fragt ein bekanntes Gerät, das seit mindestens einer Woche da ist und zweimal mit seinem System gesehen wurde, zweimal wie eine andere Systemfamilie nach einer Adresse (z. B. Windows statt Apple), gibt es einen Hinweis mit „Neu eingerichtet“ und „Kenne ich nicht“. Neu offene Ports erscheinen im Aktivitätsprotokoll, wenn zwei Port-Scans desselben Umfangs übereinstimmen.
 - WLAN-Diagnose aus der FRITZ!Box (Mesh-Liste über TR-064, alle 5 Minuten): Zugangspunkt, Band, Kanal, Signal in dBm und Datenrate je Gerät, Anbindung der Repeater. Hinweise wie „Laptop hängt im 2,4-GHz-Band am Repeater, obwohl es 5 GHz kann“, schwaches Signal oder schwach angebundener Repeater erscheinen erst nach drei Abfragen in Folge und benachrichtigen nicht. Neue Seite „WLAN“ (über Geräte) und Abschnitt „WLAN“ im Gerätedetail. Ohne Recht für die Mesh-Liste dient die einfache WLAN-Liste als Ersatz; die Geräteliste der FRITZ!Box ist davon nicht betroffen.
 

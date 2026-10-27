@@ -14,6 +14,7 @@ type reportRequest struct {
 	From     string          `json:"from"` // YYYY-MM-DD, first day
 	To       string          `json:"to"`   // YYYY-MM-DD, last day (inclusive)
 	Format   string          `json:"format"`
+	Lang     string          `json:"lang"` // de | en; empty: the language in the settings
 	Contract report.Contract `json:"contract"`
 	// Only printed in the PDF, never stored or logged.
 	Holder   string `json:"holder"`
@@ -48,7 +49,7 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, _ *session
 	if err1 != nil || err2 != nil || !to.After(from) || to.Sub(from) > report.MaxPeriod ||
 		!validRate(c.MaxDown) || !validRate(c.NormalDown) || !validRate(c.MinDown) ||
 		!validRate(c.MaxUp) || !validRate(c.NormalUp) || !validRate(c.MinUp) ||
-		(req.Format != "pdf" && req.Format != "csv") {
+		(req.Format != "pdf" && req.Format != "csv") || (req.Lang != "" && req.Lang != "de" && req.Lang != "en") {
 		writeError(w, http.StatusBadRequest, "invalid_input", "")
 		return
 	}
@@ -74,9 +75,13 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, _ *session
 		s.fail(w, r, err)
 		return
 	}
+	lang := req.Lang
+	if lang == "" {
+		lang = st.Language
+	}
 	out, err := report.PDF(rep, report.Info{
 		Holder: textutil.Clean(req.Holder, 100), Customer: textutil.Clean(req.Customer, 64), Address: textutil.Clean(req.Address, 200),
-		Version: s.d.Version, Lang: st.Language, Loc: loc, Created: s.now(), CSVName: name + ".csv", CSVSum: report.Checksum(csv),
+		Version: s.d.Version, Lang: lang, Loc: loc, Created: s.now(), CSVName: name + ".csv", CSVSum: report.Checksum(csv),
 	})
 	if err != nil {
 		s.fail(w, r, err)

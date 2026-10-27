@@ -272,3 +272,57 @@ Die Pflichtänderungen und ihre Umsetzung stehen im Abschnitt „Entscheidungen 
 - **Lücken-Abgleich:** Er läuft je Versionszweig.
 - **Personen:** Die Funktion bleibt bei der Anwesenheit; die Zeit pro Tag ist nur nach Zustimmung einschaltbar.
 - **Verhaltens-Baseline:** Sie wurde verkleinert, um Fehlalarme zu vermeiden.
+
+## Review 8 · Code- und Security-Review von 0.2
+
+Drei unabhängige Reviewer bekamen den Auftrag, jeweils einen Bereich zu prüfen: Sicherheit, Logik und Oberfläche. Grundlage war der Diff seit dem Plan-Review (`c29f9cb..`).
+
+- **Sicherheit:** Der Reviewer hat seine Befunde mit Tests in einer Kopie nachgewiesen.
+- **Oberfläche:** Der Reviewer hat alle API-Aufrufe gegen die Handler und alle Textschlüssel gegen beide Sprachen geprüft.
+- **Logik:** Der Reviewer wurde durch ein Nutzungslimit abgebrochen. Seine Schwerpunkte wurden deshalb im Team nachgeprüft:
+  - gleichzeitige Bewertungen
+  - Tagesgrenzen und Sommerzeit im Bericht
+  - Leitungsdaten ohne Vorgänger
+  - MQTT-Aufräumen nach Neustart
+  - Probe ohne laufenden Empfänger
+
+  Dabei wurde kein weiterer Fehler gefunden.
+
+### 8.1 Security-Review
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Eine Flut gefälschter DHCP-Angebote mit wechselnder Server-ID verdrängte den DHCP-Server des Routers aus der Liste (16 Einträge). Danach galten fremde Server nur als Hinweis. Stieg die Schwere später auf kritisch, gab es keine Benachrichtigung, weil nur neue Befunde meldeten. | hoch | Der Server des Routers wird nie verdrängt. Ist die Liste voll, macht nur ein Eintrag Platz, der eine Woche nicht gesehen wurde; der Router kommt immer hinein. Steigt die Schwere eines Befunds, wird gemeldet (`UpsertFindingPrev`). Ein Server, der einen fremden Router nennt, ist auch ohne Vergleich mindestens eine Warnung. Tests: Flut, Eskalation. |
+| Jede neue gefälschte Server-ID schrieb ein Ereignis, ohne Obergrenze. Ein Gerät, das seinen DHCP-Fingerabdruck pro Paket wechselt, schrieb die Systemfamilien bei jedem Paket neu. | niedrig–mittel | Neue Server höchstens bis zur Listengrenze. Lernen der Systemfamilie höchstens alle 10 Minuten je Gerät. |
+| Ein Konflikt auf der Router-Adresse, der schon vor der ersten Referenz bestand, erzeugte keinen Befund. Der IP-Konflikt-Befund für diese Adresse war gleichzeitig unterdrückt. | niedrig | Der Konflikt wird auch ohne Referenz verfolgt. Die beteiligten MACs werden gespeichert und angezeigt; nach dem Konflikt wird die verbleibende MAC zur Referenz. Test. |
+| Home Assistant bekam neue Personen standardmäßig. Home Assistant speichert Kommen und Gehen dauerhaft, ohne die Bestätigung, die für die Zeit je Tag gilt. | niedrig (Datenschutz) | Standardmäßig aus. Beim Einschalten ist dieselbe Bestätigung nötig wie für die Zeit je Tag. Erst wenn beide Optionen aus sind, gilt die Bestätigung als zurückgezogen. |
+
+Geprüft und in Ordnung:
+- **Routen:** Alle neuen Routen laufen über `authed`, also Sitzung und CSRF-Token. Eingaben werden mit Größengrenze und ohne unbekannte Felder eingelesen.
+- **DHCP-Probe:** Transaktions-ID und Client-MAC werden geprüft. Es gibt nie einen REQUEST, und die Probe-MAC wird nie zu einem Gerät.
+- **FRITZ!Box-Pfade:** Sie bleiben auf dem gepinnten Router.
+- **PDF und Bericht:**
+  - Texte im PDF stehen als Hex-Strings, und die Zahlenwerte sind geprüft.
+  - Persönliche Angaben werden weder gespeichert noch protokolliert.
+  - Die CSV enthält nur Zeiten, Zahlen und feste Kennungen.
+- **MQTT:** Die IDs stammen nur aus der Personennummer.
+- **Lücken-Schnappschuss:** Er ist reproduzierbar und enthält nur `https://support.apple.com`-Links.
+- **Oberfläche:** Sie verwendet kein `{@html}`.
+
+### 8.2 Oberflächen-Review
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Fehlercode `invalid_input` hatte keinen Text („Etwas ist schiefgegangen“); Bericht erlaubte über ein Jahr | mittel | Text DE/EN; Startdatum höchstens ein Jahr vor dem Ende, Hinweis im Formular |
+| Person ohne Anwesenheitsgerät zeigte „Weg“ | mittel | Kein Status ohne Anwesenheitsgerät |
+| „Zeit je Tag“ zeigte nach dem Einschalten auch die Tage vor der Zustimmung; der Dialog klang nach „ab jetzt“ | mittel | Zeit je Tag zählt erst ab der Bestätigung (Server); Dialog benennt beide Fälle (Zeit je Tag, Home Assistant). Test. |
+| Genaue Version auf deutschem iPhone nicht eingebbar (Zifferntastatur ohne Punkt); Fehlermeldung vor Wahl der Hauptversion; Hinweis nicht mit dem Feld verbunden | mittel | Normale Tastatur, Komma wird zu Punkt; Feld erst nach Wahl der Hauptversion; `aria-describedby` und `aria-live` |
+| „Anschlussinhaber“ nicht geschlechtsneutral | niedrig | „Name laut Vertrag“ (Oberfläche und PDF) |
+| Router-Konflikt nannte keine fremde Kennung | niedrig | Beteiligte MACs werden gezeigt |
+| Schalter blieb nach fehlgeschlagenem Speichern umgelegt | niedrig | Schalter zeigen nach einem Fehler wieder den gespeicherten Stand |
+| Tagesdiagramm für Screenreader stumm, ISO-Datum im Tooltip | niedrig | Liste mit Text je Tag, Datum ausgeschrieben |
+| WLAN-Tabelle ohne Spaltennamen auf dem Handy | niedrig | Spaltenname vor jedem Wert |
+| Fehler beim Laden der Sicherheitsseite blieb stumm | niedrig | Meldung; Router-Details getrennt geladen |
+| Bericht immer in der Sprache der Einstellungen; WLAN-Seite zeigte Fehler und „erste Abfrage läuft“ zugleich | niedrig | Sprache der Oberfläche; nur der Fehler |
+
+Nachweis: `go vet`, `staticcheck`, `go test -race ./...`, `svelte-check` 0/0, 30 UI-Tests (Desktop und Handy), `qpdf --check` und `kevgen -verify` im CI.

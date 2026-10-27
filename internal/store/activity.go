@@ -344,6 +344,13 @@ type Finding struct {
 
 // UpsertFinding inserts or refreshes a finding and reports whether it is new.
 func (s *Store) UpsertFinding(ctx context.Context, f Finding) (bool, error) {
+	prev, err := s.UpsertFindingPrev(ctx, f)
+	return err == nil && prev == "", err
+}
+
+// UpsertFindingPrev is UpsertFinding returning the severity the finding had
+// before ("" when it is new), so callers can alert when it got worse.
+func (s *Store) UpsertFindingPrev(ctx context.Context, f Finding) (string, error) {
 	if len(f.Data) == 0 {
 		f.Data = json.RawMessage("{}")
 	}
@@ -352,18 +359,22 @@ func (s *Store) UpsertFinding(ctx context.Context, f Finding) (bool, error) {
 		dev = f.DeviceID
 	}
 	var existing int64
-	err := s.db.QueryRowContext(ctx, `SELECT id FROM security_findings WHERE check_id = ? AND IFNULL(device_id, 0) = ? AND data = ?`,
-		f.CheckID, f.DeviceID, string(f.Data)).Scan(&existing)
+	var prev string
+	err := s.db.QueryRowContext(ctx, `SELECT id, severity FROM security_findings WHERE check_id = ? AND IFNULL(device_id, 0) = ? AND data = ?`,
+		f.CheckID, f.DeviceID, string(f.Data)).Scan(&existing, &prev)
 	switch {
 	case err == nil:
 		_, err = s.db.ExecContext(ctx, `UPDATE security_findings SET last_seen = ?, severity = ? WHERE id = ?`, f.LastSeen, f.Severity, existing)
-		return false, err
+		if prev == "" {
+			prev = "info"
+		}
+		return prev, err
 	case errors.Is(err, sql.ErrNoRows):
 		_, err = s.db.ExecContext(ctx, `INSERT INTO security_findings (check_id, device_id, severity, data, first_seen, last_seen)
 			VALUES (?, ?, ?, ?, ?, ?)`, f.CheckID, dev, f.Severity, string(f.Data), f.LastSeen, f.LastSeen)
-		return err == nil, err
+		return "", err
 	default:
-		return false, err
+		return "", err
 	}
 }
 

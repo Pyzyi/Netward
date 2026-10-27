@@ -61,8 +61,9 @@ type GatewayRef struct {
 	CandidateRuns int            `json:"candidateRuns,omitempty"`
 	Change        *GatewayChange `json:"change,omitempty"`
 	// Conflict: two MACs answered for the router address in two sweeps.
-	Conflict     bool `json:"conflict,omitempty"`
-	ConflictRuns int  `json:"-"`
+	Conflict     bool     `json:"conflict,omitempty"`
+	Others       []string `json:"others,omitempty"` // the MACs that answered during the conflict
+	ConflictRuns int      `json:"-"`
 }
 
 // GatewayChange describes the router address now answered by another MAC.
@@ -157,10 +158,13 @@ func (m *Monitor) observeDHCPServer(ctx context.Context, s l2.Sighting) {
 	srv := m.dhcpServers[id]
 	isNew := srv == nil
 	if isNew {
-		m.addEvent(ctx, KindDHCPServerNew, "info", nil, map[string]any{"ip": id, "vendor": vendorOf(s.MAC.String())})
-		if len(m.dhcpServers) >= maxDHCPServers {
-			m.dropOldestServer()
+		// The list is bounded and a flood of spoofed server IDs must not push
+		// out the router's own server: when full, only an entry not seen for
+		// a week makes room, and the router's server always gets in (T-36).
+		if len(m.dhcpServers) >= maxDHCPServers && !m.dropStaleServer(now, m.gateways[d.ServerID]) {
+			return
 		}
+		m.addEvent(ctx, KindDHCPServerNew, "info", nil, map[string]any{"ip": id, "vendor": vendorOf(s.MAC.String())})
 		srv = &DHCPServer{ServerID: id, FirstSeen: now}
 		m.dhcpServers[id] = srv
 	}
@@ -189,16 +193,24 @@ func (m *Monitor) observeDHCPServer(ctx context.Context, s l2.Sighting) {
 	}
 }
 
-func (m *Monitor) dropOldestServer() {
+// dropStaleServer makes room in the server list: it removes the oldest entry
+// that is neither accepted nor the router's, if that entry was not seen for
+// dhcpWindow (or at all, when force is set). It reports whether it did.
+func (m *Monitor) dropStaleServer(now int64, force bool) bool {
 	var oldest *DHCPServer
 	for _, s := range m.dhcpServers {
-		if !s.Accepted && (oldest == nil || s.LastSeen < oldest.LastSeen) {
+		if a, err := netip.ParseAddr(s.ServerID); s.Accepted || (err == nil && m.gateways[a]) {
+			continue
+		}
+		if oldest == nil || s.LastSeen < oldest.LastSeen {
 			oldest = s
 		}
 	}
-	if oldest != nil {
-		delete(m.dhcpServers, oldest.ServerID)
+	if oldest == nil || (!force && now-oldest.LastSeen < dhcpWindow.Milliseconds()) {
+		return false
 	}
+	delete(m.dhcpServers, oldest.ServerID)
+	return true
 }
 
 // checkGateways compares who answered for the router addresses in a sweep
@@ -223,24 +235,35 @@ func (m *Monitor) checkGateways(ctx context.Context, res l2.SweepResult) {
 			if len(real) == 1 {
 				m.gatewayRefs[ip.String()] = &GatewayRef{IP: ip.String(), MAC: real[0], Vendor: vendorOf(real[0]), Since: now}
 				changed = true
+				continue
 			}
-			continue
+			// Two answers before there is a reference (a spoofer already active
+			// at installation): track the conflict without one.
+			ref = &GatewayRef{IP: ip.String(), Since: now}
+			m.gatewayRefs[ip.String()] = ref
+			changed = true
 		}
 		// Two MACs for the router address must show up in two sweeps in a
 		// row, like any IP conflict (DHCP lease reuse overlaps once).
 		if len(real) > 1 {
 			ref.ConflictRuns++
-			if ref.ConflictRuns >= 2 && !ref.Conflict {
-				ref.Conflict = true
+			if ref.ConflictRuns >= 2 && (!ref.Conflict || strings.Join(ref.Others, ",") != strings.Join(real, ",")) {
+				ref.Conflict, ref.Others = true, append([]string(nil), real...)
 				changed = true
 			}
 			continue
 		}
 		if ref.Conflict || ref.ConflictRuns > 0 {
-			ref.Conflict, ref.ConflictRuns = false, 0
+			ref.Conflict, ref.ConflictRuns, ref.Others = false, 0, nil
 			changed = true
 		}
 		mac := real[0]
+		if ref.MAC == "" {
+			// The conflict is over: the one that remains is the reference.
+			ref.MAC, ref.Vendor, ref.Since = mac, vendorOf(mac), now
+			changed = true
+			continue
+		}
 		switch {
 		case mac == ref.MAC:
 			if ref.Candidate != "" || ref.Change != nil {

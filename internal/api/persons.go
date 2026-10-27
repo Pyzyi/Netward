@@ -88,9 +88,12 @@ func (s *Server) handleUpdatePerson(w http.ResponseWriter, r *http.Request, _ *s
 		writeError(w, http.StatusBadRequest, "invalid_input", "name")
 		return
 	}
+	// Time per day and Home Assistant (which keeps its own history of
+	// arrivals and departures) both record a person: each needs the
+	// confirmation that the person knows. Switching both off withdraws it.
 	switch {
-	case !req.TrackTime:
-		p.ConsentAt = 0 // switching it off withdraws the confirmation
+	case !req.TrackTime && !req.HomeAssistant:
+		p.ConsentAt = 0
 	case p.ConsentAt == 0 && !req.Consent:
 		writeError(w, http.StatusBadRequest, "consent_required", "")
 		return

@@ -1,7 +1,7 @@
 {
- "kevCatalogVersion": "2026.10.23",
- "kevCommit": "b9c486ef8f3ba0709bb662ae843ffee96953c400",
- "cveCommit": "3b96b2aefcedea6803418b323971bcd0fd123389",
+ "kevCatalogVersion": "2026.10.27",
+ "kevCommit": "30a09b6f3f7e2f03618cc8c95d212966d3c14e6e",
+ "cveCommit": "5e11caaddebb5cbb40ad0c4ef1fd78060558cdbb",
  "entries": [
   {
    "cve": "CVE-2020-27930",
@@ -2481,15 +2481,23 @@
    "cve": "CVE-2026-86950",
    "name": "Apple Multiple Products Out-of-Bounds Write Vulnerability",
    "added": "2026-09-29",
-   "url": "https://support.apple.com/en-us/149226",
+   "url": "https://support.apple.com/en-us/149225",
    "products": {
     "ios": [
+     {
+      "from": "0",
+      "fixed": "18.7.11"
+     },
      {
       "from": "0",
       "fixed": "26.7.1"
      }
     ],
     "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.7.11"
+     },
      {
       "from": "0",
       "fixed": "26.7.1"

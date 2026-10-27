@@ -10,9 +10,9 @@ import (
 type Person struct {
 	ID        int64          `json:"id"`
 	Name      string         `json:"name"`
-	TrackTime bool           `json:"trackTime"` // time at home per day (opt-in)
-	ConsentAt int64          `json:"consentAt"` // when the user confirmed the person knows
-	HA        bool           `json:"homeAssistant"`
+	TrackTime bool           `json:"trackTime"`     // time at home per day (opt-in)
+	ConsentAt int64          `json:"consentAt"`     // when the user confirmed the person knows
+	HA        bool           `json:"homeAssistant"` // device_tracker in Home Assistant (opt-in, needs consent too)
 	CreatedAt int64          `json:"createdAt"`
 	Devices   []PersonDevice `json:"devices"`
 }
@@ -78,7 +78,7 @@ func (s *Store) CreatePerson(ctx context.Context, name string) (Person, error) {
 	if n >= MaxPersons {
 		return Person{}, ErrLimit
 	}
-	p := Person{Name: name, HA: true, CreatedAt: Now(), Devices: []PersonDevice{}}
+	p := Person{Name: name, CreatedAt: Now(), Devices: []PersonDevice{}}
 	res, err := s.db.ExecContext(ctx, `INSERT INTO persons (name, created_at) VALUES (?, ?)`, name, p.CreatedAt)
 	if err != nil {
 		return Person{}, err

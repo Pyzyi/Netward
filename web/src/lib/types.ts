@@ -185,6 +185,7 @@ export interface NetworkState {
     since: number;
     change?: { mac: string; vendor?: string; at: number; oldActive: boolean };
     conflict?: boolean;
+    others?: string[];
   }[];
   dhcpServers: {
     serverId: string;
@@ -239,6 +240,7 @@ export interface ReportRequest {
   from: string;
   to: string;
   format: 'pdf' | 'csv';
+  lang: 'de' | 'en';
   contract: ReportContract;
   holder: string;
   customer: string;

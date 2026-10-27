@@ -103,7 +103,12 @@ func (m *Monitor) observeFamily(ctx context.Context, e *entry, d *proto.DHCP, no
 	default:
 		settled := e.d.Known && b.Count >= 2 && time.Duration(now-e.d.FirstSeen)*time.Millisecond >= baselineAge
 		if !settled {
-			// Still learning: the newer family simply becomes the baseline.
+			// Still learning: the newer family simply becomes the baseline,
+			// at most once per sightingGap (a device alternating its
+			// fingerprint per packet must not rewrite the settings each time).
+			if now-b.LastAt < sightingGap.Milliseconds() {
+				return
+			}
 			m.baseline[e.d.ID] = &dhcpBase{Family: fam, Count: 1, LastAt: now}
 			break
 		}

@@ -9,7 +9,7 @@
   import { clock, store } from '../lib/state.svelte';
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
-  import { duration, i18n, number, t } from '../lib/i18n.svelte';
+  import { dateLong, duration, i18n, number, t } from '../lib/i18n.svelte';
   import { initials, isHome, presenceText } from '../lib/persons';
   import type { Device, PersonStatus } from '../lib/types';
 
@@ -19,6 +19,7 @@
   let newName = $state('');
   let busy = $state(false);
   let consentFor = $state<PersonStatus | null>(null);
+  let consentMode = $state<'time' | 'ha'>('time');
   let consentOpen = $state(false);
   let consentOk = $state(false);
   let deleteFor = $state<PersonStatus | null>(null);
@@ -56,6 +57,7 @@
       await load();
     } catch (e) {
       toast(errorText(e), 'error');
+      resetSwitches++; // a switch flipped itself; show the saved state again
     } finally {
       busy = false;
     }
@@ -73,6 +75,19 @@
 
   function options(p: PersonStatus, patch: Partial<{ name: string; trackTime: boolean; consent: boolean; homeAssistant: boolean }>) {
     return run(() => api.updatePerson(p.id, { name: p.name, trackTime: p.trackTime, homeAssistant: p.homeAssistant, ...patch }));
+  }
+  // Both options record a person; the first one switched on asks for the
+  // confirmation that the person knows.
+  function switchOn(p: PersonStatus, mode: 'time' | 'ha', on: boolean) {
+    const patch = mode === 'time' ? { trackTime: on } : { homeAssistant: on };
+    if (!on || p.consentAt > 0) {
+      void options(p, patch);
+      return;
+    }
+    consentFor = p;
+    consentMode = mode;
+    consentOk = false;
+    consentOpen = true;
   }
   function setDevices(p: PersonStatus, devices: PersonStatus['devices']) {
     return run(() => api.setPersonDevices(p.id, devices));
@@ -132,7 +147,9 @@
             {/if}
             <p class="sub">{presenceText(p, home, clock.now)}</p>
           </div>
-          <span class="badge {home ? 'ok' : ''}">{home ? t('persons.badge.home') : t('persons.badge.away')}</span>
+          {#if p.devices.some((d) => d.presence)}
+            <span class="badge {home ? 'ok' : ''}">{home ? t('persons.badge.home') : t('persons.badge.away')}</span>
+          {/if}
         </header>
 
         <h3 class="eyebrow">{t('persons.devices')}</h3>
@@ -168,22 +185,23 @@
         <div class="opts">
           {#key resetSwitches}
             <Toggle checked={p.trackTime && p.consentAt > 0} label={t('persons.trackTime')} hint={t('persons.trackTimeHint')} disabled={busy}
-              onchange={(v) => { if (v) { consentFor = p; consentOk = false; consentOpen = true; } else void options(p, { trackTime: false }); }} />
+              onchange={(v) => switchOn(p, 'time', v)} />
+            <Toggle checked={p.homeAssistant} label={t('persons.ha')} hint={t('persons.haHint')} disabled={busy}
+              onchange={(v) => switchOn(p, 'ha', v)} />
           {/key}
-          <Toggle checked={p.homeAssistant} label={t('persons.ha')} hint={t('persons.haHint')} disabled={busy}
-            onchange={(v) => options(p, { homeAssistant: v })} />
         </div>
 
         {#if p.days?.length}
-          <div class="days" role="img" aria-label={t('persons.daysLabel')}>
+          <ul class="days" aria-label={t('persons.daysLabel')}>
             {#each p.days as d (d.date)}
-              <div class="day" title="{d.date}: {duration(d.ms)}">
-                <span class="bar"><span style:height="{Math.min(100, (d.ms / 86_400_000) * 100)}%"></span></span>
-                <span class="h num">{hours(d.ms)}</span>
-                <span class="wd">{weekday(d.date)}</span>
-              </div>
+              <li class="day" title="{dateLong(d.date)}: {duration(d.ms)}">
+                <span class="bar" aria-hidden="true"><span style:height="{Math.min(100, (d.ms / 86_400_000) * 100)}%"></span></span>
+                <span class="h num" aria-hidden="true">{hours(d.ms)}</span>
+                <span class="wd" aria-hidden="true">{weekday(d.date)}</span>
+                <span class="sr-only">{dateLong(d.date)}: {duration(d.ms)}</span>
+              </li>
             {/each}
-          </div>
+          </ul>
           <p class="faint small">{t('persons.daysNote')}</p>
         {/if}
 
@@ -199,15 +217,15 @@
   </section>
 </div>
 
-<Dialog bind:open={consentOpen} title={t('persons.consentTitle')}>
+<Dialog bind:open={consentOpen} title={t('persons.consentTitle', { name: consentFor?.name ?? '' })}>
   {#if consentFor}
-    <p>{t('persons.consentText', { name: consentFor.name })}</p>
+    <p>{t(`persons.consentText.${consentMode}`, { name: consentFor.name })}</p>
     <label class="check"><input type="checkbox" bind:checked={consentOk} /> {t('persons.consentCheck', { name: consentFor.name })}</label>
   {/if}
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (consentOpen = false)}>{t('common.cancel')}</button>
     <button class="btn primary" type="button" disabled={!consentOk || busy}
-      onclick={() => { const p = consentFor; consentFor = null; consentOpen = false; if (p) void options(p, { trackTime: true, consent: true }); }}>{t('persons.consentConfirm')}</button>
+      onclick={() => { const p = consentFor; consentFor = null; consentOpen = false; if (p) void options(p, { ...(consentMode === 'time' ? { trackTime: true } : { homeAssistant: true }), consent: true }); }}>{t('persons.consentConfirm')}</button>
   {/snippet}
 </Dialog>
 
@@ -318,6 +336,9 @@
     width: 100%;
   }
   .days {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     gap: 10px;
     align-items: flex-end;

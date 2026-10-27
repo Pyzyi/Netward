@@ -216,7 +216,7 @@ CREATE TABLE persons (
 	name        TEXT NOT NULL,
 	track_time  INTEGER NOT NULL DEFAULT 0,
 	consent_at  INTEGER NOT NULL DEFAULT 0,
-	home_assist INTEGER NOT NULL DEFAULT 1,
+	home_assist INTEGER NOT NULL DEFAULT 0,
 	created_at  INTEGER NOT NULL
 );
 CREATE TABLE person_devices (

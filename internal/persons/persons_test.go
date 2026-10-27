@@ -41,7 +41,7 @@ func TestStatuses(t *testing.T) {
 	anna, _ := st.CreatePerson(ctx, "Anna")
 	max, _ := st.CreatePerson(ctx, "Max")
 	_ = st.SetPersonDevices(ctx, anna.ID, []store.PersonDevice{{DeviceID: phone, Presence: true}, {DeviceID: watch, Presence: true}, {DeviceID: laptop}})
-	anna.TrackTime, anna.ConsentAt = true, now.UnixMilli()
+	anna.TrackTime, anna.ConsentAt = true, now.Add(-8*24*time.Hour).UnixMilli()
 	_ = st.UpdatePerson(ctx, anna)
 	// The laptop moves to Max.
 	_ = st.SetPersonDevices(ctx, max.ID, []store.PersonDevice{{DeviceID: laptop, Presence: true}})
@@ -67,6 +67,14 @@ func TestStatuses(t *testing.T) {
 	}
 	if hs := s.States(); len(hs) != 2 || !hs[0].Home || hs[1].Home {
 		t.Fatalf("states %+v", hs)
+	}
+	// Consent given just now: the days before stay hidden.
+	anna.ConsentAt = ms(-time.Hour)
+	_ = st.UpdatePerson(ctx, anna)
+	_ = s.Changed(ctx)
+	out, _ = s.Statuses(ctx, now, time.UTC)
+	if d := out[0].Days; d[5].MS != 0 || d[6].MS != time.Hour.Milliseconds() {
+		t.Fatalf("days before consent shown: %+v", d)
 	}
 	// Without consent no time per day.
 	anna.ConsentAt = 0

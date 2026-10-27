@@ -640,3 +640,51 @@ func TestNewPortsNeedTwoScans(t *testing.T) {
 		t.Fatalf("got %d port events, want 1", newPorts())
 	}
 }
+
+// Review 8: a flood of spoofed DHCP server IDs must not push out the
+// router's own server, nor grow the activity log without bound.
+func TestDHCPServerFloodKeepsRouter(t *testing.T) {
+	e := newEnv(t)
+	offer := func(server netip.Addr, router netip.Addr) {
+		d := &proto.DHCP{Op: 2, MsgType: proto.DHCPOffer, ServerID: server, Router: router}
+		e.m.Observe(e.ctx, l2.Sighting{MAC: mac(0x60), IP: server, Iface: "eth0", Source: "dhcp-server", DHCP: d, At: e.clk.Now()})
+	}
+	for i := 0; i < 40; i++ {
+		offer(ip(byte(100+i)), ip(byte(100+i)))
+	}
+	gw := netip.MustParseAddr("192.168.1.1")
+	offer(gw, gw) // the router comes last and still gets in
+	st := e.m.Network()
+	found := false
+	for _, s := range st.DHCPServers {
+		found = found || s.ServerID == gw.String()
+	}
+	if !found || len(st.DHCPServers) != maxDHCPServers {
+		t.Fatalf("router server missing or list unbounded: %d servers, router %v", len(st.DHCPServers), found)
+	}
+	evs, _ := e.st.ListEvents(e.ctx, store.EventQuery{Kinds: []string{KindDHCPServerNew}, Limit: 100})
+	if len(evs) > maxDHCPServers+1 {
+		t.Fatalf("%d server events for a flood", len(evs))
+	}
+	// A week later stale entries make room again.
+	e.clk.Add(8 * 24 * time.Hour)
+	offer(ip(250), ip(250))
+	if st := e.m.Network(); len(st.DHCPServers) != 1 || st.DHCPServers[0].ServerID != ip(250).String() {
+		t.Fatalf("after a week the new server must get in: %+v", st.DHCPServers)
+	}
+}
+
+// Review 8: two MACs on the router address before any reference exists.
+func TestGatewayConflictWithoutReference(t *testing.T) {
+	e := newEnv(t)
+	e.sweep(map[byte][]byte{1: {0x01, 0x66}})
+	e.sweep(map[byte][]byte{1: {0x01, 0x66}})
+	g := e.m.Network().Gateways
+	if len(g) != 1 || !g[0].Conflict || len(g[0].Others) != 2 {
+		t.Fatalf("gateways %+v", g)
+	}
+	e.sweep(map[byte][]byte{1: {0x01}})
+	if g := e.m.Network().Gateways; g[0].Conflict || g[0].MAC != mac(0x01).String() {
+		t.Fatalf("after the conflict %+v", g)
+	}
+}

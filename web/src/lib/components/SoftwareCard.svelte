@@ -71,7 +71,9 @@
   let version = $state('');
   let exact = $state(''); // optional, e.g. 18.6.2: enables the check for exploited holes
   let editing = $state(false);
-  const exactOk = $derived(exact.trim() === '' || (/^\d{1,2}(\.\d{1,2}){1,2}$/.test(exact.trim()) && exact.trim().startsWith(`${version}.`)));
+  // German keyboards offer a comma: "18,6,2" means 18.6.2.
+  const exactNorm = $derived(exact.trim().replaceAll(',', '.'));
+  const exactOk = $derived(exactNorm === '' || (/^\d{1,2}(\.\d{1,2}){1,2}$/.test(exactNorm) && exactNorm.startsWith(`${version}.`)));
   let busy = $state(false);
 
   function startEdit() {
@@ -158,7 +160,7 @@
 
   {#if canManual}
     {#if editing}
-      <form class="manual" onsubmit={(e) => { e.preventDefault(); send({ manual: { product, version: exact.trim() || version } }); }}>
+      <form class="manual" onsubmit={(e) => { e.preventDefault(); send({ manual: { product, version: exactNorm || version } }); }}>
         <p class="hint">{t(`software.manual.where.${product}`)}</p>
         <div class="row">
           <select class="select" bind:value={product} aria-label={t('software.manual.system')} onchange={() => { version = ''; exact = ''; }}>
@@ -169,11 +171,11 @@
             {#each versions[product] as v (v)}<option value={v}>{v}</option>{/each}
           </select>
           {#if product !== 'android'}
-            <input class="input exact" bind:value={exact} inputmode="decimal" maxlength="8" placeholder={version ? `${version}.x.x` : ''}
-              aria-label={t('software.manual.exact')} aria-invalid={!exactOk} />
+            <input class="input exact" bind:value={exact} maxlength="8" placeholder={version ? `${version}.x.x` : ''} disabled={!version}
+              aria-label={t('software.manual.exact')} aria-invalid={!exactOk} aria-describedby="exact-{device.id}" />
           {/if}
         </div>
-        {#if product !== 'android'}<p class="hint">{exactOk ? t('software.manual.exactHint') : t('software.manual.exactBad', { v: version })}</p>{/if}
+        {#if product !== 'android'}<p class="hint" id="exact-{device.id}" aria-live="polite">{exactOk || !version ? t('software.manual.exactHint') : t('software.manual.exactBad', { v: version })}</p>{/if}
         <div class="row">
           <button class="btn primary small" type="submit" disabled={busy || !version || !exactOk}>{t('common.save')}</button>
           <button class="btn small" type="button" onclick={() => (editing = false)}>{t('common.cancel')}</button>

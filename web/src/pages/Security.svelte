@@ -23,9 +23,15 @@
       const r = await api.security();
       findings = r.findings;
       status = r.status;
-      net = await api.network();
+    } catch (e) {
+      toast(errorText(e), 'error');
     } finally {
       loading = false;
+    }
+    try {
+      net = await api.network();
+    } catch {
+      /* the findings still show; only the router details are missing */
     }
   }
 
@@ -204,7 +210,12 @@
               {@const g = gateway(f)}
               {#if g}
                 <dl class="net">
-                  <div><dt>{g.change ? t('security.gateway.before') : t('security.gateway.yours')}</dt><dd>{g.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.mac}</span></dd></div>
+                  {#if g.mac}
+                    <div><dt>{g.change ? t('security.gateway.before') : t('security.gateway.yours')}</dt><dd>{g.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.mac}</span></dd></div>
+                  {/if}
+                  {#if g.conflict && g.others?.length}
+                    <div><dt>{t('security.gateway.others')}</dt><dd class="mono">{g.others.join(', ')}</dd></div>
+                  {/if}
                   {#if g.change}
                     <div><dt>{t('security.gateway.now')}</dt><dd>{g.change.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.change.mac}</span></dd></div>
                   {/if}

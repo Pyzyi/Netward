@@ -65,7 +65,7 @@
     {#if view.source === 'wlanlist'}<p class="notice info">{t('wlan.fallback')}</p>{/if}
 
     {#if !view.at}
-      {#if view.status !== 'auth'}<EmptyState text={t('wlan.pending')} />{/if}
+      {#if view.status !== 'auth' && view.status !== 'error' && view.fritzbox !== 'error'}<EmptyState text={t('wlan.pending')} />{/if}
     {:else}
       <section class="hints">
         <h2 class="eyebrow">{t('wlan.hints')}</h2>
@@ -300,6 +300,16 @@
     }
     td.name {
       grid-column: 1 / -1;
+    }
+    /* Without the header row each value names its column. */
+    td[data-label]::before {
+      content: attr(data-label) ' ';
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
     }
   }
 </style>

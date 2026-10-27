@@ -4,7 +4,7 @@
   import { toast } from '../../lib/components/toast.svelte';
   import { api } from '../../lib/api';
   import { errorText } from '../../lib/errors';
-  import { t } from '../../lib/i18n.svelte';
+  import { i18n, t } from '../../lib/i18n.svelte';
   import type { ReportContract } from '../../lib/types';
 
   // Evidence for the provider (docs/09, F5). The contract speeds are
@@ -15,6 +15,8 @@
   let from = $state(day(new Date(Date.now() - 30 * 86_400_000)));
   let to = $state(day(yesterday));
   const maxTo = day(yesterday);
+  // A report covers at most a year (the server refuses longer periods).
+  const minFrom = $derived(day(new Date(new Date(`${to}T12:00:00`).getTime() - 365 * 86_400_000)));
 
   const empty: ReportContract = { maxDown: 0, normalDown: 0, minDown: 0, maxUp: 0, normalUp: 0, minUp: 0 };
   function loadContract(): ReportContract {
@@ -39,7 +41,7 @@
       /* private mode: just not remembered */
     }
     try {
-      const { blob, name } = await api.report({ from, to, format, contract: c, holder, customer, address });
+      const { blob, name } = await api.report({ from, to, format, lang: i18n.lang, contract: c, holder, customer, address });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -66,7 +68,7 @@
   <div class="two">
     <div class="field">
       <label for="rf">{t('report.from')}</label>
-      <input id="rf" class="input" type="date" bind:value={from} max={to} />
+      <input id="rf" class="input" type="date" bind:value={from} min={minFrom} max={to} />
     </div>
     <div class="field">
       <label for="rt">{t('report.to')}</label>

@@ -177,11 +177,24 @@ func (s *Service) Statuses(ctx context.Context, now time.Time, loc *time.Locatio
 			}
 		}
 		if p.TrackTime && p.ConsentAt > 0 {
-			st.Days = days(u, now, loc)
+			// Only time since the confirmation: switching it on does not
+			// reveal the days before.
+			st.Days = days(clip(u, p.ConsentAt), now, loc)
 		}
 		out = append(out, st)
 	}
 	return out, nil
+}
+
+// clip drops the parts of u before from.
+func clip(u []span, from int64) []span {
+	var out []span
+	for _, x := range u {
+		if x.b > from {
+			out = append(out, span{max(x.a, from), x.b})
+		}
+	}
+	return out
 }
 
 // days sums the time at home over the last 7 calendar days, today last.

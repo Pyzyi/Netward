@@ -332,7 +332,9 @@
                   <span class="pname">{p.name}</span>
                   <span class="sub">{presenceText(p, home, clock.now)}</span>
                 </span>
-                <span class="badge {home ? 'ok' : ''}">{home ? t('persons.badge.home') : t('persons.badge.away')}</span>
+                {#if p.devices.some((d) => d.presence)}
+                  <span class="badge {home ? 'ok' : ''}">{home ? t('persons.badge.home') : t('persons.badge.away')}</span>
+                {/if}
               </li>
             {/each}
           </ul>

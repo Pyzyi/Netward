@@ -57,8 +57,10 @@ func (c *Checker) EvaluateNetwork(ctx context.Context) {
 			}
 			sev := "warning"
 			switch {
-			case len(refs) == 0:
+			case len(refs) == 0 && (s.Router == "" || c.mon.IsGatewayIP(s.Router)):
 				sev = "info" // nobody is known yet: ask which one is yours
+			case len(refs) == 0:
+				// Nothing to compare with, but it names a router that is not ours.
 			case handsOutOther(refs, s):
 				sev = "critical" // a different router or DNS: traffic can be redirected
 			}
@@ -78,12 +80,14 @@ func (c *Checker) EvaluateNetwork(ctx context.Context) {
 
 	var alerts []store.Finding
 	for _, f := range found {
-		isNew, err := c.st.UpsertFinding(ctx, f)
+		prev, err := c.st.UpsertFindingPrev(ctx, f)
 		if err != nil {
 			c.log.Error("store network finding", "err", err)
 			continue
 		}
-		if isNew && (f.Severity == "warning" || f.Severity == "critical") {
+		// New, or worse than before (a server first seen without a
+		// reference becomes critical once the router is known): alert.
+		if (f.Severity == "warning" || f.Severity == "critical") && sevRank[f.Severity] > sevRank[prev] {
 			alerts = append(alerts, f)
 		}
 	}
@@ -149,3 +153,6 @@ func handsOutOther(refs []monitor.DHCPServer, s monitor.DHCPServer) bool {
 	}
 	return false
 }
+
+// sevRank orders severities; "" (no finding before) ranks lowest.
+var sevRank = map[string]int{"": 0, "info": 1, "warning": 2, "critical": 3}

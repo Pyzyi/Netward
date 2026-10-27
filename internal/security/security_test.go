@@ -137,3 +137,56 @@ func TestActiveDHCPCheck(t *testing.T) {
 		t.Fatalf("probe MAC changed: %v -> %v", p.chaddr, mon2.DHCPProbeMAC())
 	}
 }
+
+// Review 8: a rogue server first seen without a reference is only "info";
+// once the router's server is known it becomes critical and must alert.
+func TestRogueDHCPEscalationAlerts(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := hub.New()
+	mon, err := monitor.New(ctx, st, h, nil, config.Defaults(), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gw := netip.MustParseAddr("192.168.1.1")
+	mon.SetNetwork([]netip.Addr{gw}, nil)
+	offer := func(server, router, dns netip.Addr) {
+		d := &proto.DHCP{Op: 2, MsgType: proto.DHCPOffer, ServerID: server, Router: router, DNS: []netip.Addr{dns}}
+		mon.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0x3c, 0, 0, 0, 0, server.As4()[3]}, IP: server, Iface: "eth0",
+			Source: "dhcp-server", DHCP: d, At: time.Now()})
+	}
+	r := &rec{}
+	c := New(st, mon, h, r, log)
+	rogue := netip.MustParseAddr("192.168.1.66")
+	offer(rogue, gw, netip.MustParseAddr("203.0.113.53"))
+	offer(netip.MustParseAddr("192.168.1.67"), gw, gw)
+	c.EvaluateNetwork(ctx)
+	if len(r.evs) != 0 {
+		t.Fatalf("alert without a reference: %+v", r.evs)
+	}
+	offer(gw, gw, gw)
+	c.EvaluateNetwork(ctx)
+	if len(r.evs) != 2 || r.evs[0].Severity == "info" {
+		t.Fatalf("escalation did not alert: %+v", r.evs)
+	}
+	// A server naming a router that is not ours is at least a warning,
+	// even when there is nothing to compare with.
+	st2, _ := store.Open(ctx, filepath.Join(t.TempDir(), "s2.db"))
+	defer st2.Close()
+	mon2, _ := monitor.New(ctx, st2, h, nil, config.Defaults(), log)
+	mon2.SetNetwork([]netip.Addr{gw}, nil)
+	for _, s := range []netip.Addr{netip.MustParseAddr("192.168.1.70"), netip.MustParseAddr("192.168.1.71")} {
+		d := &proto.DHCP{Op: 2, MsgType: proto.DHCPOffer, ServerID: s, Router: s}
+		mon2.Observe(ctx, l2.Sighting{MAC: net.HardwareAddr{0x3c, 0, 0, 0, 1, s.As4()[3]}, IP: s, Iface: "eth0", Source: "dhcp-server", DHCP: d, At: time.Now()})
+	}
+	r2 := &rec{}
+	New(st2, mon2, h, r2, log).EvaluateNetwork(ctx)
+	if len(r2.evs) != 2 || r2.evs[0].Severity != "warning" {
+		t.Fatalf("foreign router without reference: %+v", r2.evs)
+	}
+}
