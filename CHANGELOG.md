@@ -3,6 +3,21 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## 0.2.1 – 2026-10-27
+
+### Geändert
+- Neues Erscheinungsbild „Klartext“ für die ganze Oberfläche: ruhige weiße Flächen auf neutralem Grund, IBM Plex Sans
+  (Monospace nur noch für IP, MAC und Ports), Beschriftungen in normaler Schreibweise statt Versalien, Statuschips,
+  Segment-Schalter und runde Schalter. Hinweise sind getönte Flächen statt Kästen mit farbigem Randstrich.
+- Übersicht: Der Netzring ist größer und hat eine Legende; auf dem Handy wird er jetzt ebenfalls gezeigt. Oben steht
+  die Antwort als Satz („26 von 30 Geräten online“) statt einer Riesenzahl.
+- Geräteliste, Aktivität, Sicherheit, Personen und Einstellungen stehen in Panels; Personen auf breiten Bildschirmen
+  zweispaltig.
+- Dunkelmodus mit neutralem Grau statt Nachtblau.
+
+### Intern
+- Ungenutzte Abhängigkeit `@lucide/svelte` entfernt; NOTICE nennt die tatsächlich gebündelten Icons (Phosphor) und Schriften.
+
 ## 0.2.0 – 2026-10-27
 
 ### Behoben

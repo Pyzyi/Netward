@@ -1,50 +1,59 @@
 # 05 · UX- und Design-Konzept
 
-> Rolle: Product Designer · Status: **Redesign 2 „Leitstand“** (Abschnitt 0 ersetzt die visuellen Festlegungen
+> Rolle: Product Designer · Status: **Redesign 3 „Klartext“** (0.2.1; Abschnitt 0 ersetzt die visuellen Festlegungen
 > der Abschnitte 2–4; Prinzipien, Informationsarchitektur und Mikrotexte gelten weiter)
 
-## 0. Redesign 2 · Designsprache „Leitstand“
+## 0. Redesign 3 · Designsprache „Klartext“
 
 ### Warum
-Die erste Fassung war sauber, aber austauschbar: weiße Karten mit 1-px-Rahmen, linke Icon-Navigation,
-Kennzahl-Kacheln mit Farbpunkt, Pillen-Badges, SaaS-Blau, Lucide-Icons. Das ist der Baukasten fast jeder
-generierten Admin-Oberfläche. Nutzerfeedback: „sieht aus wie die nächste Vibecoding-App“.
+„Leitstand“ (Redesign 2) hatte eine eigene Idee, wirkte aber wieder generiert. Nutzerfeedback zu 0.2:
+„sieht immer noch nach Vibecode-KI-Slop aus“, nur die Übersicht mit dem Router in der Mitte überzeugte.
+Die Ursache waren Stilmittel, die heute fast jede generierte Oberfläche trägt:
+- Rubriken in Monospace-Versalien mit Sperrung („NEU“, „IP-ADRESSE“, „KRITISCH“)
+- eine 120-px-Kennzahl in Signalfarbe
+- Hinweise mit farbigem Randstrich links
+- harte schwarze Trennlinien
+- quadratische Statusmarken
+- warmes „Papier“ mit Tinte
 
 ### Leitidee
-Netzwart ist ein **Messinstrument für das eigene Netz**, kein SaaS-Dashboard. Vorbild ist ein Leitstand:
-dunkler Kopf mit Live-Zustand, darunter ruhiges „Papier“ mit dichten, tabellarischen Listen. Farbe bedeutet
-ausschließlich Zustand. Aktionen sind tintenschwarz, nicht blau.
+Netzwart soll wie ein gut gemachtes Werkzeug wirken, nicht wie eine Inszenierung. Ruhige weiße Flächen
+auf neutralem Grund, normale Schreibweise, klare Hierarchie über Größe und Gewicht. Gestaltung nur dort,
+wo sie Information trägt: der Netzring, der Herzschlag-Streifen, Statusfarben.
 
-### Erkennungszeichen (nur Netzwart hat das)
-1. **Netzring.** Die Übersicht zeigt das Netz als Ring: Router in der Mitte, jedes Gerät ein Punkt, nach
-   Kategorie gruppiert. Online gefüllt, offline hohl, neu mit Halo. Klick öffnet das Gerät. Live aktualisiert.
-2. **Herzschlag-Streifen.** Jede Gerätezeile zeigt die letzten 24 Stunden als 48 Takte. Man sieht auf einen
-   Blick, wer immer da ist, wer abends kommt, wer seit Tagen fehlt. Das kann weder Fing noch NetAlertX.
-3. **Tintenkopf.** Ein durchgehendes dunkles Band trägt Netzname, Subnetz, Navigation und den Live-Puls
-   des Scanners. Auf der Übersicht wird es zur Bühne für Ring und Kennzahlen.
+### Was bleibt
+1. **Netzring** auf dunkler Bühne: Router in der Mitte, Geräte als Punkte nach Kategorie. Jetzt größer
+   (bis 420 px), mit Legende (online, offline, neu) und Kategorienamen in normaler Schrift. Auf dem Handy
+   wird er ohne Beschriftung gezeigt, statt ganz zu fehlen.
+2. **Herzschlag-Streifen** der letzten 24 Stunden in der Geräteliste.
+3. **Dunkles Band** mit Netzname, Navigation und Scan-Status.
 
 ### Regeln
 | Thema | Regel |
 |---|---|
-| Fläche | Hintergrund warmes Papier `#F4F2EC`, nur schwebende Elemente (Detailpanel, Dialoge, Menüs) sind weiße Blätter. **Keine Karten-Raster.** Abschnitte trennen Haarlinien und Abstand. |
-| Farbe | Tinte `#0F1B2D` für Kopf, Primäraktionen, Überschriften. Status: Signalgrün (online), Bernstein (neu/Hinweis), Ziegelrot (kritisch). Kein Akzentblau, keine Verläufe (einzige Ausnahme: der Halo neuer Geräte). |
-| Schrift | **Schibsted Grotesk** (UI, Zahlen in Schwer 800) und **JetBrains Mono** (IP, MAC, Ports, Uhrzeiten, kleine Rubriken in Versalien). Große Zahlen statt Kacheln. |
-| Icons | **Phosphor**: Duotone für Gerätetypen in quadratischen Kacheln (Radius 10), Regular für Bedienelemente. Keine Icons ohne Funktion. |
-| Formen | Radien 4 px (Steuerelemente), 8 px (Blätter), 10 px (Geräte-Kacheln). Status-Pillen entfallen zugunsten von Text in Statusfarbe mit Punkt. |
-| Dichte | Gerätezeile 52 px, Listen ohne Rahmen, Hover als Papier-Tönung. |
-| Bewegung | Nur Bedeutung: Scan-Puls im Kopf, Halo neuer Geräte, Einblenden des Panels. `prefers-reduced-motion` schaltet alles ab. |
-| Dunkelmodus | Kopf und Fläche verschmelzen zu Nachtblau; Primäraktionen werden hell mit dunkler Schrift. |
+| Fläche | Grund `#F3F4F6`, Inhalte in weißen Panels (Radius 10 px, 1-px-Rahmen, kein Schatten). Listen stehen *in* Panels, Zeilen trennt eine Haarlinie. Keine Karten in Karten, keine Kennzahl-Kachelraster. |
+| Farbe | Primäraktion neutral dunkel (hell im Dunkelmodus). Blau `#2856C7` nur für Auswahl, Fokus und Schalter. Status: Grün (online), Bernstein (neu/Warnung), Rot (kritisch), Grau (offline). Keine Verläufe. |
+| Schrift | **IBM Plex Sans** für alles, **IBM Plex Mono** nur für IP, MAC, Ports und Versionen. Normale Schreibweise, keine Versalien-Rubriken. Uhrzeiten mit tabellarischen Ziffern in der Grundschrift. |
+| Hierarchie | Seitentitel 24 px/600, Abschnittstitel 15 px/600, Grundtext 14 px, Beschriftungen 12–13 px/500 in Grau. Höchstes Gewicht 600. |
+| Status | Kleine getönte Chips in normaler Schreibweise („Neu“, „Update“, „Kritisch“) statt Versalien mit Quadrat. Punkte vor Wörtern, wo der Platz knapp ist. |
+| Hinweise | Getönte Fläche mit Symbol und feinem Rahmen in Statusfarbe, kein Randstrich. |
+| Bedienelemente | Segment-Schalter für Filter und Zeiträume, runde Schalter, Radius 6 px für Felder und Knöpfe. Fokus als blauer Ring. |
+| Bewegung | Nur Bedeutung: Scan-Puls im Band, Halo neuer Geräte, Einblenden des Panels. `prefers-reduced-motion` schaltet alles ab. |
+| Dunkelmodus | Neutrales Fast-Schwarz statt Nachtblau für Flächen, das Band bleibt dunkler als der Grund. |
 
 ### Seiten
-- **Übersicht:** Tintenbühne mit großer Zahl „24 von 28 online“, Neu/Offline/Internet als Zeile darunter,
-  rechts der Netzring. Auf Papier: „Braucht Aufmerksamkeit“, „Letzte Aktivität“ (Zeitachse mit Uhrzeit in Mono),
-  Sicherheit, Gerätetypen als ein gestapelter Balken statt 18 Zeilen.
-- **Geräte:** Register mit Suche, Filter als Textreiter mit Zählern, Zeilen mit Kachel · Name/Modell · IP ·
-  Herzschlag · Status.
-- **Gerätedetail:** weißes Blatt rechts; Kopf mit großer Kachel, Name, Statuszeile; Aktionen als Werkzeugleiste.
-- **Aktivität:** Tagesrubriken, Uhrzeit-Spalte in Mono, Schweregrad als feine Linie.
-- **Sicherheit:** Prüfbericht: Schweregrad in Versalien links, Befund, Gerät, aufklappbar „Warum / Was tun“.
-- **Anmeldung/Einrichtung:** geteilt: links Tintenfläche mit Ring-Grafik, rechts Formular auf Papier.
+- **Übersicht:** dunkle Bühne mit der Antwort als Satz („26 von 30 Geräten online“, die Zahl in Grün), darunter
+  Neu, Offline und Internet mit Latenzkurve; rechts der Netzring. Darunter zwei Spalten mit Panels:
+  Braucht Aufmerksamkeit, Software und Updates, Gerätetypen; Wer ist zu Hause, Letzte Aktivität, Sicherheit.
+- **Geräte:** Suche, Gruppierung und Sortierung in einer Zeile, Filter als Segment-Schalter mit Zählern,
+  die Liste als ein Panel mit Spaltenköpfen. Das Gerätedetail ist ein Panel rechts (Desktop) bzw. Vollbild (Handy).
+- **Aktivität:** ein Panel je Tag, Uhrzeit links, Symbol, Satz.
+- **Sicherheit:** Zählchips (Kritisch, Warnung, Hinweis), Befunde in einem Panel mit Schweregrad-Chip,
+  aufklappbar „Warum / Was tun“.
+- **Personen:** ein Panel je Person, auf breiten Bildschirmen zweispaltig.
+- **Einstellungen:** Navigation links als Liste mit hinterlegtem aktivem Eintrag, jeder Abschnitt ein Panel
+  mit Fußzeile für Speichern.
+- **Anmeldung/Einrichtung:** links das dunkle Band mit dem Ring, rechts das Formular.
 
 ## 1. Gestaltungsprinzipien
 
@@ -61,9 +70,8 @@ ausschließlich Zustand. Aktionen sind tintenschwarz, nicht blau.
 ## 2. Design-Tokens
 
 Die verbindlichen Tokens stehen in [`web/src/app.css`](../web/src/app.css) und folgen Abschnitt 0
-(Papier, Tinte, Signalgrün, Bernstein, Ziegelrot; Schibsted Grotesk und JetBrains Mono; Radien 4/8/10 px).
-Typografie-Skala: 11 (Mono-Rubriken), 13, 14 (Basis), 16, 20, 30 px sowie Displaygrößen für Kennzahlen;
-Gewichte 400/500 (Mono)/600/800. Alle Text- und Steuerelement-Kontraste prüft `npm run contrast` in CI
+(neutraler Grund, weiße Panels, Grün, Bernstein, Rot, Blau nur für Auswahl; IBM Plex Sans und IBM Plex Mono;
+Radien 5/6/10 px). Typografie-Skala: 12, 13, 14 (Basis), 15, 16, 20/22, 24, 30 px; Gewichte 400/500/600. Alle Text- und Steuerelement-Kontraste prüft `npm run contrast` in CI
 (hell und dunkel, ≥ 4,5:1 für Text, ≥ 3:1 für Steuerelemente).
 
 ## 3. Informationsarchitektur
