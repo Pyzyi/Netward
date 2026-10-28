@@ -23,7 +23,7 @@
 
   // The Wi-Fi view belongs to the devices.
   const active = (name: string) =>
-    router.route.name === name || (name === 'devices' && router.route.name === 'wlan') || (name === 'overview' && router.route.name === 'persons');
+    router.route.name === name || (name === 'devices' && (router.route.name === 'wlan' || router.route.name === 'wifimap')) || (name === 'overview' && router.route.name === 'persons');
 
   function badgeFor(name: string): number {
     if (name === 'devices') return newCount;

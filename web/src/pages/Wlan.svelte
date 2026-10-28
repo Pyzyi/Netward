@@ -50,7 +50,10 @@
       <h1>{t('wlan.title')}</h1>
       <p class="lead">{t('wlan.lead')}</p>
     </div>
-    {#if view?.at}<span class="faint small">{t('wlan.asOf', { t: relTime(view.at, clock.now) })}</span>{/if}
+    <div class="head-side">
+      <a class="btn" href="/wlan/map" use:link><Icon name="map-trifold" size={16} /> {t('wlan.mapLink')}</a>
+      {#if view?.at}<span class="faint small">{t('wlan.asOf', { t: relTime(view.at, clock.now) })}</span>{/if}
+    </div>
   </header>
 
   {#if !view}
@@ -147,6 +150,11 @@
 </div>
 
 <style>
+  .head-side {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+  }
   .small {
     font-size: 13px;
   }

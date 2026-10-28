@@ -44,23 +44,6 @@ import (
 	"github.com/Pyzyi/netzwart/internal/wlan"
 )
 
-// ownAddr reports addresses of this host; its own connections to the
-// decoys (e.g. a health check) are never an alarm.
-func ownAddr(ip netip.Addr) bool {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return false
-	}
-	for _, a := range addrs {
-		if n, ok := a.(*net.IPNet); ok {
-			if x, ok := netip.AddrFromSlice(n.IP); ok && x.Unmap() == ip {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // DBPath returns the database file inside the data directory.
 func DBPath(env config.Env) string { return filepath.Join(env.DataDir, "netzwart.db") }
 
@@ -174,7 +157,7 @@ func Run(ctx context.Context, o Options) error {
 	var trip *tripwire.Manager
 	var tripStatus func() tripwire.Status
 	if !env.Demo {
-		trip = tripwire.New(log, o.Priv.Tripwire, ownAddr, func(hit tripwire.Hit) { sec.Tripwire(ctx, hit) })
+		trip = tripwire.New(log, o.Priv.Tripwire, netinfo.IsOwnAddr, func(hit tripwire.Hit) { sec.Tripwire(ctx, hit) })
 		trip.Configure(settings.Tripwire, settings.TripwirePorts, settings.TripwirePrefixes())
 		defer trip.Close()
 		tripStatus = trip.Status

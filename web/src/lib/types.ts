@@ -438,3 +438,52 @@ export interface HistoryEntry {
   kind: string;
   data: Record<string, unknown>;
 }
+
+/** Wi-Fi map (docs/10, F4). */
+export interface FloorPlan {
+  id: number;
+  name: string;
+  mime: string;
+  width: number;
+  height: number;
+  createdAt: number;
+  points: number;
+}
+
+export interface WifiPoint {
+  id: number;
+  planId: number;
+  x: number;
+  y: number;
+  room: string;
+  downMbps: number;
+  upMbps: number;
+  latencyMs: number;
+  jitterMs: number;
+  deviceId?: number;
+  band?: string;
+  signalDbm?: number;
+  ap?: string;
+  ts: number;
+}
+
+export interface WifiHint {
+  kind: 'weak' | 'unstable' | 'good';
+  pointId?: number;
+  room?: string;
+  downMbps: number;
+  latencyMs?: number;
+  jitterMs?: number;
+  best?: string;
+  bestMbps?: number;
+  via?: string;
+  band24?: boolean;
+  severe?: boolean;
+}
+
+export interface WifiMapView {
+  points: WifiPoint[];
+  hints: WifiHint[];
+  /** The spot the colours compare with (an outlier far above the rest is skipped). */
+  refMbps: number;
+}

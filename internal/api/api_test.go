@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"image"
+	pngenc "image/png"
 	"io"
 	"log/slog"
 	"net"
@@ -810,5 +812,111 @@ func TestPersonsEndpoints(t *testing.T) {
 	}
 	if rec := do("POST", "/api/v1/persons", map[string]any{"name": " "}); rec.Code != 400 {
 		t.Fatalf("empty name: %d", rec.Code)
+	}
+}
+
+func TestWifiMapFlow(t *testing.T) {
+	h := newHarness(t)
+	s := h.setup()
+	raw := func(method, path, ctype string, body []byte, remote string) *httptest.ResponseRecorder {
+		hr := httptest.NewRequest(method, path, bytes.NewReader(body))
+		hr.Host = testHost
+		hr.RemoteAddr = remote
+		hr.Header.Set("Content-Type", ctype)
+		hr.Header.Set("Origin", testOrigin)
+		hr.Header.Set("X-CSRF-Token", s.csrf)
+		hr.AddCookie(s.cookie)
+		rec := httptest.NewRecorder()
+		h.h.ServeHTTP(rec, hr)
+		return rec
+	}
+	var png bytes.Buffer
+	_ = pngenc.Encode(&png, image.NewGray(image.Rect(0, 0, 400, 300)))
+
+	if rec := raw("POST", "/api/v1/wifimap/plans?name=EG", "image/jpeg", png.Bytes(), "192.168.1.20:1"); rec.Code != 400 {
+		t.Fatalf("PNG sent as JPEG: %d", rec.Code)
+	}
+	if rec := raw("POST", "/api/v1/wifimap/plans?name=EG", "image/svg+xml", []byte("<svg/>"), "192.168.1.20:1"); rec.Code != 415 {
+		t.Fatalf("SVG accepted: %d", rec.Code)
+	}
+	rec := raw("POST", "/api/v1/wifimap/plans?name=Erdgeschoss", "image/png", png.Bytes(), "192.168.1.20:1")
+	var plan store.FloorPlan
+	if rec.Code != 201 || json.Unmarshal(rec.Body.Bytes(), &plan) != nil || plan.Width != 400 || plan.Height != 300 {
+		t.Fatalf("upload: %d %s", rec.Code, rec.Body)
+	}
+	base := "/api/v1/wifimap/plans/" + itoa(plan.ID)
+	if rec := h.do(req{method: "GET", path: base + "/image", cookie: s.cookie}); rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("image: %d %v", rec.Code, rec.Header())
+	}
+
+	// The phone at 192.168.1.44 is a known Wi-Fi device: band and signal come from the FRITZ!Box.
+	h.mon.Observe(context.Background(), l2.Sighting{MAC: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0, 0, 2}, IP: netip.MustParseAddr("192.168.1.44"),
+		Iface: "eth0", Source: "arp", ARP: true, At: time.Now()})
+	data, _ := os.ReadFile("../fritzbox/testdata/meshlist.json")
+	mesh, err := fritzbox.ParseMeshList(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := wlan.New(h.mon)
+	tr.SeedDemo(mesh, time.Now())
+	h.srv.d.WLAN = tr
+	point := func(room string, x float64, down float64) []byte {
+		b, _ := json.Marshal(map[string]any{"x": x, "y": 0.5, "room": room, "downMbps": down, "upMbps": down / 2, "latencyMs": 5, "jitterMs": 1})
+		return b
+	}
+	for _, p := range []struct {
+		room string
+		x    float64
+		down float64
+	}{{"Wohnzimmer", 0.1, 300}, {"Flur", 0.5, 200}, {"Kinderzimmer", 0.9, 35}} {
+		if rec := raw("POST", base+"/points", "application/json", point(p.room, p.x, p.down), "192.168.1.44:2"); rec.Code != 201 {
+			t.Fatalf("point: %d %s", rec.Code, rec.Body)
+		}
+	}
+	if rec := raw("POST", base+"/points", "application/json", point("Server", 0.5, 9000), "127.0.0.1:2"); rec.Code != 400 ||
+		!strings.Contains(rec.Body.String(), "measure_local") {
+		t.Fatalf("measured on the host itself: %d %s", rec.Code, rec.Body)
+	}
+	if rec := raw("POST", base+"/points", "application/json", point("x", 1.5, 10), "192.168.1.44:2"); rec.Code != 400 {
+		t.Fatalf("x out of range: %d", rec.Code)
+	}
+	var view struct {
+		Points []store.WifiPoint `json:"points"`
+		Hints  []struct {
+			Kind, Room, Via string
+		} `json:"hints"`
+	}
+	rec = h.do(req{method: "GET", path: base + "/points", cookie: s.cookie})
+	if json.Unmarshal(rec.Body.Bytes(), &view) != nil || len(view.Points) != 3 {
+		t.Fatalf("points: %s", rec.Body)
+	}
+	if p := view.Points[0]; p.DeviceID == 0 || p.Band == "" || p.AP == "" {
+		t.Fatalf("device and link not recorded: %+v", p)
+	}
+	if len(view.Hints) != 1 || view.Hints[0].Kind != "weak" || view.Hints[0].Room != "Kinderzimmer" || view.Hints[0].Via != "Flur" {
+		t.Fatalf("hints: %+v", view.Hints)
+	}
+
+	rec = h.do(req{method: "GET", path: "/api/v1/wifimap/download?bytes=3000000", cookie: s.cookie})
+	if rec.Code != 200 || rec.Body.Len() != 3000000 {
+		t.Fatalf("download: %d %d", rec.Code, rec.Body.Len())
+	}
+	if rec := h.do(req{method: "GET", path: "/api/v1/wifimap/download?bytes=999999999", cookie: s.cookie}); rec.Code != 400 {
+		t.Fatalf("huge download: %d", rec.Code)
+	}
+	rec = raw("POST", "/api/v1/wifimap/upload", "application/octet-stream", make([]byte, 500000), "192.168.1.44:2")
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"bytes":500000`) {
+		t.Fatalf("upload: %d %s", rec.Code, rec.Body)
+	}
+
+	if rec := h.do(req{method: "DELETE", path: base + "/points/" + itoa(view.Points[2].ID), cookie: s.cookie, csrf: s.csrf}); rec.Code != 200 ||
+		strings.Contains(rec.Body.String(), "Kinderzimmer") {
+		t.Fatalf("delete point: %d %s", rec.Code, rec.Body)
+	}
+	if rec := h.do(req{method: "DELETE", path: base, cookie: s.cookie, csrf: s.csrf}); rec.Code != 204 {
+		t.Fatalf("delete plan: %d", rec.Code)
+	}
+	if rec := h.do(req{method: "GET", path: base + "/points", cookie: s.cookie}); rec.Code != 404 {
+		t.Fatalf("points of deleted plan: %d", rec.Code)
 	}
 }

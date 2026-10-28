@@ -243,4 +243,35 @@ CREATE TABLE device_log (
 );
 CREATE INDEX device_log_device ON device_log(device_id, ts);
 `,
+	// 8: Wi-Fi map (docs/10, F4): floor plans and the speed measured at
+	// points on them. x and y are relative (0..1) so the plan can be shown
+	// at any size.
+	`
+CREATE TABLE floor_plans (
+	id         INTEGER PRIMARY KEY,
+	name       TEXT NOT NULL,
+	mime       TEXT NOT NULL,
+	image      BLOB NOT NULL,
+	width      INTEGER NOT NULL,
+	height     INTEGER NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE TABLE wifi_points (
+	id         INTEGER PRIMARY KEY,
+	plan_id    INTEGER NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+	x          REAL NOT NULL,
+	y          REAL NOT NULL,
+	room       TEXT NOT NULL DEFAULT '',
+	down_mbps  REAL NOT NULL,
+	up_mbps    REAL NOT NULL,
+	latency_ms REAL NOT NULL,
+	jitter_ms  REAL NOT NULL,
+	device_id  INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+	band       TEXT NOT NULL DEFAULT '',
+	signal_dbm INTEGER NOT NULL DEFAULT 0,
+	ap         TEXT NOT NULL DEFAULT '',
+	ts         INTEGER NOT NULL
+);
+CREATE INDEX wifi_points_plan ON wifi_points(plan_id);
+`,
 }

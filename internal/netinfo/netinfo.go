@@ -254,3 +254,20 @@ func parseARPCache(r io.Reader) ([]Neighbor, error) {
 	}
 	return out, sc.Err()
 }
+
+// IsOwnAddr reports whether ip belongs to an interface of this host.
+func IsOwnAddr(ip netip.Addr) bool {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return false
+	}
+	ip = ip.Unmap()
+	for _, a := range addrs {
+		if n, ok := a.(*net.IPNet); ok {
+			if x, ok := netip.AddrFromSlice(n.IP); ok && x.Unmap() == ip {
+				return true
+			}
+		}
+	}
+	return false
+}

@@ -6,6 +6,7 @@ export type Route =
   | { name: 'activity' }
   | { name: 'security' }
   | { name: 'wlan' }
+  | { name: 'wifimap' }
   | { name: 'persons' }
   | { name: 'settings'; section: string };
 
@@ -21,7 +22,7 @@ function parse(path: string): Route {
     case 'security':
       return { name: 'security' };
     case 'wlan':
-      return { name: 'wlan' };
+      return parts[1] === 'map' ? { name: 'wifimap' } : { name: 'wlan' };
     case 'persons':
       return { name: 'persons' };
     case 'settings':

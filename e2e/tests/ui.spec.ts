@@ -302,3 +302,36 @@ test('tripwire: alarm, status and settings', async ({ page }) => {
   await ports.fill('2323, 3389, 5555, 5900, 8081');
   expect(problems).toEqual([]);
 });
+
+test('Wi-Fi map: hints, measuring, own floor plan', async ({ page }) => {
+  test.setTimeout(60_000);
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/wlan');
+  await page.getByRole('link', { name: 'WLAN-Karte' }).click();
+  await expect(page.getByRole('heading', { name: 'WLAN-Karte', level: 1 })).toBeVisible();
+  await expect(page.getByText('Im Kinderzimmer nur 38 Mbit/s, ein Verstärker im Flur würde helfen.')).toBeVisible();
+  await expect(page.getByText(/Im Schlafzimmer schwankt die Verbindung/)).toBeVisible();
+
+  // Measure at a spot (demo mode accepts measurements from this machine).
+  await page.locator('.map').click({ position: { x: 40, y: 40 } });
+  await page.getByLabel('Raum').fill('Testecke');
+  await page.getByRole('button', { name: 'Hier messen' }).click();
+  await expect(page.getByText(/^Testecke: .* Mbit\/s Download/)).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Messpunkt Testecke löschen' }).click();
+  await expect(page.getByRole('button', { name: 'Messpunkt Testecke löschen' })).toHaveCount(0);
+
+  // Upload a second floor plan, then delete it again.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKklEQVR42u3NMQEAAAjDMMC/52ECvlRA00nqs3sHAgQIECBAgAABAgQIEGcBpwYBX4bJfoAAAAAASUVORK5CYII=',
+    'base64',
+  );
+  await page.getByLabel('Name').last().fill('Keller');
+  await page.locator('input[type=file]').last().setInputFiles({ name: 'keller.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByRole('heading', { name: 'Keller' })).toBeVisible();
+  await page.getByRole('button', { name: 'Löschen' }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Löschen' }).click();
+  await expect(page.getByRole('heading', { name: 'Keller' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Wohnung' })).toBeVisible();
+  expect(problems).toEqual([]);
+});

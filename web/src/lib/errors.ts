@@ -33,6 +33,10 @@ const validationDE: Record<string, string> = {
   '1-65535': '1 bis 65535',
   'invalid credentials': 'ungültige Zugangsdaten',
   'topics may only contain a-z, 0-9, _ - /': 'Topics dürfen nur a–z, 0–9, _ - / enthalten',
+  'max. 16': 'höchstens 16',
+  'max. 32': 'höchstens 32',
+  '1024-65535, each once': '1024 bis 65535, jeder Port nur einmal',
+  'use an IP address or network such as 192.168.1.0/24': 'bitte eine IP-Adresse oder ein Netz wie 192.168.1.0/24',
 };
 
 const fieldDE: Record<string, string> = {
@@ -59,6 +63,8 @@ const fieldDE: Record<string, string> = {
   url: 'die Webhook-URL',
   headerValue: 'den Header-Wert',
   password: 'das Passwort',
+  tripwirePorts: 'Stolperdraht-Ports',
+  tripwireAllow: 'Stolperdraht-Ausnahmen',
 };
 
 function translateLine(line: string): string {

@@ -87,7 +87,7 @@ var demoEnglish = map[string]string{
 	"Wohnzimmer Arc": "Living room Arc", "Repeater OG": "Upstairs repeater", "Oma": "Grandma",
 	"Arbeitszimmer": "Office", "Außen": "Outside", "Bad": "Bathroom", "Erdgeschoss": "Ground floor", "Flur": "Hallway",
 	"Keller": "Basement", "Kinderzimmer": "Kids' room", "Obergeschoss": "Upstairs", "Schlafzimmer": "Bedroom",
-	"Wohnzimmer": "Living room",
+	"Wohnzimmer": "Living room", "Wohnung": "Flat",
 }
 
 // demoText returns s in the demo language ("de" or "en").
@@ -277,6 +277,8 @@ func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 	idc, _ := json.Marshal(map[string]any{"name": demoText(lang, "Laptop Kinder"), "from": "windows", "to": "linux", "deviceType": "laptop"})
 	events = append(events, store.Event{TS: changedAt, Kind: "identity_changed", Severity: "warning", DeviceID: laptop, Data: idc})
 	_ = st.AddDeviceLog(ctx, laptop, changedAt, "identity_changed", idc)
+
+	seedWifiMap(ctx, st, lang, ids["6e:41:0a:93:21:5c"], now)
 
 	// Device history and inventory (docs/10, F1).
 	day := func(daysAgo int) int64 { return now.AddDate(0, 0, -daysAgo).UnixMilli() }

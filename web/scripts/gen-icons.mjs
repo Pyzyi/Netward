@@ -12,7 +12,8 @@ const ui = [
   'pulse', 'wifi-slash', 'wifi-high', 'user-plus', 'shuffle', 'paper-plane-tilt', 'magnifying-glass', 'power', 'plus',
   'git-merge', 'lock-simple', 'squares-four', 'key', 'dots-three', 'download-simple', 'copy', 'caret-right',
   'caret-down', 'caret-left', 'arrow-left', 'devices', 'clock-counter-clockwise', 'list-bullets', 'moon', 'sun',
-  'broadcast', 'heartbeat', 'arrow-square-out', 'eye', 'eye-slash', 'funnel', 'circle-half',
+  'broadcast', 'heartbeat', 'arrow-square-out', 'eye', 'eye-slash', 'funnel', 'circle-half', 'upload-simple',
+  'map-trifold', 'gauge',
 ];
 // Device glyphs (duotone)
 const devices = [

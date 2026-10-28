@@ -1,6 +1,7 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, LineSample, NetworkState, Person, PersonStatus, ReportRequest, SoftwareAssessment, WlanView, HistoryEntry } from './types';
+  InternetStatus, LineSample, NetworkState, Person, PersonStatus, ReportRequest, SoftwareAssessment, WlanView, HistoryEntry,
+  FloorPlan, WifiMapView } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -37,16 +38,22 @@ async function download(path: string, body: unknown): Promise<{ blob: Blob; name
   return { blob: await res.blob(), name: m?.[1] ?? 'netzwart' };
 }
 
+/** Headers for a request that changes something (CSRF protection). */
+export function writeHeaders(): Record<string, string> {
+  return csrf ? { 'X-CSRF-Token': csrf } : {};
+}
+
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const raw = body instanceof Blob;
+  if (body !== undefined) headers['Content-Type'] = raw ? body.type : 'application/json';
   if (method !== 'GET' && csrf) headers['X-CSRF-Token'] = csrf;
   let res: Response;
   try {
     res = await fetch(`/api/v1${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
       credentials: 'same-origin',
       cache: 'no-store',
     });
@@ -119,6 +126,14 @@ export const api = {
   runSecurity: () => request<void>('POST', '/security/run'),
   dismissFinding: (id: number, dismissed: boolean) => request<void>('POST', `/security/findings/${id}/dismiss`, { dismissed }),
   network: () => request<NetworkState>('GET', '/network'),
+  floorPlans: () => request<FloorPlan[]>('GET', '/wifimap/plans'),
+  addFloorPlan: (name: string, image: Blob) => request<FloorPlan>('POST', `/wifimap/plans?name=${encodeURIComponent(name)}`, image),
+  renameFloorPlan: (id: number, name: string) => request<void>('PATCH', `/wifimap/plans/${id}`, { name }),
+  deleteFloorPlan: (id: number) => request<void>('DELETE', `/wifimap/plans/${id}`),
+  wifiPoints: (id: number) => request<WifiMapView>('GET', `/wifimap/plans/${id}/points`),
+  addWifiPoint: (id: number, p: { x: number; y: number; room: string; downMbps: number; upMbps: number; latencyMs: number; jitterMs: number }) =>
+    request<WifiMapView>('POST', `/wifimap/plans/${id}/points`, p),
+  deleteWifiPoint: (id: number, point: number) => request<WifiMapView>('DELETE', `/wifimap/plans/${id}/points/${point}`),
   wlan: () => request<WlanView>('GET', '/wlan'),
   report: (b: ReportRequest) => download('/report', b),
   persons: () => request<PersonStatus[]>('GET', '/persons'),

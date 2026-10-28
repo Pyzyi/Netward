@@ -169,3 +169,23 @@ func (t *Tracker) View() View {
 	}
 	return v
 }
+
+// Link returns how a device is connected right now (band, signal and the
+// name of its access point), as of the last poll.
+func (t *Tracker) Link(mac string) (fritzbox.WLANClient, string, bool) {
+	mac = strings.ToLower(mac)
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, c := range t.state.Clients {
+		if strings.ToLower(c.MAC) != mac {
+			continue
+		}
+		for _, a := range t.state.APs {
+			if a.MAC == c.APMAC {
+				return c, a.Name, true
+			}
+		}
+		return c, "", true
+	}
+	return fritzbox.WLANClient{}, "", false
+}
