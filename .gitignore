@@ -13,3 +13,7 @@
 /e2e/playwright-report/
 /tools/_*/
 /web/.svelte-kit/
+.env
+.env.*
+*.pem
+*.key

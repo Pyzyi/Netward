@@ -14,7 +14,7 @@ Die meisten Besucher entscheiden in wenigen Sekunden anhand von Beschreibung, Vo
    - Website: `https://github.com/Pyzyi/netzwart#readme`
    - Topics: `self-hosted selfhosted homelab network-monitoring network-scanner device-discovery home-network
      presence-detection home-assistant docker zimaos casaos unraid truenas fritzbox security golang svelte`
-   - Alternativ am Rechner: `sh scripts/github-repo-setup.sh` (setzt alles auf einmal und schaltet Discussions ein).
+   - Alternativ am Rechner: `sh scripts/github-repo-setup.sh` (setzt alles auf einmal, schaltet Discussions und private Sicherheitsmeldungen ein und schützt die Release-Tags vor Verschieben und Löschen).
 2. **Vorschaubild:** Settings → General → Social preview → [`docs/social-preview.png`](social-preview.png)
    hochladen. Das Bild erscheint, wenn der Link auf Reddit, Mastodon, Discord oder in Messengern geteilt wird.
 3. **Discussions einschalten:** Settings → General → Features → Discussions. Die Issue-Vorlagen verweisen für

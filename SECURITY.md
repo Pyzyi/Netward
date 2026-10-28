@@ -36,7 +36,7 @@ Gegenmaßnahme und Nachweis). Kurzfassung:
 
 ```bash
 cosign verify ghcr.io/pyzyi/netzwart:latest \
-  --certificate-identity-regexp '^https://github.com/Pyzyi/netzwart/\.github/workflows/ci\.yml@' \
+  --certificate-identity-regexp '^https://github\.com/Pyzyi/netzwart/\.github/workflows/ci\.yml@refs/(heads/main|tags/v[0-9.]+)$' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

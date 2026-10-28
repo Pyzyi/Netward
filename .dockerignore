@@ -5,6 +5,7 @@
 !internal/
 !web/
 web/node_modules/
+web/.env*
 web/dist/
 cmd/netzwart/web/
 **/*_test.go

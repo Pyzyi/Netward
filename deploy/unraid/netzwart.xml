@@ -5,7 +5,7 @@
   <Registry>https://github.com/Pyzyi/netzwart/pkgs/container/netzwart</Registry>
   <Network>host</Network>
   <MyIP/>
-  <Shell>sh</Shell>
+  <Shell/>
   <Privileged>false</Privileged>
   <Support>https://github.com/Pyzyi/netzwart/issues</Support>
   <Project>https://github.com/Pyzyi/netzwart</Project>

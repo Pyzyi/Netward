@@ -40,5 +40,5 @@ body:
     id: logs
     attributes:
       label: Log output
-      description: "`docker logs netzwart` (remove anything private, e.g. MAC addresses)"
+      description: "`docker logs netzwart` – remove anything private first: passwords (a password reset prints the new one) and MAC addresses"
       render: text

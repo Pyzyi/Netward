@@ -11,6 +11,7 @@ permissions:
 jobs:
   oui:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: write
       pull-requests: write
@@ -39,6 +40,13 @@ jobs:
           go run ./tools/ouigen -in "$RUNNER_TEMP/oui/package/index.json" -out internal/oui/oui.tsv.gz
           go test ./internal/oui
           gzip -dc internal/oui/oui.tsv.gz > "$RUNNER_TEMP/new.tsv"
+          # The registry changes by a few hundred entries a week. A large
+          # rewrite (a broken or tampered package) needs a look by hand.
+          removed=$(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^<' || true)
+          old=$(wc -l < "$RUNNER_TEMP/old.tsv")
+          if [ "$removed" -gt $((old / 50)) ]; then
+            echo "::error::$removed of $old entries removed or changed; check oui-data by hand"; exit 1
+          fi
       - name: Describe the change for review
         env:
           VERSION: ${{ steps.pkg.outputs.version }}
@@ -50,6 +58,8 @@ jobs:
             echo "Package integrity: \`$INTEGRITY\`"
             echo
             echo "Entries: $(wc -l < "$RUNNER_TEMP/old.tsv") → $(wc -l < "$RUNNER_TEMP/new.tsv")"
+            echo "Lines removed or changed: $(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^<' || true), added or changed: $(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^>' || true)"
+            echo "Published by: $(npm view "oui-data@$VERSION" _npmUser.name 2>/dev/null || echo unknown)"
             echo
             echo '<details><summary>Changed entries (first 300 lines)</summary>'
             echo

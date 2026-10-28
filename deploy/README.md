@@ -117,3 +117,11 @@ Notes for Unraid:
 
 Please report bugs on GitHub; questions are welcome here.
 ```
+
+## Note on the data folder owner (PUID/PGID)
+
+The Unraid template uses 99:100 (`nobody:users`) and the TrueNAS app 568 (`apps`), because that is what users of
+those systems expect. Many other containers run with the same IDs. Any of them that mounts the same appdata path could
+read Netzwart's database (password hash, notification tokens, FRITZ!Box and MQTT credentials). The data folder is
+created with mode 0700 and nothing else should mount it; if you want a clear separation, give Netzwart its own UID/GID
+(e.g. 10001, the image default) and `chown` the folder to it.
