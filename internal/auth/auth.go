@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/netip"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -206,10 +207,17 @@ func HashToken(t string) []byte {
 
 // Limiter throttles failed logins with exponential backoff per key.
 type Limiter struct {
-	mu    sync.Mutex
-	state map[string]*attempts
-	now   func() time.Time
+	mu      sync.Mutex
+	state   map[string]*attempts
+	sweptAt time.Time
+	now     func() time.Time
 }
+
+// maxKeys bounds the remembered keys. When the table is full, new keys are
+// not tracked until old ones expire: a flood of fresh addresses or names
+// then costs nothing but the (single-slot) password hashing it waits for,
+// while keys already under backoff, such as the owner's account, stay.
+const maxKeys = 10000
 
 type attempts struct {
 	failures int
@@ -227,9 +235,16 @@ type Key struct {
 	Max  time.Duration // longest backoff
 }
 
-// IPKey limits one client address: 5 free attempts, then up to 15 minutes.
-func IPKey(prefix, ip string) Key {
-	return Key{Name: prefix + "/ip/" + ip, Free: 5, Max: 15 * time.Minute}
+// IPKey limits one client: 5 free attempts, then up to 15 minutes. IPv6
+// clients count per /64, since a host can use any address of its network.
+func IPKey(prefix string, ip netip.Addr) Key {
+	ip = ip.Unmap()
+	name := ip.String()
+	if ip.Is6() {
+		p, _ := ip.Prefix(64)
+		name = p.String()
+	}
+	return Key{Name: prefix + "/ip/" + name, Free: 5, Max: 15 * time.Minute}
 }
 
 // UserKey limits guesses against one account from many addresses. Its backoff
@@ -264,9 +279,10 @@ func (l *Limiter) Begin(keys ...Key) (end func(Outcome) int, wait time.Duration,
 	if wait > 0 {
 		return nil, wait, false
 	}
-	if len(l.state) > 10000 {
+	if len(l.state) >= maxKeys && now.Sub(l.sweptAt) >= time.Minute {
+		l.sweptAt = now
 		for k, a := range l.state {
-			if now.Sub(a.last) > time.Hour {
+			if now.Sub(a.last) > time.Hour && !a.until.After(now) {
 				delete(l.state, k)
 			}
 		}
@@ -274,6 +290,9 @@ func (l *Limiter) Begin(keys ...Key) (end func(Outcome) int, wait time.Duration,
 	for _, k := range keys {
 		a := l.state[k.Name]
 		if a == nil || now.Sub(a.last) > 24*time.Hour {
+			if a == nil && len(l.state) >= maxKeys {
+				continue // full: not tracked (see maxKeys)
+			}
 			a = &attempts{}
 			l.state[k.Name] = a
 		}
@@ -299,7 +318,9 @@ func (l *Limiter) Begin(keys ...Key) (end func(Outcome) int, wait time.Duration,
 				case Success:
 					delete(l.state, k.Name)
 				case Refund:
-					if a.failures--; a.failures < k.Free {
+					if a.failures--; a.failures <= 0 {
+						delete(l.state, k.Name) // nothing left to remember
+					} else if a.failures < k.Free {
 						a.until = time.Time{}
 					}
 				}

@@ -118,7 +118,7 @@ func (s *Server) createSession(ctx context.Context, w http.ResponseWriter, r *ht
 type stateResponse struct {
 	SetupRequired bool   `json:"setupRequired"`
 	SetupAllowed  bool   `json:"setupAllowed"`
-	SetupReason   string `json:"setupReason,omitempty"` // expired | not_local
+	SetupReason   string `json:"setupReason,omitempty"` // expired | not_local | proxy
 	SetupToken    bool   `json:"setupTokenRequired"`
 	Authenticated bool   `json:"authenticated"`
 	Username      string `json:"username,omitempty"`
@@ -133,7 +133,17 @@ func (s *Server) setupCheck(r *http.Request) (bool, string) {
 	if s.now().Sub(s.d.StartedAt) > SetupWindow {
 		return false, "expired"
 	}
-	ip := remoteIP(r) // never X-Forwarded-For here
+	ip := remoteIP(r)
+	// Behind a reverse proxy the connection comes from the proxy (often on
+	// the same host), not from the person setting up. A trusted proxy names
+	// the real client; any other forwarded request could come from anywhere,
+	// e.g. the internet through a tunnel, and may not create the account.
+	if forwarded(r) {
+		if !s.trustedProxy(ip) {
+			return false, "proxy"
+		}
+		ip = s.clientIP(r)
+	}
 	if ip.IsLoopback() {
 		return true, ""
 	}
@@ -145,6 +155,11 @@ func (s *Server) setupCheck(r *http.Request) (bool, string) {
 		}
 	}
 	return false, "not_local"
+}
+
+// forwarded reports whether a proxy passed the request on.
+func forwarded(r *http.Request) bool {
+	return r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("Forwarded") != "" || r.Header.Get("X-Real-Ip") != ""
 }
 
 func (s *Server) handleAuthState(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +193,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &req) {
 		return
 	}
-	end, wait, ok := s.limiter.Begin(auth.IPKey("setup", remoteIP(r).String()))
+	end, wait, ok := s.limiter.Begin(auth.IPKey("setup", remoteIP(r)))
 	if !ok {
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "")
@@ -193,6 +208,12 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	if s.d.Env.SetupToken != "" && subtle.ConstantTimeCompare([]byte(req.Token), []byte(s.d.Env.SetupToken)) != 1 {
 		outcome = auth.Failure
 		writeError(w, http.StatusForbidden, "setup_token", "")
+		return
+	}
+	// Already set up: answer before the expensive hashing, and count it.
+	if n, err := s.d.Store.UserCount(r.Context()); err != nil || n > 0 {
+		outcome = auth.Failure
+		writeError(w, http.StatusConflict, "already_setup", "")
 		return
 	}
 	if !auth.ValidUsername(req.Username) {
@@ -263,7 +284,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// and get priority for the hashing slot, so a guessing flood from other
 	// addresses cannot lock the owner out.
 	ctx := r.Context()
-	keys := []auth.Key{auth.IPKey("login", ip.String())}
+	keys := []auth.Key{auth.IPKey("login", ip)}
 	if s.trustedIP(ctx, ip) {
 		ctx = auth.WithPriority(ctx)
 	} else {

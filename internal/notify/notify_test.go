@@ -247,6 +247,7 @@ func TestSMTP(t *testing.T) {
 	addr := ln.Addr().(*net.TCPAddr)
 	c := Config{Host: "127.0.0.1", Port: addr.Port, Security: "none", From: "nw@example.org", To: "me@example.org"}
 	msg := Render(Event{Kind: KindDeviceNew, TS: 1, Device: &store.Device{MAC: "aa:bb:cc:dd:ee:ff", Hostname: "Öl\r\nBcc: x@y"}}, "de", time.UTC)
+	msg.Body += "\n.punkt am Anfang"
 	err = sendMail(context.Background(), &net.Dialer{}, c, msg)
 	if err != nil {
 		t.Fatal(err)
@@ -255,6 +256,10 @@ func TestSMTP(t *testing.T) {
 	headers, _, _ := strings.Cut(got, "\r\n\r\n")
 	if !strings.Contains(headers, "Subject: =?utf-8?q?") || strings.Contains(headers, "Bcc:") {
 		t.Fatalf("unexpected mail:\n%s", got)
+	}
+	// A leading dot is escaped once on the wire (the receiver removes it again).
+	if !strings.Contains(got, "\r\n..punkt am Anfang\r\n") || strings.Contains(got, "...punkt") {
+		t.Fatalf("dot-stuffing wrong:\n%s", got)
 	}
 	// The production dialer refuses the loopback SMTP server.
 	if err := sendMail(context.Background(), &egress.Policy{}, c, msg); err == nil || !errors.Is(err, err) {

@@ -383,3 +383,39 @@ Bewusst offen: Ein Köder-Port, den ein später startender Dienst braucht, wird 
 eine Nebenadresse, erscheint es als unbekannte Quelle.
 
 Nachweis: `go test -race ./...`, `svelte-check` 0/0, 38 UI-Tests (Desktop und Handy), CI.
+
+## Review 11 · Sicherheitsprüfung des ganzen Projekts (nach 0.3.2)
+
+Zwei unabhängige Prüfungen über das ganze Repository: Go-Backend (Authentifizierung, Sitzungen, Parser für
+Netzwerkdaten, ausgehende Verbindungen, Exporte) sowie Container, CI/CD, Abhängigkeiten, Vorlagen und Oberfläche.
+Nichts Kritisches oder Schweres. Dazu Aufräumen: toter Code, ungenutzte Texte, Icons und CSS entfernt.
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Login-Bremse: Wer im LAN viele Absender (IPv6) und Namen nutzt, ließ die Tabelle unbegrenzt wachsen; Aufräumen bei jedem Aufruf unter Sperre machte Anmeldungen langsam | mittel | IPv6 je /64; harte Grenze von 10 000 Einträgen (neue Schlüssel werden dann nicht mehr erfasst, bestehende Sperren bleiben); Aufräumen höchstens einmal je Minute; zurückgegebene Versuche („beschäftigt“) hinterlassen nichts |
+| Ersteinrichtung über einen Reverse-Proxy auf demselben Host war von überall möglich, solange noch kein Konto existiert | mittel | Weitergeleitete Anfragen nur von vertrauten Proxys, dann mit der Client-Adresse geprüft; sonst Hinweis „direkt über die IP einrichten“; API-Test |
+| Release-Prüfung: ein Fehler der GitHub-API hätte eine bestehende Version neu veröffentlicht | mittel | Nur „Tag fehlt“ startet ein Release, jeder andere Fehler bricht ab |
+| Versions-Tags auf Nebenzweigen wurden als `latest` veröffentlicht | mittel | Tags nur von Commits auf main; Setup-Skript schützt Tags vor Verschieben und Löschen |
+| Benachrichtigungen folgten Weiterleitungen und schickten dabei Gotify-Schlüssel und eigene Header mit | niedrig | Keine Weiterleitungen mehr |
+| Metadaten-Dienste von Cloud-VMs außerhalb von Link-Local (AWS IPv6, Alibaba) nicht gesperrt | niedrig | Gesperrt |
+| Einrichtung rechnete nach erfolgter Einrichtung trotzdem den Passwort-Hash | niedrig | Vorher prüfen und als Fehlversuch zählen |
+| FRITZ!Box-Sitzungs-ID konnte über Fehlermeldungen ins Log gelangen | niedrig | URL wird aus Fehlern entfernt |
+| Ping-Antworten wurden nicht dem Ziel zugeordnet; Kennung vorhersagbar (PID 1) | niedrig | Nur Antworten vom Ziel zählen; zufällige Kennung |
+| Live-Ereignisstrom beachtete die absolute Sitzungsdauer (30 Tage) nicht | niedrig | Gleiche Grenze wie bei jeder Anfrage |
+| `factory-reset` über die Kommandozeile bei laufendem Server: alte Kanäle blieben aktiv, alte Zugangsdaten konnten zurückgeschrieben werden | niedrig | Der Befehl legt die Trigger-Datei an, der Reset läuft beim nächsten Start |
+| Reverse-Proxy ohne `NETZWART_TRUSTED_PROXIES` blieb unbemerkt | niedrig | Einmalige Warnung im Log |
+| Grundriss blieb nach dem Abmelden im Browser-Cache | niedrig | `no-store` wie alle API-Antworten |
+| CI: Token im Checkout gespeichert, ungenutzte Berechtigung, Trivy-Version nicht fest, npm-Installationsskripte | niedrig | Behoben; wöchentlicher Scan des veröffentlichten Images (amd64/arm64) und govulncheck; Dependabot wartet 7 Tage; OUI-Update mit Zeitlimit und Abbruch bei großen Änderungen |
+| SECURITY.md: cosign-Prüfung akzeptierte jeden Ref | niedrig | Nur main und Release-Tags |
+| E-Mail: Zeilen mit „.“ am Anfang kamen mit „..“ an (doppeltes Dot-Stuffing) | Fehler | Behoben; Test |
+
+Bewusst offen:
+- **Webhooks:** Sie erreichen alle privaten Netze des Hosts, auch Docker-Bridges. Das ist nötig für Dienste auf
+  demselben Host, und nur der angemeldete Besitzer kann sie anlegen.
+- **ntfy-Topic im Klartext:** Wer eine Sitzung hat, sieht die Anwesenheit ohnehin direkt in der Oberfläche.
+- **Unraid/TrueNAS mit geteilten UIDs:** dokumentiert in `deploy/README.md`.
+- **Image startet als root für den Rechtewechsel:** begründet in README und Bedrohungsmodell.
+- **Passwort-Reset per Trigger-Datei schreibt das neue Passwort ins Log:** nötig ohne Terminal; die
+  Fehlerbericht-Vorlage warnt davor.
+
+Nachweis: `go test -race ./...`, `svelte-check` 0/0, 38 UI-Tests, CI.

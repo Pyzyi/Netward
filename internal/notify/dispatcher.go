@@ -33,7 +33,7 @@ type Dispatcher struct {
 
 // NewDispatcher creates a dispatcher; call Reload after channel changes.
 func NewDispatcher(st *store.Store, policy *egress.Policy, log *slog.Logger) *Dispatcher {
-	return &Dispatcher{st: st, log: log, policy: policy, client: policy.HTTPClient(10*time.Second, 3),
+	return &Dispatcher{st: st, log: log, policy: policy, client: policy.HTTPClient(10*time.Second, 0), // no redirects: secrets in headers stay with their destination
 		queue: make(chan Event, 512), lang: "de", loc: time.UTC, sent: map[int64][]time.Time{}}
 }
 

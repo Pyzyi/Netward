@@ -181,7 +181,6 @@ func (s *Server) handleFloorPlanImage(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 	w.Header().Set("Content-Type", mime)
-	w.Header().Set("Cache-Control", "private, max-age=86400") // the image of an ID never changes
 	_, _ = w.Write(img)
 }
 

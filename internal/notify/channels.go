@@ -472,10 +472,8 @@ func sendMail(ctx context.Context, dialer contextDialer, c Config, msg Message) 
 	b.WriteString("Date: " + time.Now().Format(time.RFC1123Z) + "\r\n")
 	b.WriteString("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n")
 	body := strings.ReplaceAll(msg.Body, "\r", "")
+	// smtp.Client.Data escapes lines starting with "." itself (dot-stuffing).
 	for _, line := range strings.Split(body, "\n") {
-		if strings.HasPrefix(line, ".") {
-			line = "." + line
-		}
 		b.WriteString(line + "\r\n")
 	}
 	if _, err := io.WriteString(w, b.String()); err != nil {

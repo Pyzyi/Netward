@@ -13,7 +13,7 @@ import (
 
 func TestCheck(t *testing.T) {
 	p := &Policy{}
-	blocked := []string{"127.0.0.1", "127.8.9.10", "::1", "0.0.0.0", "0.1.2.3", "::", "169.254.169.254",
+	blocked := []string{"127.0.0.1", "127.8.9.10", "::1", "0.0.0.0", "0.1.2.3", "::", "169.254.169.254", "fd00:ec2::254", "100.100.100.200",
 		"fe80::1", "224.0.0.251", "ff02::1", "255.255.255.255", "::ffff:127.0.0.1"}
 	for _, s := range blocked {
 		if err := p.Check(netip.MustParseAddr(s)); !errors.Is(err, ErrBlocked) {

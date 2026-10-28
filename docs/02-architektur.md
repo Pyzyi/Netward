@@ -227,10 +227,11 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 - **Entscheidung:** `POST /api/v1/auth/setup` wird nur akzeptiert, wenn
   1. noch kein Benutzer existiert (atomar in einer Transaktion),
   2. der Prozess vor höchstens 30 min gestartet wurde (danach: „Container neu starten, um einzurichten“),
-  3. die TCP-Quelladresse Loopback ist oder in einem direkt angeschlossenen Subnetz liegt. `X-Forwarded-For` wird ignoriert,
+  3. die TCP-Quelladresse Loopback ist oder in einem direkt angeschlossenen Subnetz liegt. Weitergeleitete Anfragen
+     (`X-Forwarded-For`, `Forwarded`) gelten nur von vertrauten Proxys, dann mit der Adresse des Clients,
   4. Host- und Origin-Prüfung bestanden sind (ADR-012),
   5. optional `NETZWART_SETUP_TOKEN` stimmt.
-- **Wiederherstellung:** `reset-password` (neues Passwort, alle Sitzungen widerrufen), `factory-reset`
+- **Wiederherstellung:** `reset-password` (neues Passwort, alle Sitzungen widerrufen), `factory-reset` (legt die Trigger-Datei an; ausgeführt beim nächsten Start, damit kein laufender Prozess alte Kanäle oder Einstellungen zurückschreibt)
   (löscht Konten, Sitzungen, Kanäle, MQTT und Einstellungen; Geräte bleiben) sowie ein Datei-Trigger:
   Eine Datei `reset-password` im AppData-Ordner erzeugt beim nächsten Start ein Einmalpasswort im Log.
 - **Restrisiko:** Ein Angreifer im selben LAN könnte die Einrichtung innerhalb des Zeitfensters vor dem Besitzer

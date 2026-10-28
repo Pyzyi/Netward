@@ -69,11 +69,12 @@ type Server struct {
 	d       Deps
 	limiter *auth.Limiter
 
-	trustMu sync.Mutex
-	trusted map[netip.Addr]time.Time // addresses with a successful login
-	streams *streamRegistry
-	static  *staticFiles
-	now     func() time.Time
+	proxyWarn sync.Once
+	trustMu   sync.Mutex
+	trusted   map[netip.Addr]time.Time // addresses with a successful login
+	streams   *streamRegistry
+	static    *staticFiles
+	now       func() time.Time
 
 	setupMu sync.Mutex
 }
@@ -210,7 +211,22 @@ func (s *Server) Handler() http.Handler {
 	if s.static != nil {
 		mux.Handle("/", s.static)
 	}
-	return s.recoverer(s.securityHeaders(s.checkHost(s.checkOrigin(mux))))
+	return s.recoverer(s.securityHeaders(s.checkHost(s.checkOrigin(s.noteProxy(mux)))))
+}
+
+// noteProxy warns once when requests arrive through a reverse proxy that is
+// not trusted: every client then looks like the proxy, so login throttling
+// and the session list cannot tell them apart.
+func (s *Server) noteProxy(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if forwarded(r) && !s.trustedProxy(remoteIP(r)) {
+			s.proxyWarn.Do(func() {
+				s.d.Log.Warn("requests arrive through a reverse proxy that is not in NETZWART_TRUSTED_PROXIES",
+					"proxy", remoteIP(r).String(), "hint", "add the proxy address so Netzwart sees the real client addresses")
+			})
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) recoverer(next http.Handler) http.Handler {

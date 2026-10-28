@@ -119,6 +119,9 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request, si *sessio
 			if _, err := s.d.Store.GetSessionByHash(ctx, si.session.TokenHash, s.now().UnixMilli()); err != nil {
 				return
 			}
+			if s.now().Sub(time.UnixMilli(si.session.CreatedAt)) > absoluteMax {
+				return // same absolute limit as every other request
+			}
 			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil || rc.Flush() != nil {
 				return
 			}

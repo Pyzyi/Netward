@@ -268,7 +268,7 @@ func (c *Client) do(ctx context.Context, method, target string, hdr http.Header,
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return nil, fmt.Errorf("%w: %v", ErrUnreachable, err)
+			return nil, fmt.Errorf("%w: %v", ErrUnreachable, withoutURL(err))
 		}
 		return resp, nil
 	}
@@ -294,7 +294,7 @@ func (c *Client) do(ctx context.Context, method, target string, hdr http.Header,
 	defer resp.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 	if err != nil {
-		return 0, nil, fmt.Errorf("%w: %v", ErrUnreachable, err)
+		return 0, nil, fmt.Errorf("%w: %v", ErrUnreachable, withoutURL(err))
 	}
 	if len(data) > maxBody {
 		return 0, nil, fmt.Errorf("%w: response too large", ErrProtocol)
@@ -530,4 +530,14 @@ func GenericName(s string) bool {
 		}
 	}
 	return false
+}
+
+// withoutURL drops the request URL from an error: the paths the FRITZ!Box
+// hands out carry its session ID ("…?sid=…"), which must not reach the log.
+func withoutURL(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
+	}
+	return err
 }

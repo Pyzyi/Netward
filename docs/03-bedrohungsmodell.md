@@ -29,7 +29,7 @@ NetBIOS-Antworten und kann beliebige Pakete senden.
 
 | # | STRIDE | Bedrohung | Maßnahme | Verifikation |
 |---|---|---|---|---|
-| T-01 | S | Fremder übernimmt die Ersteinrichtung | Setup nur ohne bestehenden Benutzer (atomar), nur ≤ 30 min nach Start, nur aus direkt angeschlossenem Subnetz, Host-/Origin-Allowlist; optionales `NETZWART_SETUP_TOKEN`; `factory-reset` entfernt jede Angreifer-Konfiguration | API-Test |
+| T-01 | S | Fremder übernimmt die Ersteinrichtung | Setup nur ohne bestehenden Benutzer (atomar), nur ≤ 30 min nach Start, nur aus direkt angeschlossenem Subnetz (über einen Reverse-Proxy nur, wenn er in `NETZWART_TRUSTED_PROXIES` steht, und dann mit der Adresse des eigentlichen Clients), Host-/Origin-Allowlist; optionales `NETZWART_SETUP_TOKEN`; `factory-reset` entfernt jede Angreifer-Konfiguration | API-Test |
 | T-02 | S | Brute-Force auf Login | Argon2id (19 MiB, t=2, p=1, OWASP); exponentieller Backoff pro IP bis 15 min; genau 1 Hash-Slot mit 3-s-Warteschlange (sonst `503`); gleiche Arbeit bei unbekanntem Benutzer (Dummy-Hash) | Unit-Test Limiter |
 | T-03 | S | Sitzungsdiebstahl | 256-bit-Zufallstoken, nur Hash in DB, `HttpOnly`, `SameSite=Strict`, `__Host-`/`Secure` bei TLS, Leerlauf 7 d (30 d mit „angemeldet bleiben“), absolute Lebensdauer 30 d, Widerruf einzeln; Passwortänderung widerruft andere Sitzungen | API-Test |
 | T-04 | T | CSRF auf zustandsändernde Endpunkte | `SameSite=Strict` + `X-CSRF-Token` (pro Sitzung, konstante Vergleichszeit) + Pflicht-`Origin` aus Allowlist + `http.CrossOriginProtection`. Auch Setup und Login sind geschützt | API-Test |

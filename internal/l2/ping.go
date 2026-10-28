@@ -2,10 +2,11 @@ package l2
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"net"
 	"net/netip"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,7 +25,13 @@ type Pinger struct {
 	seq  atomic.Uint32
 
 	mu      sync.Mutex
-	waiting map[uint16]chan time.Time
+	waiting map[uint16]waiter
+}
+
+// waiter is a sent request: only a reply from its target counts.
+type waiter struct {
+	ip netip.Addr
+	ch chan time.Time
 }
 
 // OpenPinger tries a raw ICMP socket first, then an unprivileged one.
@@ -40,7 +47,11 @@ func OpenPinger() *Pinger {
 }
 
 func newPinger(c *icmp.PacketConn, raw bool) *Pinger {
-	p := &Pinger{conn: c, raw: raw, id: os.Getpid() & 0xffff, waiting: map[uint16]chan time.Time{}}
+	// A random identifier: the PID is 1 in a container, easy to guess for
+	// anyone who wants to answer in another device's name.
+	var b [2]byte
+	_, _ = rand.Read(b[:])
+	p := &Pinger{conn: c, raw: raw, id: int(binary.BigEndian.Uint16(b[:])), waiting: map[uint16]waiter{}}
 	go p.readLoop()
 	return p
 }
@@ -51,7 +62,7 @@ func (p *Pinger) Raw() bool { return p != nil && p.raw }
 func (p *Pinger) readLoop() {
 	buf := make([]byte, 1500)
 	for {
-		n, _, err := p.conn.ReadFrom(buf)
+		n, peer, err := p.conn.ReadFrom(buf)
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				return
@@ -67,15 +78,28 @@ func (p *Pinger) readLoop() {
 			continue
 		}
 		p.mu.Lock()
-		ch := p.waiting[uint16(echo.Seq)]
+		w, ok := p.waiting[uint16(echo.Seq)]
 		p.mu.Unlock()
-		if ch != nil {
+		if ok && peerAddr(peer) == w.ip {
 			select {
-			case ch <- time.Now():
+			case w.ch <- time.Now():
 			default:
 			}
 		}
 	}
+}
+
+// peerAddr is the sender of a received packet.
+func peerAddr(a net.Addr) netip.Addr {
+	var ip net.IP
+	switch v := a.(type) {
+	case *net.IPAddr:
+		ip = v.IP
+	case *net.UDPAddr:
+		ip = v.IP
+	}
+	addr, _ := netip.AddrFromSlice(ip)
+	return addr.Unmap()
 }
 
 // Ping sends up to three echo requests and returns the first round-trip time.
@@ -89,7 +113,7 @@ func (p *Pinger) Ping(ctx context.Context, ip netip.Addr, timeout time.Duration)
 		seq := uint16(p.seq.Add(1))
 		ch := make(chan time.Time, 1)
 		p.mu.Lock()
-		p.waiting[seq] = ch
+		p.waiting[seq] = waiter{ip: ip, ch: ch}
 		p.mu.Unlock()
 		msg := icmp.Message{Type: ipv4.ICMPTypeEcho, Body: &icmp.Echo{ID: p.id, Seq: int(seq), Data: []byte("netzwart")}}
 		b, _ := msg.Marshal(nil)

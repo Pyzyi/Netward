@@ -387,7 +387,7 @@ export interface Session {
 export interface AuthState {
   setupRequired: boolean;
   setupAllowed: boolean;
-  setupReason?: 'expired' | 'not_local';
+  setupReason?: 'expired' | 'not_local' | 'proxy';
   setupTokenRequired: boolean;
   authenticated: boolean;
   username?: string;

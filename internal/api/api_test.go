@@ -926,3 +926,33 @@ func TestWifiMapFlow(t *testing.T) {
 		t.Fatalf("points of deleted plan: %d", rec.Code)
 	}
 }
+
+func TestSetupThroughProxyRefused(t *testing.T) {
+	h := newHarness(t)
+	body, _ := json.Marshal(map[string]any{"username": "admin", "password": "Sonnenblume-im-Garten7", "language": "de", "timezone": "Europe/Berlin"})
+	try := func(remote string, trusted bool) *httptest.ResponseRecorder {
+		h.srv.d.Env.TrustedProxies = nil
+		if trusted {
+			h.srv.d.Env.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32")}
+		}
+		r := httptest.NewRequest("POST", "/api/v1/auth/setup", bytes.NewReader(body))
+		r.Host, r.RemoteAddr = testHost, remote
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Origin", testOrigin)
+		r.Header.Set("X-Forwarded-For", "203.0.113.7") // a client on the internet
+		rec := httptest.NewRecorder()
+		h.h.ServeHTTP(rec, r)
+		return rec
+	}
+	// A proxy on the same host passes on a request from the internet.
+	if rec := try("127.0.0.1:40000", false); rec.Code != 403 || !strings.Contains(rec.Body.String(), "setup_proxy") {
+		t.Fatalf("untrusted proxy: %d %s", rec.Code, rec.Body)
+	}
+	// A trusted proxy names the client: the internet address is not local.
+	if rec := try("127.0.0.1:40000", true); rec.Code != 403 || !strings.Contains(rec.Body.String(), "setup_not_local") {
+		t.Fatalf("trusted proxy: %d %s", rec.Code, rec.Body)
+	}
+	if n, _ := h.st.UserCount(context.Background()); n != 0 {
+		t.Fatal("account created through a proxy")
+	}
+}

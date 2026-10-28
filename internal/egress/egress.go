@@ -41,6 +41,14 @@ type Policy struct {
 	deny []netip.Addr // additional exact addresses (e.g. our own interface IPs)
 }
 
+// cloudMetadata are instance-metadata services outside the link-local range
+// (AWS over IPv6, Alibaba Cloud). They only exist on cloud VMs, where they
+// hand out credentials.
+var cloudMetadata = map[netip.Addr]bool{
+	netip.MustParseAddr("fd00:ec2::254"):   true,
+	netip.MustParseAddr("100.100.100.200"): true,
+}
+
 // DefaultPolicy blocks only the generic dangerous ranges.
 var DefaultPolicy = &Policy{}
 
@@ -62,6 +70,9 @@ func (p *Policy) Check(addr netip.Addr) error {
 		return &BlockedError{Addr: a}
 	}
 	if a.Is4() && a == netip.AddrFrom4([4]byte{255, 255, 255, 255}) {
+		return &BlockedError{Addr: a}
+	}
+	if cloudMetadata[a] {
 		return &BlockedError{Addr: a}
 	}
 	p.mu.RLock()

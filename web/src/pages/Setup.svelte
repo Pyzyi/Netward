@@ -74,7 +74,7 @@
     <div class="blocked">
       <span class="lock"><Icon name="lock-simple" size={22} /></span>
       <h1>{t('setup.blockedTitle')}</h1>
-      <p class="muted">{st.setupReason === 'expired' ? t('setup.expired') : t('setup.notLocal')}</p>
+      <p class="muted">{st.setupReason === 'expired' ? t('setup.expired') : st.setupReason === 'proxy' ? t('setup.proxy') : t('setup.notLocal')}</p>
     </div>
   {:else if step === 1}
     <form onsubmit={next} class="stack" novalidate>

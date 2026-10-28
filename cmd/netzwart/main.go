@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -183,16 +184,16 @@ func factoryReset(env config.Env, args []string) int {
 		fmt.Println("Devices and history are kept. Run again with --yes to confirm, then restart the container.")
 		return 2
 	}
-	st, err := openStoreAsUser(env)
-	if err != nil {
+	// The running server keeps channels and settings in memory, so the reset
+	// is done by the next start: the same trigger file as without a terminal.
+	if err := privdrop.DropForCommand(env); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
 	}
-	defer st.Close()
-	if err := st.FactoryReset(context.Background()); err != nil {
+	if err := os.WriteFile(filepath.Join(env.DataDir, "factory-reset"), nil, 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		return 1
 	}
-	fmt.Println("Factory reset done. Restart the container and open the web interface to set up again.")
+	fmt.Println("Factory reset scheduled. Restart the container now: the reset happens at start, then open the web interface to set up again.")
 	return 0
 }
