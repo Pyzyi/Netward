@@ -161,7 +161,9 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
   done
   docker stop -t 10 nw8old-$$ >/dev/null
   schema() { python3 -c "import sqlite3,sys; print(sqlite3.connect('file:'+sys.argv[1]+'?mode=ro', uri=True).execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0])" "$1"; }
-  OLD_SCHEMA="$(schema "$WORK/data8/netward.db")"
+  OLD_DB="$WORK/data8/netward.db"
+  [ -f "$OLD_DB" ] || OLD_DB="$WORK/data8/netzwart.db" # releases before the rename (0.3.x)
+  OLD_SCHEMA="$(schema "$OLD_DB")"
   IP8="$(start nw8new-$$ "${HARDEN[@]}" -v "$WORK/data8:/data")" && ok "this build starts on the old data" || fail "this build did not start on the old data"
   rm -f "$WORK/jar" "$WORK/csrf"
   api "$IP8" POST /auth/login "{\"username\":\"admin\",\"password\":\"$PASS\"}" \
@@ -170,6 +172,10 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
   [ "$after" -ge "$before" ] && ok "devices kept ($before → $after)" || fail "devices lost: $before → $after"
   name="$(api "$IP8" GET /overview | python3 -c 'import json,sys; print(json.load(sys.stdin)["networkName"])')"
   [ "$name" = Updatetest ] && ok "settings kept" || fail "network name after update: $name"
+  if [ "${OLD_DB##*/}" = netzwart.db ]; then
+    [ -f "$WORK/data8/netward.db" ] && [ ! -e "$OLD_DB" ] && ok "netzwart.db taken over as netward.db" \
+      || fail "netzwart.db not taken over"
+  fi
   NEW_SCHEMA="$(schema "$WORK/data8/netward.db")"
   if [ "$NEW_SCHEMA" -gt "$OLD_SCHEMA" ]; then
     [ -f "$WORK/data8/backup/pre-update-schema-$OLD_SCHEMA.db" ] \
