@@ -39,9 +39,27 @@ import (
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/software"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/tripwire"
 	"github.com/Pyzyi/netzwart/internal/update"
 	"github.com/Pyzyi/netzwart/internal/wlan"
 )
+
+// ownAddr reports addresses of this host; its own connections to the
+// decoys (e.g. a health check) are never an alarm.
+func ownAddr(ip netip.Addr) bool {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return false
+	}
+	for _, a := range addrs {
+		if n, ok := a.(*net.IPNet); ok {
+			if x, ok := netip.AddrFromSlice(n.IP); ok && x.Unmap() == ip {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // DBPath returns the database file inside the data directory.
 func DBPath(env config.Env) string { return filepath.Join(env.DataDir, "netzwart.db") }
@@ -105,6 +123,10 @@ func Run(ctx context.Context, o Options) error {
 	if err != nil {
 		return err
 	}
+	var stored json.RawMessage
+	if env.Demo && errors.Is(st.GetSetting(ctx, "settings", &stored), store.ErrNotFound) {
+		settings.Tripwire = true // the sample household shows the tripwire switched on
+	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
@@ -149,6 +171,14 @@ func Run(ctx context.Context, o Options) error {
 	}
 	sec.SetDHCPCheck(settings.DHCPCheck)
 	sec.SetDNSCheck(settings.DNSCheck && !env.Demo)
+	var trip *tripwire.Manager
+	var tripStatus func() tripwire.Status
+	if !env.Demo {
+		trip = tripwire.New(log, o.Priv.Tripwire, ownAddr, func(hit tripwire.Hit) { sec.Tripwire(ctx, hit) })
+		trip.Configure(settings.Tripwire, settings.TripwirePorts, settings.TripwirePrefixes())
+		defer trip.Close()
+		tripStatus = trip.Status
+	}
 	people, err := persons.New(ctx, st, mon, h)
 	if err != nil {
 		return err
@@ -231,6 +261,9 @@ func Run(ctx context.Context, o Options) error {
 		upd.Configure(s.UpdateCheck && !env.Demo)
 		sec.SetDHCPCheck(s.DHCPCheck)
 		sec.SetDNSCheck(s.DNSCheck && !env.Demo)
+		if trip != nil {
+			trip.Configure(s.Tripwire, s.TripwirePorts, s.TripwirePrefixes())
+		}
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)
 		}
@@ -238,11 +271,21 @@ func Run(ctx context.Context, o Options) error {
 		return nil
 	}
 
+	if env.Demo {
+		tripStatus = func() tripwire.Status {
+			t := DemoTripwire()
+			if !getSettings().Tripwire {
+				t = tripwire.Status{Ports: []tripwire.PortStatus{}}
+			}
+			return t
+		}
+	}
 	srv := api.New(api.Deps{
 		Store: st, Monitor: mon, Scanner: sc, Internet: inet, Security: sec, Notify: disp, MQTT: bridge, FritzBox: fritz, Hub: h,
 		Update: upd, WLAN: wifi, Persons: people,
 		Env: env, Log: log, Version: o.Version, StartedAt: time.Now(), Static: o.Static,
 		Settings: getSettings, ApplySettings: apply, LocalPrefixes: api.LocalPrefixes, RawSockets: len(o.Priv.Links) > 0,
+		Tripwire: tripStatus,
 	})
 	httpSrv := &http.Server{
 		Addr:              net.JoinHostPort(env.Listen, strconv.Itoa(env.Port)),

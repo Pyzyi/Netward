@@ -81,6 +81,14 @@
     if (rs.some((r) => r.verdict === 'redirects')) return 'warn';
     return rs.every((r) => r.verdict === 'unreachable') ? '' : 'ok';
   });
+  const svcName = (s: string) => (has(`tripwire.svc.${s}`) ? t(`tripwire.svc.${s}`) : s);
+  const tripTone = $derived.by(() => {
+    const tw = net.tripwire;
+    if (!tw?.enabled) return '';
+    if (findings.some((f) => f.check === 'tripwire' && !f.dismissed)) return 'danger';
+    if (tw.ports.some((p) => p.state !== 'open') || tw.ports.length === 0) return 'warn';
+    return 'ok';
+  });
   function dnsLine(r: DnsResult): string {
     switch (r.verdict) {
       case 'manipulated': {
@@ -157,6 +165,10 @@
         return t('security.dns.manipulated.title', { server: f.data.server ?? '' });
       case 'dns_redirect':
         return t('security.dns.redirect.title', { server: f.data.server ?? '' });
+      case 'tripwire': {
+        const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined;
+        return t('security.tripwire.title', { name: dev ? displayName(dev) : f.data.ip ?? t('common.unknown') });
+      }
       case 'software_outdated':
       case 'software_update': {
         const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
@@ -181,6 +193,7 @@
     if (f.check === 'dhcp_rogue') return t('security.dhcp.why') + (f.severity === 'critical' ? ' ' + t('security.dhcp.whyOther') : '');
     if (f.check === 'dns_manipulated') return t('security.dns.manipulated.why');
     if (f.check === 'dns_redirect') return t('security.dns.redirect.why');
+    if (f.check === 'tripwire') return t('security.tripwire.why');
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
   }
   function todo(f: Finding): string {
@@ -192,6 +205,7 @@
     if (f.check === 'dhcp_rogue') return t('security.dhcp.todo');
     if (f.check === 'dns_manipulated') return t('security.dns.manipulated.todo');
     if (f.check === 'dns_redirect') return t('security.dns.redirect.todo');
+    if (f.check === 'tripwire') return t('security.tripwire.todo');
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
   }
 </script>
@@ -286,6 +300,8 @@
             {:else if f.check === 'dns_manipulated' || f.check === 'dns_redirect'}
               {@const r = dnsOf(f)}
               {#if r}<p class="dns-detail">{dnsLine(r)}</p>{/if}
+            {:else if f.check === 'tripwire'}
+              <p class="faint small">{t('security.tripwire.last', { t: relTime(f.lastSeen, clock.now) })}</p>
             {:else if f.check === 'identity_changed'}
               <div class="row-btns">
                 <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => resolveIdentity(f, true)}>
@@ -361,6 +377,29 @@
             {/if}
           </div>
         </li>
+        {#if net.tripwire}
+          {@const tw = net.tripwire}
+          {@const live = tw.ports.filter((p) => p.state === 'open')}
+          {@const ports = live.map((p) => p.port).join(', ')}
+          <li>
+            <span class="dot {tripTone}" aria-hidden="true"></span>
+            <div>
+              <h3>{t('security.ids.tripwire')}</h3>
+              {#if !tw.enabled}
+                <p>{t('security.ids.tripwire.off')}</p>
+              {:else if live.length === 0}
+                <p>{t('security.ids.tripwire.none')}</p>
+              {:else if tw.lastHit}
+                <p>{t('security.ids.tripwire.hit', { ports, t: relTime(tw.lastHit.at, clock.now), ip: tw.lastHit.ip, service: svcName(tw.lastHit.service) })}</p>
+              {:else}
+                <p>{t('security.ids.tripwire.quiet', { ports })}</p>
+              {/if}
+              {#each tw.ports.filter((p) => p.state !== 'open') as p (p.port)}
+                <p class="faint small">Port {p.port}: {t(`tripwire.state.${p.state}`)}</p>
+              {/each}
+            </div>
+          </li>
+        {/if}
       </ul>
     </section>
   {/if}

@@ -420,6 +420,14 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return tr("DNS-Server leitet Tippfehler um: ", "DNS server redirects mistyped names: ") + srv,
 			tr("Namen, die es nicht gibt, bekommen trotzdem eine Adresse – oft eine Werbeseite des Anbieters.",
 				"Names that do not exist still get an address – often an ad page of the provider.")
+	case CheckTripwire:
+		ip, _ := data["ip"].(string)
+		svc, _ := data["service"].(string)
+		return tr("Gerät hat den Stolperdraht ausgelöst: ", "Device tripped the tripwire: ") + ip,
+			fmt.Sprintf(tr("Es hat sich mit dem Köder-Dienst %s verbunden, den kein normales Gerät benutzt. "+
+				"Häufige Ursache ist Schadsoftware, die das Netz absucht. Prüfe das Gerät oder nimm es vom Netz.",
+				"It connected to the decoy service %s that no normal device uses. A common cause is malware scanning the network. "+
+					"Check the device or take it off the network."), strings.ToUpper(svc))
 	case CheckKnownExploited:
 		sw, _ := data["software"].(string)
 		fixed, _ := data["fixed"].(string)

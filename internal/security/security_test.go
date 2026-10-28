@@ -19,6 +19,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/notify"
 	"github.com/Pyzyi/netzwart/internal/proto"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/tripwire"
 )
 
 type rec struct{ evs []notify.Event }
@@ -248,5 +249,41 @@ func TestDNSCheckFindsManipulatedServer(t *testing.T) {
 		if f.CheckID == CheckDNSManipulated {
 			t.Fatal("DNS finding kept after the check was switched off")
 		}
+	}
+}
+
+func TestTripwireOneFindingPerDevice(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := hub.New()
+	mon, err := monitor.New(ctx, st, h, nil, config.Defaults(), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := &rec{}
+	c := New(st, mon, h, r, log)
+	ip := netip.MustParseAddr("192.168.1.66")
+	at := time.Now().Add(-31 * 24 * time.Hour) // a port scan a month ago
+	c.Tripwire(ctx, tripwire.Hit{IP: ip, Port: 2323, Service: "telnet", At: at})
+	c.Tripwire(ctx, tripwire.Hit{IP: ip, Port: 3389, Service: "rdp", At: at.Add(time.Second)})
+	fs, _ := st.ListFindings(ctx)
+	if len(fs) != 1 || fs[0].CheckID != CheckTripwire || fs[0].Severity != "critical" || string(fs[0].Data) != `{"ip":"192.168.1.66"}` {
+		t.Fatalf("findings %+v", fs)
+	}
+	if len(r.evs) != 1 || !strings.Contains(r.evs[0].Data["detail"].(string), "TELNET") {
+		t.Fatalf("notifications %+v", r.evs)
+	}
+	evs, _ := st.ListEvents(ctx, store.EventQuery{Kinds: []string{notify.KindSecurity}, Limit: 10})
+	if len(evs) != 2 {
+		t.Fatalf("events = %d, want one per hit", len(evs))
+	}
+	c.pruneTripwire(ctx)
+	if fs, _ := st.ListFindings(ctx); len(fs) != 0 {
+		t.Fatalf("old tripwire finding kept: %+v", fs)
 	}
 }

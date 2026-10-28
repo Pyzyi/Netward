@@ -73,6 +73,7 @@ func (c *Checker) WatchSoftware(ctx context.Context) {
 		}
 		c.EvaluateSoftware(ctx)
 		c.EvaluateNetwork(ctx)
+		c.pruneTripwire(ctx)
 		due = time.Now().Add(24 * time.Hour)
 		t.Reset(time.Until(due))
 	}

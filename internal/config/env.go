@@ -23,6 +23,7 @@ type Env struct {
 	LogLevel       string
 	Demo           bool
 	DemoLang       string // de | en: language of the sample household
+	TripwirePorts  []int  // decoy ports opened before privileges are dropped (e.g. 23, 445)
 }
 
 func list(v string) []string {
@@ -82,15 +83,18 @@ func LoadEnv() (Env, error) {
 		e.AllowedHosts = append(e.AllowedHosts, strings.ToLower(h))
 	}
 	for _, c := range list(get("NETZWART_TRUSTED_PROXIES")) {
-		p, err := netip.ParsePrefix(c)
+		p, err := ParsePrefix(c)
 		if err != nil {
-			a, err2 := netip.ParseAddr(c)
-			if err2 != nil {
-				return e, fmt.Errorf("NETZWART_TRUSTED_PROXIES: %q is not an IP or CIDR", c)
-			}
-			p = netip.PrefixFrom(a, a.BitLen())
+			return e, fmt.Errorf("NETZWART_TRUSTED_PROXIES: %q is not an IP or CIDR", c)
 		}
-		e.TrustedProxies = append(e.TrustedProxies, p.Masked())
+		e.TrustedProxies = append(e.TrustedProxies, p)
+	}
+	for _, v := range list(get("NETZWART_TRIPWIRE_PORTS")) {
+		p, err := strconv.Atoi(v)
+		if err != nil || p < 1 || p > 65535 || p == e.Port {
+			return e, fmt.Errorf("NETZWART_TRIPWIRE_PORTS: %q is not a usable port", v)
+		}
+		e.TripwirePorts = append(e.TripwirePorts, p)
 	}
 	e.TLSCert, e.TLSKey = get("NETZWART_TLS_CERT"), get("NETZWART_TLS_KEY")
 	if (e.TLSCert == "") != (e.TLSKey == "") {

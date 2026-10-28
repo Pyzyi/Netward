@@ -59,6 +59,9 @@ type Settings struct {
 	DHCPCheck          bool     `json:"dhcpCheck"`        // the security check asks once who hands out addresses
 	DNSCheck           bool     `json:"dnsCheck"`         // the security check asks the DNS servers about fixed names
 	UpdateCheck        bool     `json:"updateCheck"`      // ask GitHub daily for a new release (off by default)
+	Tripwire           bool     `json:"tripwire"`         // decoy services that report every visitor (docs/10, off by default)
+	TripwirePorts      []int    `json:"tripwirePorts"`    // 1024-65535; lower ports only via NETZWART_TRIPWIRE_PORTS
+	TripwireAllow      []string `json:"tripwireAllow"`    // addresses or networks that may touch the decoys (IP or CIDR)
 	MQTT               MQTT     `json:"mqtt"`
 	FritzBox           FritzBox `json:"fritzbox"`
 }
@@ -81,9 +84,35 @@ func Defaults() Settings {
 		DHCPCheck:          true,
 		DNSCheck:           true,
 		InternetTargets:    []string{"1.1.1.1:443", "9.9.9.9:443", "dns.google:443"},
+		TripwirePorts:      []int{2323, 3389, 5555, 5900, 8081},
+		TripwireAllow:      []string{},
 		MQTT:               MQTT{Port: 1883, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"},
 		FritzBox:           FritzBox{Host: "fritz.box"},
 	}
+}
+
+// TripwirePrefixes returns the addresses that may touch the decoys.
+func (s Settings) TripwirePrefixes() []netip.Prefix {
+	var out []netip.Prefix
+	for _, a := range s.TripwireAllow {
+		if p, err := ParsePrefix(a); err == nil {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// ParsePrefix reads an IP address or a network in CIDR notation.
+func ParsePrefix(v string) (netip.Prefix, error) {
+	if p, err := netip.ParsePrefix(v); err == nil {
+		return p.Masked(), nil
+	}
+	a, err := netip.ParseAddr(v)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	a = a.Unmap()
+	return netip.PrefixFrom(a, a.BitLen()), nil
 }
 
 // OfflineAfterDur returns the offline threshold for a device class.
@@ -141,6 +170,17 @@ func (s Settings) Validate() error {
 		host, port, ok := strings.Cut(t, ":")
 		check(ok && validHost(host) && port != "" && len(port) <= 5, "internetTargets", "use host:port")
 	}
+	check(len(s.TripwirePorts) <= 16, "tripwirePorts", "max. 16")
+	seenPort := map[int]bool{}
+	for _, p := range s.TripwirePorts {
+		check(p >= 1024 && p <= 65535 && !seenPort[p], "tripwirePorts", "1024-65535, each once")
+		seenPort[p] = true
+	}
+	check(len(s.TripwireAllow) <= 32, "tripwireAllow", "max. 32")
+	for _, a := range s.TripwireAllow {
+		_, err := ParsePrefix(a)
+		check(err == nil, "tripwireAllow", "use an IP address or network such as 192.168.1.0/24")
+	}
 	if s.MQTT.Enabled {
 		check(validHost(s.MQTT.Host), "mqtt.host", "invalid host")
 		check(s.MQTT.Port > 0 && s.MQTT.Port < 65536, "mqtt.port", "1-65535")
@@ -175,6 +215,8 @@ func (s Settings) Public() Settings {
 		s.FritzBox.Password = Mask
 	}
 	s.Interfaces = append([]string{}, s.Interfaces...)
+	s.TripwirePorts = append([]int{}, s.TripwirePorts...)
+	s.TripwireAllow = append([]string{}, s.TripwireAllow...)
 	return s
 }
 

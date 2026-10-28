@@ -9,6 +9,7 @@ export function eventText(e: EventItem, deviceName?: string): string {
   for (const [k, v] of Object.entries(d)) if (typeof v === 'string' || typeof v === 'number') vars[k] = v;
   vars.name = name; // the live device name wins over the name stored with the event
   if (e.kind === 'internet_up' && typeof d.durationMs === 'number') vars.duration = duration(d.durationMs);
+  if (d.check === 'tripwire' && typeof d.service === 'string' && has(`tripwire.svc.${d.service}`)) vars.service = t(`tripwire.svc.${d.service}`);
   let key = `event.${e.kind}`;
   // Software findings have their own sentences ("… bekommt keine Updates mehr").
   if (e.kind === 'security_finding' && typeof d.check === 'string' && has(`${key}.${d.check}${d.count ? '.count' : ''}`)) {

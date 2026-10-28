@@ -283,3 +283,22 @@ test('LAN attack detection: router, DHCP and DNS at a glance', async ({ page }) 
   await expect(ids.getByText(/192\.168\.178\.1 gehört seit .* zu AVM/)).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test('tripwire: alarm, status and settings', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/security');
+  await expect(page.getByRole('heading', { name: /ESP_9E3BD1 hat den Stolperdraht ausgelöst/ })).toBeVisible();
+  const ids = page.locator('section.ids');
+  await expect(ids.getByText(/Köder auf 2323, 3389, 5555, 5900, 8081\. Zuletzt ausgelöst .* von 192\.168\.178\.90 \(Telnet\)\./)).toBeVisible();
+  await page.goto('/activity');
+  await expect(page.getByText('ESP_9E3BD1 (192.168.178.90) hat den Stolperdraht ausgelöst: Telnet auf Port 2323').first()).toBeVisible();
+  await page.goto('/settings/scanning');
+  const ports = page.getByLabel('Ports', { exact: true });
+  await expect(ports).toHaveValue('2323, 3389, 5555, 5900, 8081');
+  await ports.fill('23, 3389');
+  await page.getByRole('button', { name: 'Speichern' }).last().click();
+  await expect(page.getByText('Bitte nur Zahlen von 1024 bis 65535 eintragen, jede nur einmal.')).toBeVisible();
+  await ports.fill('2323, 3389, 5555, 5900, 8081');
+  expect(problems).toEqual([]);
+});

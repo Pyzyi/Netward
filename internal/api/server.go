@@ -29,6 +29,7 @@ import (
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/security"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/tripwire"
 	"github.com/Pyzyi/netzwart/internal/update"
 	"github.com/Pyzyi/netzwart/internal/wlan"
 )
@@ -60,6 +61,7 @@ type Deps struct {
 	ApplySettings func(context.Context, config.Settings) error
 	LocalPrefixes func() []netip.Prefix // directly connected networks (setup check)
 	RawSockets    bool
+	Tripwire      func() tripwire.Status // decoy services; nil in tests
 }
 
 // Server is the HTTP API.

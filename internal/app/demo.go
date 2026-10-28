@@ -7,11 +7,13 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/config"
 	"github.com/Pyzyi/netzwart/internal/dnscheck"
 	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/scanner"
 	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/netzwart/internal/tripwire"
 )
 
 type demoDevice struct {
@@ -209,6 +211,12 @@ func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 		if dd.mac == "24:0a:c4:9e:3b:d1" {
 			fd, _ := json.Marshal(map[string]any{"port": 23, "service": "telnet"})
 			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "risky_port", DeviceID: d.ID, Severity: "critical", Data: fd, LastSeen: now.UnixMilli()})
+			// The unknown ESP module probes the network for Telnet logins: it
+			// tripped the decoy (docs/10, F3).
+			hit := demoTripwireHit(now)
+			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "tripwire", DeviceID: d.ID, Severity: "critical", Data: json.RawMessage("{}"), LastSeen: hit.At})
+			td, _ := json.Marshal(map[string]any{"check": "tripwire", "ip": hit.IP, "port": hit.Port, "service": hit.Service, "name": firstNonEmpty(dd.host, dd.mac)})
+			events = append(events, store.Event{TS: hit.At, Kind: "security_finding", Severity: "critical", DeviceID: d.ID, Data: td})
 		}
 		if dd.gateway {
 			_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "upnp_igd", DeviceID: d.ID, Severity: "warning", Data: json.RawMessage("{}"), LastSeen: now.UnixMilli()})
@@ -352,6 +360,20 @@ func firstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+func demoTripwireHit(now time.Time) tripwire.HitView {
+	return tripwire.HitView{IP: "192.168.178.90", Port: 2323, Service: "telnet", At: now.Add(-38 * time.Minute).UnixMilli()}
+}
+
+// DemoTripwire is the decoy status shown in demo mode, where no port is opened.
+func DemoTripwire() tripwire.Status {
+	hit := demoTripwireHit(time.Now())
+	st := tripwire.Status{Enabled: true, LastHit: &hit}
+	for _, p := range config.Defaults().TripwirePorts {
+		st.Ports = append(st.Ports, tripwire.PortStatus{Port: p, Service: tripwire.Service(p), State: tripwire.StateOpen})
+	}
+	return st
 }
 
 // DemoWLAN is the Wi-Fi of the demo home: the FRITZ!Box downstairs and a

@@ -3,7 +3,9 @@
   import Toggle from '../../lib/components/Toggle.svelte';
   import { toast } from '../../lib/components/toast.svelte';
   import { store, updateSettings } from '../../lib/state.svelte';
+  import { api } from '../../lib/api';
   import { duration, number, t } from '../../lib/i18n.svelte';
+  import type { TripwireStatus } from '../../lib/types';
 
   const init = store.settings!; // starting values of the form
   const s = $derived(store.settings!); // last saved values, for dirty tracking
@@ -32,6 +34,46 @@
   }
   let busy = $state(false);
   let error = $state('');
+
+  // Tripwire (docs/10, F3).
+  const split = (v: string) => v.split(/[\s,;]+/).filter(Boolean);
+  let tripOn = $state(init.tripwire ?? false);
+  let tripPorts = $state((init.tripwirePorts ?? []).join(', '));
+  let tripAllow = $state((init.tripwireAllow ?? []).join(', '));
+  let tripBusy = $state(false);
+  let tripError = $state('');
+  let tripStatus = $state<TripwireStatus | undefined>();
+  const portList = $derived(split(tripPorts).map(Number));
+  const portsValid = $derived(portList.every((p) => Number.isInteger(p) && p >= 1024 && p <= 65535) && new Set(portList).size === portList.length);
+  const tripDirty = $derived(
+    tripOn !== (s.tripwire ?? false) || JSON.stringify(portList) !== JSON.stringify(s.tripwirePorts ?? []) ||
+      JSON.stringify(split(tripAllow)) !== JSON.stringify(s.tripwireAllow ?? []),
+  );
+  async function loadTrip() {
+    try {
+      tripStatus = (await api.network()).tripwire;
+    } catch {
+      /* the form still works without the status */
+    }
+  }
+  loadTrip();
+  async function saveTrip() {
+    if (!portsValid) {
+      tripError = t('settings.tripwireBadPorts');
+      return;
+    }
+    tripBusy = true;
+    tripError = await updateSettings((x) => {
+      x.tripwire = tripOn;
+      x.tripwirePorts = portList;
+      x.tripwireAllow = split(tripAllow);
+    });
+    tripBusy = false;
+    if (!tripError) {
+      toast(t('common.saved'));
+      await loadTrip();
+    }
+  }
 
   const ifaces = $derived(store.overview?.scanner.interfaces ?? []);
   const mode = $derived(store.overview?.scanner.mode ?? 'raw');
@@ -119,7 +161,51 @@
   <Toggle bind:checked={dnsCheck} label={t('settings.dnsCheck')} hint={t('settings.dnsCheckHint')} onchange={saveDnsCheck} />
 </SettingsCard>
 
+<SettingsCard title={t('settings.tripwire')} lead={t('settings.tripwireLead')} dirty={tripDirty} busy={tripBusy} error={tripError} onsave={saveTrip}>
+  <Toggle bind:checked={tripOn} label={t('settings.tripwireOn')} />
+  <div class="two">
+    <div class="field">
+      <label for="tw-ports">{t('settings.tripwirePorts')}</label>
+      <input id="tw-ports" class="input mono" inputmode="numeric" autocomplete="off" bind:value={tripPorts} aria-invalid={!portsValid} aria-describedby="tw-ports-hint" />
+      <p class="hint" id="tw-ports-hint">{t('settings.tripwirePortsHint')}</p>
+    </div>
+    <div class="field">
+      <label for="tw-allow">{t('settings.tripwireAllow')}</label>
+      <input id="tw-allow" class="input mono" autocomplete="off" bind:value={tripAllow} aria-describedby="tw-allow-hint" />
+      <p class="hint" id="tw-allow-hint">{t('settings.tripwireAllowHint')}</p>
+    </div>
+  </div>
+  {#if tripStatus?.enabled && tripStatus.ports.length}
+    <div class="field">
+      <span class="label">{t('settings.tripwireStatus')}</span>
+      <ul class="tw-ports">
+        {#each tripStatus.ports as p (p.port)}
+          <li><span class="dot {p.state === 'open' ? 'ok' : 'warn'}" aria-hidden="true"></span>
+            <span class="mono">{p.port}</span> {t(`tripwire.svc.${p.service}`)} <span class="faint">· {t(`tripwire.state.${p.state}`)}</span></li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+</SettingsCard>
+
 <style>
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .tw-ports {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  .tw-ports li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .narrow {
     max-width: 280px;
   }
@@ -145,6 +231,7 @@
     gap: 16px;
   }
   @media (max-width: 760px) {
+    .two,
     .three {
       grid-template-columns: 1fr;
     }

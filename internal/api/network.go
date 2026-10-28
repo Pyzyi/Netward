@@ -3,12 +3,30 @@ package api
 import (
 	"net/http"
 	"net/netip"
+
+	"github.com/Pyzyi/netzwart/internal/monitor"
+	"github.com/Pyzyi/netzwart/internal/tripwire"
 )
 
-// Router address and DHCP servers (docs/09, F1).
+// Router address and DHCP servers (docs/09, F1), DNS check and tripwire
+// (docs/10, F2/F3).
+
+type networkView struct {
+	monitor.NetworkState
+	Tripwire *tripwire.Status `json:"tripwire,omitempty"`
+}
+
+func (s *Server) network() networkView {
+	v := networkView{NetworkState: s.d.Monitor.Network()}
+	if s.d.Tripwire != nil {
+		t := s.d.Tripwire()
+		v.Tripwire = &t
+	}
+	return v
+}
 
 func (s *Server) handleNetwork(w http.ResponseWriter, _ *http.Request, _ *sessionInfo) {
-	writeJSON(w, http.StatusOK, s.d.Monitor.Network())
+	writeJSON(w, http.StatusOK, s.network())
 }
 
 type acceptRequest struct {
@@ -44,7 +62,7 @@ func (s *Server) handleNetworkAccept(w http.ResponseWriter, r *http.Request, _ *
 	// Accepting a router or DHCP server silences an alarm: keep a trace.
 	s.d.Monitor.AddEvent(r.Context(), "config_network", "info", 0, map[string]any{"ip": s.clientIP(r).String(), "target": req.IP + req.Server})
 	s.d.Security.EvaluateNetwork(r.Context())
-	writeJSON(w, http.StatusOK, s.d.Monitor.Network())
+	writeJSON(w, http.StatusOK, s.network())
 }
 
 // handleDeviceIdentity answers a change of the operating system family

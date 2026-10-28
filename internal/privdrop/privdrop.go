@@ -13,8 +13,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -33,6 +35,10 @@ type Result struct {
 	UID     int
 	GID     int
 	CapEff  string // effective capabilities after the switch (hex)
+	// Decoy listeners from NETZWART_TRIPWIRE_PORTS (docs/10, F3). Ports
+	// below 1024 can only be opened here, before the switch, and only with
+	// cap_add NET_BIND_SERVICE.
+	Tripwire map[int]net.Listener
 }
 
 // hardenProcess applies settings that need no privileges.
@@ -86,6 +92,7 @@ func Prepare(env config.Env, log *slog.Logger) (Result, error) {
 		res.Links = append(res.Links, link)
 	}
 	res.Pinger = l2.OpenPinger()
+	res.Tripwire = openTripwire(env.TripwirePorts, log)
 
 	if root {
 		if err := Drop(env.PUID, env.PGID); err != nil {
@@ -96,6 +103,23 @@ func Prepare(env config.Env, log *slog.Logger) (Result, error) {
 	}
 	res.CapEff = CapEff()
 	return res, nil
+}
+
+func openTripwire(ports []int, log *slog.Logger) map[int]net.Listener {
+	out := map[int]net.Listener{}
+	for _, p := range ports {
+		l, err := net.Listen("tcp", ":"+strconv.Itoa(p))
+		if err != nil {
+			hint := ""
+			if p < 1024 && errors.Is(err, syscall.EACCES) {
+				hint = "add cap_add NET_BIND_SERVICE to the container (see README)"
+			}
+			log.Warn("tripwire port not opened", "port", p, "err", err, "hint", hint)
+			continue
+		}
+		out[p] = l
+	}
+	return out
 }
 
 // Drop switches all threads to uid:gid with no supplementary groups. Without

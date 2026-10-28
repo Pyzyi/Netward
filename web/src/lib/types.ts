@@ -171,7 +171,7 @@ export interface Overview {
 
 export interface Finding {
   id: number;
-  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited' | 'identity_changed' | 'dns_manipulated' | 'dns_redirect';
+  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited' | 'identity_changed' | 'dns_manipulated' | 'dns_redirect' | 'tripwire';
   deviceId?: number;
   severity: 'info' | 'warning' | 'critical';
   data: { port?: number; service?: string; ip?: string; product?: string; status?: string; kind?: 'conflict' | 'changed'; server?: string; fixed?: string; manual?: string; uncertain?: string; from?: string; to?: string };
@@ -203,6 +203,14 @@ export interface NetworkState {
   }[];
   probe?: { at: number; answers: number };
   dns?: { at: number; results: DnsResult[] };
+  tripwire?: TripwireStatus;
+}
+
+/** Decoy services (docs/10, F3). */
+export interface TripwireStatus {
+  enabled: boolean;
+  ports: { port: number; service: string; state: 'open' | 'in_use' | 'restart' | 'error' }[];
+  lastHit?: { ip: string; port: number; service: string; at: number };
 }
 
 /** One DNS server checked against names with fixed answers (docs/10, F2). */
@@ -326,6 +334,9 @@ export interface Settings {
   dhcpCheck: boolean;
   dnsCheck: boolean;
   updateCheck: boolean;
+  tripwire: boolean;
+  tripwirePorts: number[];
+  tripwireAllow: string[];
   mqtt: MQTTSettings;
   fritzbox: FritzBoxSettings;
 }
