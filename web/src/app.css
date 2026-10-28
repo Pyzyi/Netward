@@ -809,7 +809,7 @@ details[open] > summary:not(.custom)::before {
   margin-top: 4px;
   color: var(--text-2);
   max-width: 64ch;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 /* Back link above a page title: "‹ Geräte" */

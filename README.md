@@ -5,94 +5,108 @@
 <h1 align="center">Netzwart</h1>
 
 <p align="center">
-  Jedes Gerät in deinem Heimnetz im Blick. Selbst gehostet, ohne Cloud, ohne Abo.
+  <b>See every device on your home network.</b><br>
+  A self-hosted network monitor with security checks. No cloud, no subscription, no telemetry.
 </p>
 
 <p align="center">
+  <a href="https://github.com/Pyzyi/netzwart/releases/latest"><img src="https://img.shields.io/github/v/release/Pyzyi/netzwart?label=release&color=1fa66a" alt="Latest release"></a>
   <a href="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml"><img src="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/Plattform-amd64%20%7C%20arm64-1662D8" alt="amd64 | arm64">
-  <img src="https://img.shields.io/badge/Lizenz-MIT-1662D8" alt="MIT">
+  <a href="https://github.com/Pyzyi/netzwart/pkgs/container/netzwart"><img src="https://img.shields.io/badge/image-ghcr.io-2856c7" alt="Container image on ghcr.io"></a>
+  <img src="https://img.shields.io/badge/arch-amd64%20%7C%20arm64-2856c7" alt="amd64 | arm64">
+  <img src="https://img.shields.io/badge/license-MIT-2856c7" alt="MIT">
 </p>
 
-![Übersicht](docs/screenshots/overview.png)
+<p align="center"><b>English</b> · <a href="README.de.md">Deutsch</a></p>
 
-Netzwart findet alle Geräte in deinem Netz, gibt ihnen verständliche Namen und Symbole, zeigt, wer gerade
-online ist, und meldet sich, wenn ein unbekanntes Gerät auftaucht oder das Internet ausfällt. Es läuft als
-ein einziger, kleiner Docker-Container (≈ 23 MB) und ist für [ZimaOS](https://zimaspace.com) gebaut, läuft
-aber auf jedem Linux-Host mit Docker.
+![Overview: the network ring with the router in the centre and every device around it](docs/screenshots/en/overview.png)
 
-## Funktionen
+Netzwart finds every device on your network and gives it a readable name and icon. It shows who is online and
+tells you when an unknown device appears or the internet goes down. It also checks your network for the usual
+weak spots: open Telnet, devices without security updates, a rogue DHCP server and more.
 
-- **Geräteerkennung in Echtzeit.** Netzwart hört ARP, DHCP und mDNS passiv mit und scannt zusätzlich alle 90 Sekunden.
-  Neue Geräte erscheinen nach Sekunden, nicht erst beim nächsten Scan.
-- **Verständliche Namen und Gerätetypen.** Hersteller (IEEE-Register, wöchentlich aktualisiert), DHCP-Fingerprint,
-  mDNS/Bonjour, UPnP, NetBIOS, Reverse-DNS und offene Ports ergeben Namen wie „Annas iPhone“ und 22 Gerätetypen.
-- **Netzring und Herzschlag.** Die Übersicht zeigt dein Netz als Ring um den Router, jedes Gerät ein Punkt.
-  In der Geräteliste zeigt ein Streifen pro Gerät die letzten 24 Stunden: wer immer da ist, wer abends kommt, wer fehlt.
-- **Anwesenheit.** Zeitleiste pro Gerät (24 h, 7 und 30 Tage). Schlafende Handys werden gezielt geweckt, bevor
-  Netzwart sie als offline meldet. Optional hilft die FRITZ!Box mit ihrer WLAN-Anmeldeliste.
-- **Benachrichtigungen** über ntfy, Gotify, Pushover, Telegram, Discord, Slack/Mattermost, Webhook und E-Mail:
-  neues Gerät, beobachtetes Gerät kommt oder geht, Internet weg und wieder da, IP-Konflikt, Sicherheitsbefund.
-- **Home Assistant** per MQTT Discovery: beobachtete Geräte als `device_tracker`, dazu Sensoren für Geräteanzahl,
-  neue Geräte und Internetstatus.
-- **Software und Updates** (neu in 0.1). Netzwart zeigt, welches System auf einem Gerät läuft, soweit es das im
-  Netz verrät, und ob es noch Sicherheitsupdates bekommt: Windows 10 und ältere Windows-11-Versionen, alte iPads und
-  iPhones (aus dem Modell), macOS, Android, Debian/Raspberry Pi OS, Ubuntu, Synology DSM, Apple TV, FRITZ!OS mit
-  verfügbarem Update. Veraltete Geräte werden zum Sicherheitsbefund mit Benachrichtigung und konkretem Rat.
-  Was das Netz nicht verrät (z. B. die iOS-Version), kannst du am Gerät selbst angeben.
-- **Bekannte, aktiv ausgenutzte Lücken** (neu in 0.2). Netzwart gleicht genaue Versionen von iOS, iPadOS, macOS und
-  tvOS offline mit der CISA-Liste ausgenutzter Lücken ab und sagt, ab welcher Version sie geschlossen sind.
-- **Sicherheitscheck.** Riskante offene Dienste (Telnet, SMB, RDP, unverschlüsselte Datenbanken …), UPnP am Router,
-  IP-Konflikte, unbekannte Geräte. Neu in 0.2: ein zweiter DHCP-Server im Netz, ein anderes Gerät auf der
-  Router-Adresse (ARP-Spoofing) und bekannte Geräte, die sich plötzlich als anderes System melden.
-  Jeder Befund mit konkretem Tipp, was zu tun ist.
-- **Personen** (neu in 0.2). „Wer ist zu Hause“ anhand der Handys und Uhren, auf Wunsch je Person als
-  `device_tracker` in Home Assistant. Die Zeit im Heimnetz je Tag nur, wenn die Person zugestimmt hat.
-- **Internet-Monitor und Nachweis für den Provider.** Latenz und Ausfallhistorie; unterscheidet „Router weg“,
-  „Internet weg“ und „nur DNS gestört“. Neu in 0.2: ein PDF-Bericht über einen Zeitraum mit Verfügbarkeit, allen
-  Ausfällen, Latenz je Tag und – mit FRITZ!Box – den Sync-Raten gegen deine Vertragswerte, dazu die Rohdaten als CSV.
-- **FRITZ!Box-Anbindung** (optional, TR-064): übernimmt die Namen, die du in der FRITZ!Box vergeben hast.
-  Neu in 0.2: WLAN-Diagnose (welches Gerät hängt an welchem Repeater, in welchem Band, wie gut) und die
-  Leitungsdaten (Sync-Raten, Neueinwahlen).
-- **Werkzeuge:** Portscan pro Gerät, Wake-on-LAN, Geräte zusammenführen, CSV/JSON-Export.
-- **Oberfläche:** ruhig und übersichtlich (neu gestaltet in 0.2.1), hell und dunkel, Deutsch und Englisch,
-  funktioniert auf dem Handy und lässt sich zum Startbildschirm hinzufügen.
+It runs as one small container (about 23 MB) with a read-only file system and **no Linux capabilities at runtime**.
+It was built for [ZimaOS](https://zimaspace.com) and runs on any Linux host with Docker: CasaOS, Unraid, TrueNAS SCALE,
+Synology, a Raspberry Pi.
+
+## Why Netzwart
+
+- **Answers first.** The overview tells you in one sentence how many devices are online, what is new and whether
+  the internet is fine. The network ring shows your whole home at a glance, with the router in the centre.
+- **Real names, not MAC addresses.** Names, types and vendors come from DHCP, mDNS/Bonjour, UPnP, NetBIOS, reverse DNS,
+  the IEEE vendor registry and open ports. You get "Living room TV" and "Anna's iPhone" instead of `a4:83:e7:…`.
+- **Security you can act on.** Every finding says why it matters and what to do, in plain language.
+- **Private by design.** Nothing leaves your network unless you set it up (notifications, MQTT, update check).
+- **Small and locked down.** One static binary, no shell in the image, mandatory setup with Argon2id. It drops
+  to an unprivileged user after opening its sockets.
+
+## Features
+
+- **Live discovery.** Passive ARP, DHCP and mDNS listening plus a scan every 90 seconds. New devices show up within
+  seconds, not at the next scan.
+- **Network ring and heartbeat.** The overview draws your network as a ring around the router. The device list
+  shows the last 24 hours per device as a strip: who is always there, who comes home in the evening, who is missing.
+- **Presence.** Timeline per device (24 h, 7 and 30 days). Sleeping phones are woken up before they are reported
+  offline.
+- **People.** "Who is at home", based on phones and watches. Optionally each person appears as a `device_tracker`
+  in Home Assistant. Time at home per day is only recorded with the person's consent.
+- **Notifications** via ntfy, Gotify, Pushover, Telegram, Discord, Slack/Mattermost, webhook and e-mail. Netzwart
+  notifies you about:
+  - new devices
+  - watched devices coming or going
+  - internet outages
+  - IP conflicts
+  - security findings
+- **Home Assistant** via MQTT discovery: device trackers and sensors for device count, new devices and internet
+  status.
+- **Security check:**
+  - risky open services: Telnet, SMB, RDP, unencrypted databases …
+  - UPnP on the router, IP conflicts, unknown devices
+  - a second DHCP server, ARP spoofing of the router address, and known devices that suddenly identify as a
+    different system
+- **Software and updates.** Netzwart shows which system a device runs, as far as it reveals it on the network, and
+  whether that system still receives security updates. This covers Windows 10/11, iOS and iPadOS by model, macOS,
+  Android, Debian, Ubuntu, Synology DSM and FRITZ!OS.
+- **Known exploited vulnerabilities.** Exact iOS, iPadOS, macOS and tvOS versions are checked offline against the
+  CISA KEV catalogue. Netzwart tells you which version fixes them.
+- **Internet monitor and evidence for your ISP.** Latency and outage history that tells "router down", "internet
+  down" and "only DNS broken" apart. The PDF report lists availability, every outage and daily latency, with raw
+  data as CSV.
+- **FRITZ!Box integration** (optional, TR-064):
+  - device names from the router
+  - Wi-Fi diagnosis: which device is on which repeater, in which band, how well
+  - line sync rates
+- **Tools:** port scan per device, Wake-on-LAN, merge duplicates, CSV/JSON export.
+- **Interface:** light and dark, English and German, works on phones and can be added to the home screen.
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/devices.png" alt="Geräteliste mit Detailansicht: Windows 10 bekommt keine Sicherheitsupdates mehr"></td>
-    <td><img src="docs/screenshots/security.png" alt="Sicherheitscheck"></td>
+    <td><img src="docs/screenshots/en/devices.png" alt="Device list with detail panel: Windows 10 no longer receives security updates"></td>
+    <td><img src="docs/screenshots/en/security.png" alt="Security check with findings and advice"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/overview-dark.png" alt="Übersicht im dunklen Design"></td>
-    <td align="center"><img src="docs/screenshots/mobile.png" width="260" alt="Ansicht auf dem Handy mit Netzring"></td>
+    <td><img src="docs/screenshots/en/wlan.png" alt="Wi-Fi diagnosis: hints and signal per device"></td>
+    <td><img src="docs/screenshots/en/persons.png" alt="People: who is at home"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/wlan.png" alt="WLAN-Diagnose: Hinweise und Signal je Gerät"></td>
-    <td><img src="docs/screenshots/persons.png" alt="Personen: wer zu Hause ist"></td>
+    <td><img src="docs/screenshots/en/overview-dark.png" alt="Overview in dark mode"></td>
+    <td align="center"><img src="docs/screenshots/en/mobile.png" width="260" alt="Overview on a phone with the network ring"></td>
   </tr>
 </table>
 
-## Installation
-
-### ZimaOS
-
-1. App Store öffnen → oben rechts **„+“** → **„Benutzerdefinierte App installieren“** → **„Importieren“**.
-2. Den Inhalt von [`docker-compose.yml`](docker-compose.yml) einfügen (unten noch einmal vollständig) und installieren.
-3. `http://<IP-deines-ZimaOS>:8840` öffnen, Benutzer und Passwort festlegen. Fertig.
-
-### Jeder andere Docker-Host
+## Quick start
 
 ```bash
 mkdir netzwart && cd netzwart
 curl -fsSLO https://raw.githubusercontent.com/Pyzyi/netzwart/main/docker-compose.yml
+# change the data path /DATA/AppData/netzwart to e.g. ./data
 docker compose up -d
 ```
 
-Auf anderen Systemen als ZimaOS den Datenpfad `/DATA/AppData/netzwart` anpassen, z. B. auf `./data`.
+Open `http://<server-ip>:8840` and create your account. There is no default password.
 
 <details>
-<summary><b>docker-compose.yml</b> zum Kopieren</summary>
+<summary><b>docker-compose.yml</b></summary>
 
 ```yaml
 name: netzwart
@@ -102,10 +116,10 @@ services:
     image: ghcr.io/pyzyi/netzwart:latest
     container_name: netzwart
     restart: unless-stopped
-    network_mode: host
+    network_mode: host          # layer-2 discovery needs the host network
     cap_drop:
       - ALL
-    cap_add:
+    cap_add:                    # only used during start-up, dropped afterwards
       - CHOWN
       - SETUID
       - SETGID
@@ -114,143 +128,145 @@ services:
       - no-new-privileges:true
     read_only: true
     environment:
-      TZ: Europe/Berlin
+      TZ: Europe/London
       NETZWART_PORT: "8840"
     volumes:
-      - /DATA/AppData/netzwart:/data
+      - ./data:/data
 ```
 
 </details>
 
-### Ersteinrichtung
+## Installation on NAS systems
 
-Die Einrichtungsseite ist aus Sicherheitsgründen nur **30 Minuten nach dem Start** und nur **aus dem lokalen Netz**
-erreichbar. Wer das verpasst, startet den Container einfach neu. Es gibt kein Standardpasswort.
+| Platform | How |
+|---|---|
+| **ZimaOS / CasaOS** | App Store → **+** → *Install a customized app* → *Import*. Paste [`deploy/casaos/Netzwart/docker-compose.yml`](deploy/casaos/Netzwart/docker-compose.yml). A listing for the official app store is prepared. |
+| **Unraid** | Until Netzwart is listed in Community Applications, run the command below in the Unraid terminal. Then pick **Docker → Add Container → Template: netzwart**. |
+| **TrueNAS SCALE 24.10+** | **Apps → Discover Apps → ⋮ → Install via YAML**, name it `netzwart` and paste [`deploy/truenas/netzwart.yaml`](deploy/truenas/netzwart.yaml). Adjust `/mnt/tank/apps/netzwart` to your pool first. |
+| **Synology, Portainer, plain Docker** | Use the compose file above. Netzwart needs the host network; Docker Desktop on macOS and Windows cannot see your LAN on layer 2. |
 
-### Updates
+Unraid template command:
 
-Neue Versionen erscheinen unter [Releases](https://github.com/Pyzyi/netzwart/releases) mit einer Beschreibung, was
-neu ist. Das Image-Tag `latest` zeigt immer auf das neueste Release, `0.1` auf die neueste 0.1.x-Version.
-Zwischenstände der Entwicklung heißen `edge` und sind nicht für den Alltag gedacht.
+```bash
+wget -O /boot/config/plugins/dockerMan/templates-user/my-netzwart.xml \
+  https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml
+```
 
-**Aktualisieren ohne Neuinstallation** – Geräte, Namen, Verlauf, Konten und Einstellungen bleiben erhalten:
+**First setup.** For security, the setup page is only reachable for **30 minutes after start** and only **from your
+local network**. If you miss that window, restart the container.
 
-- **ZimaOS:** In der App „Netzwart“ die Einstellungen öffnen und die App neu erstellen bzw. das Image neu laden
-  (je nach ZimaOS-Version „Update“, „Rebuild“ oder Speichern ohne Änderung). Dabei wird `latest` neu geladen.
-  Ob ZimaOS bei selbst eingefügten Compose-Apps von sich aus ein Update anzeigt, hängt von der ZimaOS-Version ab.
-  Zuverlässig ist der Hinweis in Netzwart selbst (siehe unten).
-- **Docker Compose:** im Ordner mit der `docker-compose.yml`: `docker compose pull && docker compose up -d`.
+## Updates
 
-Die Datenbank wird beim Start automatisch migriert. Vorher legt Netzwart eine Kopie im Unterordner `backup` an
-(`pre-update-schema-N.db`). Zurück auf eine ältere Version geht nur mit dieser Kopie, weil eine ältere Version eine
-neuere Datenbank nicht öffnet. Zusätzlich entsteht einmal täglich eine Sicherung (die letzten drei bleiben erhalten).
+Every release is on the [releases page](https://github.com/Pyzyi/netzwart/releases) with notes on what changed. The
+image tag `latest` always points to the newest release. To pin a minor version, use `0.2`. Development builds are
+tagged `edge`.
 
-**Hinweis auf neue Versionen:** Unter *Einstellungen → Über Netzwart* lässt sich „Nach neuen Versionen suchen“
-einschalten (standardmäßig aus). Netzwart fragt dann einmal am Tag bei GitHub nach und zeigt einen Link zu den
-Release-Notizen. Es installiert nichts selbst: Dafür bräuchte der Container Zugriff auf Docker, und das wäre ein
-größeres Risiko als der Nutzen.
+- **Docker Compose:** `docker compose pull && docker compose up -d`
+- **ZimaOS / CasaOS:** open the app settings and set the image tag to the new version (e.g. `0.2.1`), then save.
+  With `latest`, use "rebuild" or re-pull the image.
+- **Unraid:** *Check for updates* on the Docker tab.
+- **TrueNAS:** edit the app and save; with a version tag, change the tag.
 
-## Warum diese Rechte?
+Your devices, names, history, accounts and settings are kept. Before migrating the database, Netzwart writes a
+copy to `backup/pre-update-schema-N.db`. It also keeps a daily backup (the last three).
 
-Netzwart braucht `network_mode: host`, weil Geräteerkennung auf Layer 2 (ARP, DHCP) nur im Netz des Hosts möglich ist.
-Fing Agent und NetAlertX haben dieselbe Anforderung. Der Unterschied liegt in dem, was danach passiert:
+Netzwart can tell you about new versions (*Settings → About*, off by default). It never installs anything itself:
+that would need access to the Docker socket, which is a bigger risk than the convenience is worth.
 
-| | Netzwart | übliche Netzwerk-Scanner |
+## Why these permissions?
+
+Netzwart needs `network_mode: host`, because layer-2 discovery (ARP, DHCP) only works on the host's network. Other
+network scanners have the same requirement. The difference is what happens next:
+
+| | Netzwart | typical network scanners |
 |---|---|---|
-| Benutzer im Betrieb | UID 10001 | root |
-| Linux-Capabilities im Betrieb | **keine** (`CapEff = 0`) | `NET_ADMIN`, `NET_RAW`, oft `privileged` |
-| Dateisystem | schreibgeschützt, nur `/data` beschreibbar | beschreibbar |
-| Inhalt des Images | ein statisches Programm, keine Shell, kein Paketmanager | komplette Distribution |
-| Zugangsschutz | Pflicht-Einrichtung, Argon2id, Brute-Force-Bremse | teils Standardpasswort |
+| User at runtime | UID 10001 | root |
+| Linux capabilities at runtime | **none** (`CapEff = 0`) | `NET_ADMIN`, `NET_RAW`, often `privileged` |
+| File system | read-only, only `/data` is writable | writable |
+| Image contents | one static binary, no shell, no package manager | a full distribution |
+| Access | mandatory setup, Argon2id, brute-force throttling | sometimes a default password |
 
-Beim Start öffnet Netzwart als root genau zwei Sockets, übergibt `/data` an den Laufzeit-Benutzer und gibt dann
-**alle** Rechte unwiderruflich ab. `CHOWN`, `SETUID` und `SETGID` werden nur für diesen Wechsel gebraucht.
-Ohne `NET_RAW` läuft Netzwart weiter, erkennt Geräte dann aber langsamer und nur im eigenen /24-Netz.
+At start, Netzwart opens exactly two sockets as root and hands `/data` over to the runtime user. Then it drops
+**all** privileges irrevocably. `CHOWN`, `SETUID` and `SETGID` are only needed for that switch. Without `NET_RAW`,
+Netzwart still runs, but it discovers devices more slowly and only in its own /24 network.
 
-Mehr dazu: [Sicherheitsrichtlinie](SECURITY.md) · [Bedrohungsmodell](docs/03-bedrohungsmodell.md)
+More: [security policy](SECURITY.md) · [threat model](docs/03-bedrohungsmodell.md) (German)
 
-## Einstellungen per Umgebungsvariable
+## Environment variables
 
-Alles Weitere stellst du in der Oberfläche ein. Diese Variablen braucht man nur in Sonderfällen:
+Everything else is configured in the web interface. You only need these in special cases:
 
-| Variable | Standard | Zweck |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NETZWART_PORT` | `8840` | Port der Weboberfläche |
-| `NETZWART_LISTEN` | alle Adressen | nur auf einer bestimmten IP lauschen, z. B. `192.168.178.10` |
-| `NETZWART_INTERFACES` | automatisch | Netzwerkschnittstellen, z. B. `eth0,eth1` |
-| `NETZWART_ALLOWED_HOSTS` | – | zusätzliche Hostnamen, unter denen Netzwart erreichbar ist (Reverse-Proxy) |
-| `NETZWART_TRUSTED_PROXIES` | – | IPs/Netze deines Reverse-Proxys, damit Netzwart die echte Client-IP sieht |
-| `NETZWART_TLS_CERT`, `NETZWART_TLS_KEY` | – | HTTPS direkt in Netzwart (Pfade im Container) |
-| `NETZWART_SETUP_TOKEN` | – | Ersteinrichtung zusätzlich mit einem Token absichern |
-| `PUID`, `PGID` | `10001` | Benutzer, dem der Datenordner gehört |
+| `NETZWART_PORT` | `8840` | Port of the web interface |
+| `NETZWART_LISTEN` | all addresses | Listen on one IP only, e.g. `192.168.1.10` |
+| `NETZWART_INTERFACES` | automatic | Network interfaces, e.g. `eth0,eth1` |
+| `NETZWART_ALLOWED_HOSTS` | – | Extra host names Netzwart answers to (reverse proxy) |
+| `NETZWART_TRUSTED_PROXIES` | – | IPs/networks of your reverse proxy, so Netzwart sees the real client IP |
+| `NETZWART_TLS_CERT`, `NETZWART_TLS_KEY` | – | HTTPS directly in Netzwart (paths inside the container) |
+| `NETZWART_SETUP_TOKEN` | – | Additionally protect the first setup with a token |
+| `PUID`, `PGID` | `10001` | Owner of the data folder |
 | `NETZWART_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
-| `NETZWART_DEMO` | – | `1` startet mit Beispieldaten ohne zu scannen |
+| `NETZWART_DEMO` | – | `1` (German) or `en` (English) starts with sample data and does not scan |
 
-Netzwart antwortet nur auf IP-Adressen, `localhost` und lokale Namen (`.local`, `.lan`, `.home.arpa`, `.fritz.box` …).
-Andere Hostnamen müssen in `NETZWART_ALLOWED_HOSTS` stehen. Das schützt vor DNS-Rebinding-Angriffen aus dem Browser.
+Netzwart only answers to IP addresses, `localhost` and local names (`.local`, `.lan`, `.home.arpa`, `.fritz.box` …).
+Other host names must be listed in `NETZWART_ALLOWED_HOSTS`. This protects against DNS rebinding attacks from the
+browser.
 
-## Passwort vergessen?
+## Forgot your password?
 
 ```bash
 docker exec netzwart /netzwart reset-password
 ```
 
-Ohne Terminal (z. B. unter ZimaOS über die Dateien-App): im Datenordner `/DATA/AppData/netzwart` eine leere Datei
-namens `reset-password` anlegen und die App neu starten. Das neue Passwort steht dann im Protokoll der App.
-Eine leere Datei `factory-reset` setzt Konto, Benachrichtigungskanäle und Einstellungen zurück, die Geräte bleiben.
+Without a terminal: create an empty file named `reset-password` in the data folder and restart the app. The new
+password is printed to the app log. An empty file named `factory-reset` resets the account, notification channels
+and settings; devices are kept.
 
-## Häufige Fragen
+## FAQ
 
-**Kann Netzwart Geräte sperren wie die Fingbox?** Nein, mit Absicht. Das ginge nur über ARP-Spoofing, also einen
-Angriff auf das eigene Netz. Sperren gehört in den Router (FRITZ!Box: Kindersicherung / Zugangsprofile).
+**Can Netzwart block devices like a Fingbox?** No, on purpose. That only works with ARP spoofing, which is an attack
+on your own network. Blocking belongs in your router.
 
-**Warum taucht mein iPhone mehrfach auf?** iOS und Android verwenden pro WLAN eine private, gelegentlich wechselnde
-MAC-Adresse. Netzwart kennzeichnet solche Adressen; in der Detailansicht lassen sich Einträge zusammenführen.
-Unbekannte Geräte mit privater Adresse verschwinden nach 14 Tagen offline von selbst.
+**Why does my iPhone show up twice?** iOS and Android use a private, occasionally changing MAC address per Wi-Fi
+network. Netzwart marks such addresses, and you can merge entries in the detail panel. Unknown devices with a
+private address disappear by themselves after 14 days offline.
 
-**Werden Daten nach außen gesendet?** Nein. Keine Telemetrie, keine Cloud. Netzwart verbindet sich nur mit Zielen,
-die du selbst einträgst (Benachrichtigungen, MQTT, FRITZ!Box), für den Internet-Monitor mit `1.1.1.1:443`,
-`9.9.9.9:443` und `dns.google:443` (änderbar oder abschaltbar) und – nur wenn du es einschaltest – einmal täglich
-mit GitHub, um nach neuen Versionen zu fragen. Die Software-Bewertung arbeitet mit einer eingebauten Wissensbasis
-(Datenstand steht in der Oberfläche) und fragt keinen Online-Dienst.
+**Does Netzwart send data anywhere?** No telemetry, no cloud. Netzwart only connects to:
+- destinations you configure yourself (notifications, MQTT, FRITZ!Box)
+- `1.1.1.1:443`, `9.9.9.9:443` and `dns.google:443` for the internet monitor (configurable or off)
+- GitHub once a day, if you turn on the update check
 
-**Woher weiß Netzwart, welche Software ein Gerät hat?** Aus dem, was Geräte im Netz von sich aus ankündigen
-(mDNS, UPnP, DHCP), von der FRITZ!Box, und im Sicherheitscheck aus zwei Abfragen: der Begrüßungszeile eines
-SSH-Servers (es wird nichts gesendet) und der Versionsangabe, die Windows beim ersten Schritt einer Dateifreigabe-
-Anmeldung nennt. Die Anmeldung wird nie abgeschlossen, es werden keine Zugangsdaten gesendet. iPhones verraten
-ihre iOS-Version grundsätzlich nicht; dort hilft das Modell („kann höchstens iOS 16“) oder deine Angabe.
-Details: [docs/08](docs/08-software-und-support.md).
+**How does Netzwart know which software a device runs?** From what devices announce on the network by themselves
+(mDNS, UPnP, DHCP) and from the FRITZ!Box. The security check adds two probes:
+- the greeting line of an SSH server (nothing is sent)
+- the version Windows names in the first step of a file-sharing login; the login is never completed and no
+  credentials are sent
 
-**Mehrere Netze/VLANs?** Netzwart sieht jedes Netz, in dem der Host eine Schnittstelle hat. Hinter Routern liegende
-Netze sind auf Layer 2 nicht sichtbar.
+iPhones never reveal their iOS version. There, the model helps ("can run iOS 16 at most"), or you enter the version
+yourself.
 
-## Entwicklung
+**Does it work with any router?** Yes. The FRITZ!Box integration is an optional extra; discovery, presence,
+notifications and the security check work with any router.
 
-Voraussetzungen: Go 1.27, Node 22.
+**Multiple networks / VLANs?** Netzwart sees every network the host has an interface in. Networks behind other routers
+are not visible on layer 2.
+
+## Development
+
+Requirements: Go 1.27, Node 22.
 
 ```bash
-make build      # Oberfläche bauen, Programm nach bin/netzwart
-make test       # go vet + Tests mit Race-Detector
-make fuzz       # Fuzzing der Protokoll-Parser (FUZZTIME=30s)
-make demo       # mit Beispieldaten auf http://localhost:8840
+make build      # build the web UI and the binary into bin/netzwart
+make test       # go vet + tests with the race detector
+make fuzz       # fuzz the protocol parsers (FUZZTIME=30s)
+make demo       # sample data on http://localhost:8840
 ```
 
-Für die Oberfläche mit Hot-Reload: `make demo` mit `NETZWART_PORT=18840` starten und in `web/` `npm run dev` ausführen.
-Container- und UI-Tests liegen in [`e2e/`](e2e) (`sudo e2e/container-test.sh`, `cd e2e && npx playwright test`).
+Container and UI tests live in [`e2e/`](e2e). Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+The project documents (requirements, architecture, threat model, ISO/IEC 25010 quality model, reviews) are in
+[`docs/`](docs) and written in German.
 
-## Projektunterlagen
+## License
 
-Netzwart wurde wie ein Teamprojekt geplant und geprüft, mit dem Qualitätsmodell ISO/IEC 25010 als Maßstab:
-
-1. [Anforderungen und Wettbewerbsanalyse](docs/01-anforderungen.md)
-2. [Architektur und Architekturentscheidungen](docs/02-architektur.md)
-3. [Bedrohungsmodell (STRIDE)](docs/03-bedrohungsmodell.md)
-4. [Qualitätsmodell nach ISO/IEC 25010](docs/04-qualitaetsmodell-iso25010.md)
-5. [UX- und Designkonzept](docs/05-ux-design.md)
-6. [Teststrategie](docs/06-teststrategie.md)
-7. [Review-Protokoll](docs/07-review-protokoll.md)
-8. [Software und Support (0.1)](docs/08-software-und-support.md) · [Änderungen](CHANGELOG.md)
-
-## Lizenz
-
-[MIT](LICENSE). Verwendete Bibliotheken, Schriften und Daten: [NOTICE](NOTICE).
+[MIT](LICENSE). Third-party libraries, fonts and data: [NOTICE](NOTICE).

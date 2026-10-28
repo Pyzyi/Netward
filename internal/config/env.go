@@ -22,6 +22,7 @@ type Env struct {
 	TLSKey         string
 	LogLevel       string
 	Demo           bool
+	DemoLang       string // de | en: language of the sample household
 }
 
 func list(v string) []string {
@@ -103,6 +104,11 @@ func LoadEnv() (Env, error) {
 			return e, fmt.Errorf("NETZWART_LOG_LEVEL must be debug, info, warn or error")
 		}
 	}
-	e.Demo = get("NETZWART_DEMO") == "1" || strings.EqualFold(get("NETZWART_DEMO"), "true")
+	switch demo := strings.ToLower(get("NETZWART_DEMO")); demo {
+	case "1", "true", "de":
+		e.Demo, e.DemoLang = true, "de"
+	case "en":
+		e.Demo, e.DemoLang = true, "en"
+	}
 	return e, nil
 }

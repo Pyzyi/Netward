@@ -7,8 +7,10 @@ export function isHome(p: Person, devices: Map<number, Device>): boolean {
 }
 
 function when(ms: number, now: number): string {
+  // "Gestern"/"Yesterday" stands alone elsewhere; inside a sentence it is lower case.
   const day = shortDay(ms, now);
-  return day ? `${day}, ${time(ms)}` : time(ms);
+  const inline = day === t('activity.yesterday') ? day.toLocaleLowerCase() : day;
+  return day ? `${inline}, ${time(ms)}` : time(ms);
 }
 
 /** "zu Hause seit 07:12", "unterwegs seit gestern, 18:40". */

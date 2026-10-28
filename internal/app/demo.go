@@ -74,9 +74,35 @@ var demoDevices = []demoDevice{
 	{mac: "5a:8e:13:c0:77:e2", ip: "192.168.178.93", host: "", vendor: "", typ: "phone", known: false, online: true, newDev: true, phone: true, macKind: "random"},
 }
 
-// SeedDemo fills an empty database with a realistic sample network. It is
-// only used with NETZWART_DEMO=1 (development and screenshots).
+// demoEnglish renames the German sample household for NETZWART_DEMO=en,
+// so screenshots for the English README show an English home.
+var demoEnglish = map[string]string{
+	"Annas iPhone": "Anna's iPhone", "Max' iPhone": "Max's iPhone", "Apple TV Schlafzimmer": "Bedroom Apple TV", "Drucker": "Printer",
+	"Echo Dot Bad": "Bathroom Echo Dot", "Fernseher Wohnzimmer": "Living room TV", "Kamera Einfahrt": "Driveway camera",
+	"Küche": "Kitchen", "Laptop Kinder": "Kids' laptop", "Omas iPad": "Grandma's iPad", "Saugroboter": "Robot vacuum",
+	"Steckdose Kaffeemaschine": "Coffee machine plug", "Steckdose Waschmaschine": "Washing machine plug",
+	"Wohnzimmer Arc": "Living room Arc", "Repeater OG": "Upstairs repeater", "Oma": "Grandma",
+	"Arbeitszimmer": "Office", "Außen": "Outside", "Bad": "Bathroom", "Erdgeschoss": "Ground floor", "Flur": "Hallway",
+	"Keller": "Basement", "Kinderzimmer": "Kids' room", "Obergeschoss": "Upstairs", "Schlafzimmer": "Bedroom",
+	"Wohnzimmer": "Living room",
+}
+
+// demoText returns s in the demo language ("de" or "en").
+func demoText(lang, s string) string {
+	if v, ok := demoEnglish[s]; ok && lang == "en" {
+		return v
+	}
+	return s
+}
+
+// SeedDemo fills an empty database with a realistic sample network in German.
 func SeedDemo(ctx context.Context, st *store.Store) error {
+	return SeedDemoLang(ctx, st, "de")
+}
+
+// SeedDemoLang fills an empty database with a realistic sample network. It is
+// only used with NETZWART_DEMO (development and screenshots); lang is "de" or "en".
+func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 	existing, err := st.ListDevices(ctx)
 	if err != nil || len(existing) > 0 {
 		return err
@@ -91,6 +117,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 	var piholeID int64
 	ids := map[string]int64{}
 	for i, dd := range demoDevices {
+		dd.name, dd.location = demoText(lang, dd.name), demoText(lang, dd.location)
 		first := baseline.Add(-time.Duration(rnd.IntN(200)) * 24 * time.Hour)
 		if dd.newDev {
 			first = now.Add(-time.Duration(20+i*7) * time.Minute)
@@ -226,7 +253,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 		"change": map[string]any{"from": "windows", "to": "linux", "at": changedAt}}})
 	_, _ = st.UpsertFinding(ctx, store.Finding{CheckID: "identity_changed", DeviceID: laptop, Severity: "warning",
 		Data: json.RawMessage(`{"from":"windows","to":"linux"}`), LastSeen: now.UnixMilli()})
-	idc, _ := json.Marshal(map[string]any{"name": "Laptop Kinder", "from": "windows", "to": "linux", "deviceType": "laptop"})
+	idc, _ := json.Marshal(map[string]any{"name": demoText(lang, "Laptop Kinder"), "from": "windows", "to": "linux", "deviceType": "laptop"})
 	events = append(events, store.Event{TS: changedAt, Kind: "identity_changed", Severity: "warning", DeviceID: laptop, Data: idc})
 
 	// The household (docs/09, F4): Anna agreed to show her time at home.
@@ -240,7 +267,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 			{DeviceID: ids["f0:2f:4b:12:7a:33"]}}},
 		{"Oma", false, []store.PersonDevice{{DeviceID: ids["86:2c:10:5f:a4:93"], Presence: true}}},
 	} {
-		person, err := st.CreatePerson(ctx, p.name)
+		person, err := st.CreatePerson(ctx, demoText(lang, p.name))
 		if err != nil {
 			return err
 		}
@@ -285,6 +312,11 @@ func firstNonEmpty(v ...string) string {
 // repeater upstairs whose own link is weak, so the children's laptop ends
 // up on 2.4 GHz behind it (docs/09, F3).
 func DemoWLAN() fritzbox.WLANState {
+	return DemoWLANLang("de")
+}
+
+// DemoWLANLang is DemoWLAN with the repeater named in the demo language.
+func DemoWLANLang(lang string) fritzbox.WLANState {
 	const box, rep = "3c:a6:2f:5e:11:01", "3c:a6:2f:5e:22:02"
 	c := func(mac, ap, band string, ch, dbm, rate, maxRate int, can5 bool) fritzbox.WLANClient {
 		return fritzbox.WLANClient{MAC: mac, APMAC: ap, Band: band, Channel: ch, SignalDBm: dbm, RateRx: rate, RateTx: rate * 9 / 10, MaxRate: maxRate, Can5GHz: can5}
@@ -293,7 +325,7 @@ func DemoWLAN() fritzbox.WLANState {
 		Source: "mesh",
 		APs: []fritzbox.WLANAccessPoint{
 			{MAC: box, Name: "FRITZ!Box", Model: "FRITZ!Box 7590 AX", Master: true, Bands: []string{"2.4", "5"}},
-			{MAC: rep, Name: "Repeater OG", Model: "FRITZ!Repeater 2400", Bands: []string{"2.4", "5"},
+			{MAC: rep, Name: demoText(lang, "Repeater OG"), Model: "FRITZ!Repeater 2400", Bands: []string{"2.4", "5"},
 				Backhaul: &fritzbox.WLANBackhaul{Type: "wlan", Band: "5", SignalDBm: -77, Rate: 86}},
 		},
 		Clients: []fritzbox.WLANClient{

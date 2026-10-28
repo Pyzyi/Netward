@@ -116,7 +116,7 @@ func Run(ctx context.Context, o Options) error {
 		return err
 	}
 	if env.Demo {
-		if err := SeedDemo(ctx, st); err != nil {
+		if err := SeedDemoLang(ctx, st, env.DemoLang); err != nil {
 			return fmt.Errorf("seed demo data: %w", err)
 		}
 	}
@@ -166,7 +166,7 @@ func Run(ctx context.Context, o Options) error {
 	wifi := wlan.New(mon)
 	fritz.OnWLAN(func(_ context.Context, st fritzbox.WLANState, at time.Time) { wifi.Apply(st, at) })
 	if env.Demo {
-		wifi.SeedDemo(DemoWLAN(), time.Now())
+		wifi.SeedDemo(DemoWLANLang(env.DemoLang), time.Now())
 	}
 	fritz.OnFirmware(func(ctx context.Context, host string, fw fritzbox.Firmware) {
 		// The router is the configured host if that is an address, else an

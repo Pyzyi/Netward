@@ -105,3 +105,32 @@ func TestSeedDemo(t *testing.T) {
 		t.Fatal("demo data duplicated")
 	}
 }
+
+func TestSeedDemoEnglish(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "d.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if err := SeedDemoLang(ctx, st, "en"); err != nil {
+		t.Fatal(err)
+	}
+	devs, _ := st.ListDevices(ctx)
+	names := map[string]string{}
+	for _, d := range devs {
+		names[d.Name] = d.Location
+	}
+	if loc, ok := names["Living room TV"]; !ok || loc != "Living room" {
+		t.Fatalf("English names missing: %v", names)
+	}
+	if _, ok := names["Fernseher Wohnzimmer"]; ok {
+		t.Fatal("German name in the English demo")
+	}
+	if DemoWLANLang("en").APs[1].Name != "Upstairs repeater" {
+		t.Fatal("repeater not renamed")
+	}
+	if DemoWLAN().APs[1].Name != "Repeater OG" {
+		t.Fatal("German demo changed")
+	}
+}
