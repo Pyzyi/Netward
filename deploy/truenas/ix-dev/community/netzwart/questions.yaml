@@ -1,0 +1,261 @@
+groups:
+  - name: Netzwart Configuration
+    description: Configure Netzwart
+  - name: User and Group Configuration
+    description: Configure User and Group for Netzwart
+  - name: Network Configuration
+    description: Configure Network for Netzwart
+  - name: Storage Configuration
+    description: Configure Storage for Netzwart
+  - name: Labels Configuration
+    description: Configure Labels for Netzwart
+  - name: Resources Configuration
+    description: Configure Resources for Netzwart
+
+questions:
+  - variable: TZ
+    group: Netzwart Configuration
+    label: Timezone
+    schema:
+      type: string
+      default: Etc/UTC
+      required: true
+      $ref:
+        - definitions/timezone
+
+  - variable: netzwart
+    label: ""
+    group: Netzwart Configuration
+    schema:
+      type: dict
+      attrs:
+        - variable: interfaces
+          label: Network Interfaces
+          description: |
+            Interfaces to scan, comma separated (e.g. eno1,br0).</br>
+            Leave empty to scan the interface with the default route.
+          schema:
+            type: string
+            default: ""
+        - variable: additional_envs
+          label: Additional Environment Variables
+          schema:
+            type: list
+            default: []
+            items:
+              - variable: env
+                label: Environment Variable
+                schema:
+                  type: dict
+                  attrs:
+                    - variable: name
+                      label: Name
+                      schema:
+                        type: string
+                        required: true
+                    - variable: value
+                      label: Value
+                      schema:
+                        type: string
+
+  - variable: run_as
+    label: ""
+    group: User and Group Configuration
+    schema:
+      type: dict
+      attrs:
+        - variable: user
+          label: User ID
+          description: |
+            Netzwart starts as root to open its network sockets,</br>
+            then switches to this user and drops all capabilities.
+          schema:
+            type: int
+            min: 568
+            default: 568
+            required: true
+        - variable: group
+          label: Group ID
+          description: The group Netzwart switches to after start-up.
+          schema:
+            type: int
+            min: 568
+            default: 568
+            required: true
+
+  - variable: network
+    label: ""
+    group: Network Configuration
+    schema:
+      type: dict
+      attrs:
+        - variable: web_port
+          label: WebUI Port
+          description: |
+            The port for the Netzwart WebUI.</br>
+            Netzwart always uses the host network (layer-2 discovery), so this port is opened on the host.
+          schema:
+            type: dict
+            attrs:
+              - variable: bind_mode
+                label: Port Bind Mode
+                schema:
+                  type: string
+                  default: "published"
+                  hidden: true
+                  enum:
+                    - value: "published"
+                      description: Published on the host network
+              - variable: port_number
+                label: Port Number
+                schema:
+                  type: int
+                  default: 8840
+                  min: 1
+                  max: 65535
+                  required: true
+
+  - variable: storage
+    label: ""
+    group: Storage Configuration
+    schema:
+      type: dict
+      attrs:
+        - variable: data
+          label: Netzwart Data Storage
+          description: The path to store the Netzwart database and backups.
+          schema:
+            type: dict
+            attrs:
+              - variable: type
+                label: Type
+                description: |
+                  ixVolume: Is dataset created automatically by the system.</br>
+                  Host Path: Is a path that already exists on the system.
+                schema:
+                  type: string
+                  required: true
+                  default: "ix_volume"
+                  enum:
+                    - value: "host_path"
+                      description: Host Path (Path that already exists on the system)
+                    - value: "ix_volume"
+                      description: ixVolume (Dataset created automatically by the system)
+              - variable: ix_volume_config
+                label: ixVolume Configuration
+                description: The configuration for the ixVolume dataset.
+                schema:
+                  type: dict
+                  show_if: [["type", "=", "ix_volume"]]
+                  $ref:
+                    - "normalize/ix_volume"
+                  attrs:
+                    - variable: acl_enable
+                      label: Enable ACL
+                      description: Enable ACL for the storage.
+                      schema:
+                        type: boolean
+                        default: false
+                    - variable: dataset_name
+                      label: Dataset Name
+                      description: The name of the dataset to use for storage.
+                      schema:
+                        type: string
+                        required: true
+                        hidden: true
+                        default: "data"
+                    - variable: acl_entries
+                      label: ACL Configuration
+                      schema:
+                        type: dict
+                        show_if: [["acl_enable", "=", true]]
+                        attrs: []
+              - variable: host_path_config
+                label: Host Path Configuration
+                schema:
+                  type: dict
+                  show_if: [["type", "=", "host_path"]]
+                  attrs:
+                    - variable: acl_enable
+                      label: Enable ACL
+                      description: Enable ACL for the storage.
+                      schema:
+                        type: boolean
+                        default: false
+                    - variable: acl
+                      label: ACL Configuration
+                      schema:
+                        type: dict
+                        show_if: [["acl_enable", "=", true]]
+                        attrs: []
+                        $ref:
+                          - "normalize/acl"
+                    - variable: path
+                      label: Host Path
+                      description: The host path to use for storage.
+                      schema:
+                        type: hostpath
+                        show_if: [["acl_enable", "=", false]]
+                        required: true
+  - variable: labels
+    label: ""
+    group: Labels Configuration
+    schema:
+      type: list
+      default: []
+      items:
+        - variable: label
+          label: Label
+          schema:
+            type: dict
+            attrs:
+              - variable: key
+                label: Key
+                schema:
+                  type: string
+                  required: true
+              - variable: value
+                label: Value
+                schema:
+                  type: string
+                  required: true
+              - variable: containers
+                label: Containers
+                description: Containers where the label should be applied
+                schema:
+                  type: list
+                  items:
+                    - variable: container
+                      label: Container
+                      schema:
+                        type: string
+                        required: true
+                        enum:
+                          - value: netzwart
+                            description: netzwart
+
+  - variable: resources
+    label: ""
+    group: Resources Configuration
+    schema:
+      type: dict
+      attrs:
+        - variable: limits
+          label: Limits
+          schema:
+            type: dict
+            attrs:
+              - variable: cpus
+                label: CPUs
+                description: CPUs limit for Netzwart.
+                schema:
+                  type: int
+                  default: 2
+                  required: true
+              - variable: memory
+                label: Memory (in MB)
+                description: Memory limit for Netzwart.
+                schema:
+                  type: int
+                  default: 512
+                  required: true

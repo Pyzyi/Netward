@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>netzwart</Name>
+  <Repository>ghcr.io/pyzyi/netzwart:latest</Repository>
+  <Registry>https://github.com/Pyzyi/netzwart/pkgs/container/netzwart</Registry>
+  <Network>host</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Pyzyi/netzwart/issues</Support>
+  <Project>https://github.com/Pyzyi/netzwart</Project>
+  <ReadMe>https://github.com/Pyzyi/netzwart#readme</ReadMe>
+  <Overview>See every device on your home network. Netzwart finds every device, gives it a readable name and icon, shows who is online and tells you when an unknown device appears or the internet goes down. The overview draws your network as a ring around the router.&#xD;
+&#xD;
+It also checks your network for the usual weak spots: open Telnet or RDP, devices without security updates, a second DHCP server, ARP spoofing of the router address and known exploited vulnerabilities in Apple devices, each with plain advice on what to do.&#xD;
+&#xD;
+Notifications via ntfy, Gotify, Pushover, Telegram, Discord, Slack, webhook and e-mail. Home Assistant via MQTT. Optional FRITZ!Box integration with Wi-Fi diagnosis. No cloud, no subscription, no telemetry.&#xD;
+&#xD;
+Needs the host network for layer-2 discovery. The container is read-only and drops every Linux capability right after start-up. Open the web UI within 30 minutes of the first start to create your account (there is no default password).</Overview>
+  <Changes>[b]0.2.1[/b] New look: calm panels, larger network ring with legend, clearer status labels.</Changes>
+  <Category>Network:Management Security: Tools:System</Category>
+  <WebUI>http://[IP]:[PORT:8840]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Pyzyi/netzwart/main/web/public/icon-512.png</Icon>
+  <ExtraParams>--cap-drop=ALL --cap-add=CHOWN --cap-add=SETUID --cap-add=SETGID --cap-add=NET_RAW --security-opt=no-new-privileges:true --read-only</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>Host network (layer-2 discovery). Port 8840 must be free on the server; change "Web UI port" otherwise.</Requires>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/netzwart" Mode="rw" Description="Database, backups and settings." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/netzwart</Config>
+  <Config Name="Web UI port" Target="NETZWART_PORT" Default="8840" Mode="" Description="Port of the web interface (host network, so this is the port on your server)." Type="Variable" Display="always" Required="true" Mask="false">8840</Config>
+  <Config Name="Run as user (PUID)" Target="PUID" Default="99" Mode="" Description="Netzwart switches to this user after start-up. 99 = nobody (Unraid default for appdata)." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="Run as group (PGID)" Target="PGID" Default="100" Mode="" Description="Group for the data folder. 100 = users." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="Network interfaces" Target="NETZWART_INTERFACES" Default="" Mode="" Description="Interfaces to scan, e.g. br0 or eth0,br0.1. Empty = the interface with the default route." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Allowed host names" Target="NETZWART_ALLOWED_HOSTS" Default="" Mode="" Description="Extra host names Netzwart answers to, e.g. netzwart.example.com behind a reverse proxy." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Trusted proxies" Target="NETZWART_TRUSTED_PROXIES" Default="" Mode="" Description="IPs or networks of your reverse proxy, so Netzwart sees the real client IP." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Log level" Target="NETZWART_LOG_LEVEL" Default="info|debug|warn|error" Mode="" Description="debug, info, warn or error." Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+</Container>
