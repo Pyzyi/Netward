@@ -175,7 +175,7 @@ Zwischenstände der Entwicklung heißen `edge` und sind nicht für den Alltag ge
 **Aktualisieren ohne Neuinstallation** – Geräte, Namen, Verlauf, Konten und Einstellungen bleiben erhalten:
 
 - **ZimaOS / CasaOS:** Am zuverlässigsten: In den Einstellungen der App beim Image die Versionsnummer eintragen
-  (z. B. `ghcr.io/pyzyi/netward:0.3.3` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
+  (z. B. `ghcr.io/pyzyi/netward:0.4.0` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
   Mit `latest` die App neu erstellen bzw. das Image neu laden (je nach ZimaOS-Version „Update“, „Rebuild“ oder
   Speichern ohne Änderung).
 - **Unraid:** auf der Docker-Seite „Nach Updates suchen“.

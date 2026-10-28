@@ -3,6 +3,16 @@
 Alle nennenswerten Änderungen an Netward. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## 0.4.0 – 2026-10-28
+
+### Geändert
+- **Neuer Name: Netward** (vorher Netzwart). Repository `Pyzyi/Netward`, Image `ghcr.io/pyzyi/netward`, Befehl
+  `/netward`.
+- Umgebungsvariablen heißen `NETWARD_*`; die alten `NETZWART_*` gelten weiter.
+- Die Datenbank `netzwart.db` wird beim ersten Start als `netward.db` übernommen.
+- Home Assistant: Entitäten heißen `netward_…`, die alten `netzwart_…` werden vom Broker entfernt.
+- Sitzungs-Cookie umbenannt (einmal neu anmelden).
+
 ## 0.3.3 – 2026-10-28
 
 ### Sicherheit
