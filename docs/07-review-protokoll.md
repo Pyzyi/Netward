@@ -353,3 +353,33 @@ Die neue Designsprache trägt, der Netzring wirkt als Erkennungszeichen. Behoben
 Bewusst offen: Initialen-Avatare bei Personen, Speichen des Netzrings, Datumsfelder des Browsers im Bericht.
 
 Nachweis: `svelte-check` 0/0, `npm run contrast` (hell und dunkel), 30 UI-Tests (Desktop und Handy).
+
+## Review 10 · Code- und Security-Review von 0.3.2
+
+Unabhängige Prüfung der vier Funktionen (Lebenslauf, DNS-Prüfung, Stolperdraht, WLAN-Karte) mit `go vet`,
+`go test -race`, `svelte-check` und einem Nachstell-Test für die Flut. Behoben:
+
+| Befund | Schwere | Behebung |
+|---|---|---|
+| Stolperdraht: Wer im LAN ständig andere Absender nutzt (IPv6 link-local frei wählbar), erzeugt beliebig viele Befunde, Ereignisse und Benachrichtigungen; Merkliste ohne harte Grenze, Aufräumen unter Sperre wurde quadratisch teuer; Datenbankarbeit im Annahme-Pfad | hoch | IPv6 zählt je /64; höchstens 20 Meldungen je Minute insgesamt (Token-Bucket); Merkliste hart auf 4 096, Aufräumen höchstens einmal je Minute; Meldung über eine Warteschlange (64) an einen einzigen Bearbeiter; ab 16 unbekannten Quellen ein gemeinsamer Befund „viele Adressen“ |
+| Port der Weboberfläche als Köder eintragbar: nach dem nächsten Start belegt, Netzwart startet nicht mehr | mittel | Einstellungen lehnen ihn ab; beim Start wird er nie geöffnet |
+| Köder können echten Diensten den Port wegnehmen, die nach Netzwart starten (8081 = ioBroker) | mittel | 8081 kein Standard mehr; Hinweis in den Einstellungen und der Doku, nur freie Ports zu nehmen |
+| Wiederholte Treffer verdrängten echte Meilensteine aus dem Geräte-Lebenslauf | mittel | Nur der erste Treffer kommt in den Lebenslauf, Wiederholungen nur in die Aktivität |
+| WLAN-Karte nur mit Maus/Touch bedienbar | mittel | Grundriss fokussierbar: Eingabe setzt einen Punkt, Pfeiltasten verschieben ihn; e2e-Test |
+| DNS-Prüfung: Pi-hole im IP-Modus antwortet mit der eigenen Adresse → kritischer Fehlalarm | mittel | Antworten mit der Adresse des DNS-Servers selbst gelten als Sperre; Unit-Test |
+| Globale IPv6-Adressen des Heimnetzes lösten den Stolperdraht nie aus | niedrig | Adressen aus den Netzen des Hosts zählen als Heimnetz |
+| Köder konnte bei Annahmefehlern (z. B. keine Dateideskriptoren) still verstummen | niedrig | Wiederholen mit Pause; danach Zustand „Fehler“ statt „offen“ |
+| Gleichzeitige Treffer eines Geräts konnten beim Speichern kollidieren | niedrig | Ein einziger Bearbeiter (siehe oben) |
+| Demo-Modus hielt Köder-Ports aus `NETZWART_TRIPWIRE_PORTS` offen, ohne sie zu bedienen | niedrig | Im Demo-Modus sofort geschlossen |
+| Messung hinter einem Reverse-Proxy auf demselben Rechner immer abgelehnt, erst nach der Messung, mit irreführendem Text | niedrig | Abfrage vor der Messung; Text nennt `NETZWART_TRUSTED_PROXIES` |
+| WLAN-Karte: Messung lief nach Verlassen der Seite weiter; veraltete Antwort konnte nach Planwechsel gewinnen | niedrig | Abbruch beim Verlassen; Antworten nur für den aktuellen Plan; Zurücksetzen beim Planwechsel |
+| Farbverlauf bei extremen Seitenverhältnissen (16 × 6000 px) sehr rechenintensiv | niedrig | Höchstens 160 Zellen auf der langen Seite |
+| DNS-Befund verschwand, wenn der Server einmal nicht antwortete, und meldete sich danach neu | niedrig | Befunde bleiben, solange der Server nicht antwortet |
+| Aktivität zeigte DNS-Befunde nur als „Sicherheitshinweis bei Gerät“ | niedrig | Eigene Texte mit Server (DE/EN) |
+| Abgebrochener Upload (langsame Leitung) wurde als „zu groß“ gemeldet | niedrig | Eigene Meldung „Übertragung brach ab“ |
+
+Bewusst offen: Ein Köder-Port, den ein später startender Dienst braucht, wird nicht automatisch freigegeben
+(Hinweis in Oberfläche und Doku). Geräte werden über ihre Hauptadresse erkannt; meldet sich ein bekanntes Gerät über
+eine Nebenadresse, erscheint es als unbekannte Quelle.
+
+Nachweis: `go test -race ./...`, `svelte-check` 0/0, 38 UI-Tests (Desktop und Handy), CI.

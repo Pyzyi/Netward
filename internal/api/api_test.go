@@ -873,6 +873,12 @@ func TestWifiMapFlow(t *testing.T) {
 			t.Fatalf("point: %d %s", rec.Code, rec.Body)
 		}
 	}
+	if rec := raw("GET", "/api/v1/wifimap/ping?check=1", "", nil, "127.0.0.1:2"); !strings.Contains(rec.Body.String(), `"local":true`) {
+		t.Fatalf("local check: %s", rec.Body)
+	}
+	if rec := raw("GET", "/api/v1/wifimap/ping?check=1", "", nil, "192.168.1.44:2"); !strings.Contains(rec.Body.String(), `"local":false`) {
+		t.Fatalf("phone check: %s", rec.Body)
+	}
 	if rec := raw("POST", base+"/points", "application/json", point("Server", 0.5, 9000), "127.0.0.1:2"); rec.Code != 400 ||
 		!strings.Contains(rec.Body.String(), "measure_local") {
 		t.Fatalf("measured on the host itself: %d %s", rec.Code, rec.Body)

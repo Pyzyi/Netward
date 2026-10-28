@@ -166,6 +166,7 @@
       case 'dns_redirect':
         return t('security.dns.redirect.title', { server: f.data.server ?? '' });
       case 'tripwire': {
+        if (f.data.many) return t('security.tripwire.many');
         const dev = f.deviceId ? store.devices.get(f.deviceId) : undefined;
         return t('security.tripwire.title', { name: dev ? displayName(dev) : f.data.ip ?? t('common.unknown') });
       }

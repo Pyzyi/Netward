@@ -287,3 +287,32 @@ func TestTripwireOneFindingPerDevice(t *testing.T) {
 		t.Fatalf("old tripwire finding kept: %+v", fs)
 	}
 }
+
+func TestTripwireUnknownSourcesAreBounded(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := hub.New()
+	mon, err := monitor.New(ctx, st, h, nil, config.Defaults(), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := &rec{}
+	c := New(st, mon, h, r, log)
+	for i := range 40 {
+		c.Tripwire(ctx, tripwire.Hit{IP: netip.AddrFrom4([4]byte{10, 0, 0, byte(i + 1)}), Port: 2323, Service: "telnet", At: time.Now()})
+	}
+	// Privacy addresses of one IPv6 host are one source.
+	c.Tripwire(ctx, tripwire.Hit{IP: netip.MustParseAddr("fd00:1::1"), Port: 2323, Service: "telnet", At: time.Now()})
+	fs, _ := st.ListFindings(ctx)
+	if len(fs) != maxUnknownTripwire+1 {
+		t.Fatalf("findings = %d, want %d", len(fs), maxUnknownTripwire+1)
+	}
+	if len(r.evs) != maxUnknownTripwire+1 {
+		t.Fatalf("notifications = %d", len(r.evs))
+	}
+}

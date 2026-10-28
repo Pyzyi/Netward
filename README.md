@@ -272,7 +272,7 @@ notifications and the security check work with any router.
 
 **What does the tripwire do exactly?** When you turn it on (*Settings → Scanning*), Netzwart listens on a few ports
 that nothing on your network should use: by default 2323 (Telnet), 3389 (remote desktop), 5555 (Android debugging),
-5900 (VNC) and 8081 (camera login). A device on your network that connects there gets a critical finding and you
+5900 (VNC); you can add more, such as 8888 for a fake camera login. A device on your network that connects there gets a critical finding and you
 get a notification. Your own scanners can be excluded by IP or network. Connections from the internet (port
 forwarding) and from the Netzwart host itself never count.
 

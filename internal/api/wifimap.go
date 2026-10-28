@@ -55,8 +55,20 @@ func takeProbeSlot(w http.ResponseWriter) bool {
 	}
 }
 
-func (s *Server) handleWifiPing(w http.ResponseWriter, _ *http.Request, _ *sessionInfo) {
+// handleWifiPing answers the latency test. With ?check=1 it says whether
+// the browser runs on the Netzwart host itself (or behind an untrusted proxy
+// there), where measuring the Wi-Fi makes no sense; asked before measuring.
+func (s *Server) handleWifiPing(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
+	if r.URL.Query().Has("check") {
+		writeJSON(w, http.StatusOK, map[string]bool{"local": s.measuredLocally(r)})
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) measuredLocally(r *http.Request) bool {
+	ip := s.clientIP(r)
+	return !s.d.Env.Demo && (ip.IsLoopback() || netinfo.IsOwnAddr(ip))
 }
 
 // handleWifiDownload streams up to ?bytes= random bytes. The browser stops
@@ -127,8 +139,13 @@ func (s *Server) handleAddFloorPlan(w http.ResponseWriter, r *http.Request, _ *s
 		return
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxPlanBytes))
-	if err != nil {
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.As(err, &tooLarge):
 		writeError(w, http.StatusRequestEntityTooLarge, "too_large", "")
+		return
+	case err != nil:
+		writeError(w, http.StatusBadRequest, "upload_failed", "") // e.g. a slow link hit the read timeout
 		return
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
@@ -278,7 +295,7 @@ func (s *Server) handleAddWifiPoint(w http.ResponseWriter, r *http.Request, _ *s
 		return
 	}
 	// Measured on the Netzwart host itself, the Wi-Fi is not involved at all.
-	if ip := s.clientIP(r); !s.d.Env.Demo && (ip.IsLoopback() || netinfo.IsOwnAddr(ip)) {
+	if s.measuredLocally(r) {
 		writeError(w, http.StatusBadRequest, "measure_local", "")
 		return
 	}

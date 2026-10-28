@@ -60,3 +60,28 @@ func TestUnreachableServer(t *testing.T) {
 		t.Fatalf("got %+v", r)
 	}
 }
+
+func TestSinkholeAnswers(t *testing.T) {
+	pihole := netip.MustParseAddr("192.168.178.80")
+	a := func(s ...string) (out []netip.Addr) {
+		for _, x := range s {
+			out = append(out, netip.MustParseAddr(x))
+		}
+		return out
+	}
+	for _, c := range []struct {
+		ips  []netip.Addr
+		want bool
+	}{
+		{a("0.0.0.0"), true},
+		{a("::", "0.0.0.0"), true},
+		{a("192.168.178.80"), true},  // Pi-hole in IP blocking mode answers with itself
+		{a("192.168.178.66"), false}, // another LAN address is a redirection
+		{a("8.8.8.8"), false},
+		{nil, false},
+	} {
+		if got := allSinkholed(c.ips, pihole); got != c.want {
+			t.Errorf("%v: got %v", c.ips, got)
+		}
+	}
+}

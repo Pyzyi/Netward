@@ -30,7 +30,8 @@ Netzwart erkannte schon ARP-Spoofing der Router-Adresse und zweite DHCP-Server (
   `dns.quad9.net`) und nach einem zufälligen Namen unter `example.com`, den es nicht gibt.
 - **Bewertung:** falsche Adresse für einen bekannten Namen → Befund `dns_manipulated` (kritisch). Adresse für den
   Namen, den es nicht gibt → `dns_redirect` (Warnung, typisch für „Navigationshilfen“ von Anbietern).
-  `0.0.0.0` oder Loopback gilt als Sperre (Pi-hole, AdGuard) und ist kein Befund.
+  `0.0.0.0`, Loopback oder die Adresse des DNS-Servers selbst (Pi-hole im IP-Modus) gilt als Sperre und ist kein
+  Befund. Antwortet ein Server einmal nicht, bleiben seine Befunde stehen (keine zweite Meldung beim nächsten Mal).
 - Abschaltbar (`dnsCheck`, Einstellungen → Scannen). Befunde verschwinden beim nächsten Lauf, wenn der Server
   wieder richtig antwortet oder die Prüfung aus ist.
 
@@ -40,8 +41,10 @@ Netzwart erkannte schon ARP-Spoofing der Router-Adresse und zweite DHCP-Server (
 angeboten hat. Eine Verbindung dorthin ist ein starkes Zeichen für Schadsoftware, die das Netz absucht, oder für
 jemanden, der sich umsieht. Falsche Alarme sind fast ausgeschlossen.
 
-- Standardmäßig **aus**. Ports 2323 (Telnet), 3389 (RDP), 5555 (ADB), 5900 (VNC), 8081 (Kamera-Login),
-  in den Einstellungen 1024–65535 frei wählbar, höchstens 16.
+- Standardmäßig **aus**. Ports 2323 (Telnet), 3389 (RDP), 5555 (ADB), 5900 (VNC), in den Einstellungen
+  1024–65535 frei wählbar (z. B. 8888 als Kamera-Login), höchstens 16, nie der Port der Weboberfläche. Nur Ports,
+  die auf dem Rechner kein anderes Programm braucht: Startet ein echter Dienst nach Netzwart, findet er seinen Port
+  belegt (darum ist 8081, der Port der ioBroker-Verwaltung, kein Standard).
 - **Ports unter 1024** (z. B. 23, 445) öffnet nur der Start über `NETZWART_TRIPWIRE_PORTS`, bevor die Rechte
   abgegeben werden; das braucht `cap_add: NET_BIND_SERVICE`. Danach hat der Prozess wie bisher keine
   Capabilities. Ausschalten schließt auch diese Ports; wieder öffnen geht erst nach einem Neustart.
@@ -51,9 +54,12 @@ jemanden, der sich umsieht. Falsche Alarme sind fast ausgeschlossen.
 - **Wer zählt:** nur Adressen aus dem Heimnetz (privat, ULA, link-local, 100.64/10 für VPNs wie Tailscale).
   Nicht: Loopback, eigene Adressen des Hosts, Internet-Adressen (etwa über eine Portweiterleitung), Ausnahmen
   (IP oder Netz, z. B. ein eigener Scanner).
-- **Meldung:** ein kritischer Befund `tripwire` je Gerät (unbekannte Geräte je Adresse), Benachrichtigung nur beim
-  ersten Mal; jede Verbindung als Ereignis, höchstens eines je Adresse und Port in 10 Minuten. Ohne neuen Treffer
-  verschwindet der Befund nach 30 Tagen.
+- **Meldung:** ein kritischer Befund `tripwire` je Gerät (unbekannte Quellen je Adresse, IPv6 je /64; ab 16
+  unbekannten Quellen ein gemeinsamer Befund „viele Adressen“), Benachrichtigung nur beim ersten Mal; jede Verbindung
+  als Ereignis, höchstens eines je Quelle und Port in 10 Minuten und höchstens 20 je Minute insgesamt. Gemeldet wird
+  nacheinander aus einer Warteschlange (64), nicht im Annahme-Pfad. Wiederholte Treffer erscheinen nicht im
+  Lebenslauf des Geräts. Ohne neuen Treffer verschwindet der Befund nach 30 Tagen.
+- **Heimnetz** schließt globale IPv6-Adressen aus den Netzen des Hosts ein.
 - Status je Port (offen, belegt, erst nach Neustart, Fehler) und letzter Treffer in `/api/v1/network` und in der
   Angriffserkennung.
 
@@ -71,7 +77,10 @@ dem Handy und einem Grundriss.
   Sekunde zählt nicht), Upload (wachsende Blöcke bis etwa drei Sekunden). Höchstens zwei Messungen gleichzeitig.
   Gemessen wird bewusst nicht das Internet (siehe [01](01-anforderungen.md), kein Speedtest).
 - **Gerät und Funk:** Netzwart erkennt das messende Gerät an der Adresse; mit FRITZ!Box kommen Band, Signal und
-  Zugangspunkt dazu. Messungen vom Netzwart-Rechner selbst werden abgelehnt (außer im Demo-Modus).
+  Zugangspunkt dazu. Messungen vom Netzwart-Rechner selbst werden abgelehnt (außer im Demo-Modus); der Browser fragt
+  das vor der Messung ab. Hinter einem Reverse-Proxy auf demselben Rechner muss dieser in
+  `NETZWART_TRUSTED_PROXIES` stehen.
+- **Bedienung:** Position per Tippen oder mit der Tastatur (Eingabe setzt einen Punkt, Pfeiltasten verschieben).
 - **Karte:** inverse Distanzgewichtung der Werte im Vergleich zur besten Stelle, zum Rand der Messpunkte hin
   ausgeblendet. Ist die schnellste Stelle mehr als doppelt so schnell wie die zweitbeste (z. B. am Kabel
   gemessen), dient die zweitbeste als Maßstab.

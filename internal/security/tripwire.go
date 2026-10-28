@@ -18,15 +18,24 @@ const CheckTripwire = "tripwire"
 // tripwireKeep is how long a tripwire finding stays after the last hit.
 const tripwireKeep = 30 * 24 * time.Hour
 
+// maxUnknownTripwire bounds the findings for unknown sources; beyond, one
+// finding stands for "many addresses" (someone rotating addresses).
+const maxUnknownTripwire = 16
+
 // Tripwire records a connection to a decoy: always as an event, and as a
-// critical finding that notifies when it is new.
+// critical finding that notifies when it is new. The tripwire manager calls
+// it from a single goroutine, rate-limited.
 func (c *Checker) Tripwire(ctx context.Context, h tripwire.Hit) {
 	data := map[string]any{}
 	var dev *store.Device
 	if d, ok := c.mon.DeviceByIP(h.IP); ok {
 		dev = &d
 	} else {
-		data["ip"] = h.IP.String() // unknown devices are told apart by address
+		// Unknown sources are told apart by address, IPv6 by its /64.
+		data["ip"] = tripwire.Group(h.IP)
+		if c.unknownTripwire(ctx, data["ip"].(string)) >= maxUnknownTripwire {
+			data = map[string]any{"many": true}
+		}
 	}
 	raw, _ := json.Marshal(data)
 	f := store.Finding{CheckID: CheckTripwire, Severity: "critical", Data: raw, LastSeen: h.At.UnixMilli()}
@@ -39,13 +48,34 @@ func (c *Checker) Tripwire(ctx context.Context, h tripwire.Hit) {
 		return
 	}
 	c.mon.AddEvent(ctx, notify.KindSecurity, "critical", f.DeviceID, map[string]any{"check": CheckTripwire, "ip": h.IP.String(),
-		"port": h.Port, "service": h.Service})
+		"port": h.Port, "service": h.Service, "repeat": !isNew})
 	if !isNew {
 		return
 	}
 	data["ip"], data["port"], data["service"], data["check"] = h.IP.String(), h.Port, h.Service, CheckTripwire
 	data["title"], data["detail"] = Describe(CheckTripwire, data, "de")
 	c.notifier.Notify(notify.Event{Kind: notify.KindSecurity, Severity: "critical", TS: h.At.UnixMilli(), Device: dev, Data: data})
+}
+
+// unknownTripwire counts the tripwire findings of unknown sources other
+// than group.
+func (c *Checker) unknownTripwire(ctx context.Context, group string) int {
+	fs, err := c.st.ListFindings(ctx)
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, f := range fs {
+		if f.CheckID != CheckTripwire || f.DeviceID != 0 {
+			continue
+		}
+		var d map[string]any
+		_ = json.Unmarshal(f.Data, &d)
+		if d["ip"] != group {
+			n++
+		}
+	}
+	return n
 }
 
 // pruneTripwire removes tripwire findings without a hit for 30 days.

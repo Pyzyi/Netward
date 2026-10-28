@@ -271,3 +271,25 @@ func IsOwnAddr(ip netip.Addr) bool {
 	}
 	return false
 }
+
+// OnLink reports whether ip lies in a network one of the host's interfaces
+// is part of (e.g. the global IPv6 prefix of the home network).
+func OnLink(ip netip.Addr) bool {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return false
+	}
+	ip = ip.Unmap()
+	for _, a := range addrs {
+		n, ok := a.(*net.IPNet)
+		if !ok || n.IP.IsLoopback() {
+			continue
+		}
+		x, ok := netip.AddrFromSlice(n.IP)
+		ones, _ := n.Mask.Size()
+		if ok && netip.PrefixFrom(x.Unmap(), ones).Masked().Contains(ip) {
+			return true
+		}
+	}
+	return false
+}

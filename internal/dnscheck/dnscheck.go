@@ -111,7 +111,7 @@ func Check(ctx context.Context, server netip.AddrPort, dial Dialer) Result {
 		switch {
 		case fail != "":
 			a.Status = fail
-		case allSinkholed(ips):
+		case allSinkholed(ips, server.Addr()):
 			a.Status = StatusBlocked
 		case subset(ips, p.Expect):
 			a.Status = StatusOK
@@ -131,7 +131,7 @@ func Check(ctx context.Context, server netip.AddrPort, dial Dialer) Result {
 	switch {
 	case fail == StatusNoAnswer:
 		res.Missing.Status = StatusNoAnswer
-	case fail == "" && !allSinkholed(ips):
+	case fail == "" && !allSinkholed(ips, server.Addr()):
 		res.Missing.Status = StatusWrong
 		res.Missing.Got = toStrings(ips)
 	}
@@ -152,13 +152,16 @@ func Check(ctx context.Context, server netip.AddrPort, dial Dialer) Result {
 	return res
 }
 
-// allSinkholed reports answers a blocker gives instead of the real address.
-func allSinkholed(ips []netip.Addr) bool {
+// allSinkholed reports answers a blocker gives instead of the real address:
+// 0.0.0.0, loopback, or the DNS server's own address (Pi-hole in IP
+// blocking mode answers with itself).
+func allSinkholed(ips []netip.Addr, server netip.Addr) bool {
 	if len(ips) == 0 {
 		return false
 	}
 	for _, ip := range ips {
-		if !ip.IsUnspecified() && !ip.IsLoopback() {
+		ip = ip.Unmap()
+		if !ip.IsUnspecified() && !ip.IsLoopback() && ip != server.Unmap() {
 			return false
 		}
 	}

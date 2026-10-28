@@ -290,16 +290,16 @@ test('tripwire: alarm, status and settings', async ({ page }) => {
   await page.goto('/security');
   await expect(page.getByRole('heading', { name: /ESP_9E3BD1 hat den Stolperdraht ausgelöst/ })).toBeVisible();
   const ids = page.locator('section.ids');
-  await expect(ids.getByText(/Köder auf 2323, 3389, 5555, 5900, 8081\. Zuletzt ausgelöst .* von 192\.168\.178\.90 \(Telnet\)\./)).toBeVisible();
+  await expect(ids.getByText(/Köder auf 2323, 3389, 5555, 5900\. Zuletzt ausgelöst .* von 192\.168\.178\.90 \(Telnet\)\./)).toBeVisible();
   await page.goto('/activity');
   await expect(page.getByText('ESP_9E3BD1 (192.168.178.90) hat den Stolperdraht ausgelöst: Telnet auf Port 2323').first()).toBeVisible();
   await page.goto('/settings/scanning');
   const ports = page.getByLabel('Ports', { exact: true });
-  await expect(ports).toHaveValue('2323, 3389, 5555, 5900, 8081');
+  await expect(ports).toHaveValue('2323, 3389, 5555, 5900');
   await ports.fill('23, 3389');
   await page.getByRole('button', { name: 'Speichern' }).last().click();
   await expect(page.getByText('Bitte nur Zahlen von 1024 bis 65535 eintragen, jede nur einmal.')).toBeVisible();
-  await ports.fill('2323, 3389, 5555, 5900, 8081');
+  await ports.fill('2323, 3389, 5555, 5900');
   expect(problems).toEqual([]);
 });
 
@@ -312,6 +312,14 @@ test('Wi-Fi map: hints, measuring, own floor plan', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'WLAN-Karte', level: 1 })).toBeVisible();
   await expect(page.getByText('Im Kinderzimmer nur 38 Mbit/s, ein Verstärker im Flur würde helfen.')).toBeVisible();
   await expect(page.getByText(/Im Schlafzimmer schwankt die Verbindung/)).toBeVisible();
+
+  // Keyboard: Enter sets a point, arrows move it.
+  await page.getByRole('button', { name: 'Grundriss Wohnung: Position wählen' }).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.map .pin')).toBeVisible();
+  await page.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(page.locator('.map .pin')).toHaveCount(0);
 
   // Measure at a spot (demo mode accepts measurements from this machine).
   await page.locator('.map').click({ position: { x: 40, y: 40 } });

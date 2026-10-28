@@ -43,6 +43,10 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request, _ *se
 		writeError(w, http.StatusBadRequest, "invalid_settings", err.Error())
 		return
 	}
+	if slices.Contains(st.TripwirePorts, s.d.Env.Port) {
+		writeError(w, http.StatusBadRequest, "invalid_settings", "tripwirePorts: must not be the port of the web interface")
+		return
+	}
 	if err := s.d.ApplySettings(r.Context(), st); err != nil {
 		s.fail(w, r, err)
 		return

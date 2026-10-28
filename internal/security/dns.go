@@ -53,7 +53,26 @@ func (c *Checker) checkDNS(ctx context.Context, runStart int64) (found []store.F
 		return nil
 	}
 	c.mon.SetDNSCheck(ctx, results)
+	// A server that did not answer this time proves nothing: its findings
+	// stay (refreshed, so no second alarm when it answers again).
+	var known []store.Finding
+	if fs, err := c.st.ListFindings(ctx); err == nil {
+		for _, f := range fs {
+			if f.CheckID == CheckDNSManipulated || f.CheckID == CheckDNSRedirect {
+				known = append(known, f)
+			}
+		}
+	}
 	for _, r := range results {
+		if r.Verdict == dnscheck.VerdictUnreachable {
+			for _, f := range known {
+				var d map[string]string
+				if json.Unmarshal(f.Data, &d) == nil && d["server"] == r.Server {
+					found = append(found, store.Finding{CheckID: f.CheckID, Severity: f.Severity, Data: f.Data, LastSeen: runStart})
+				}
+			}
+			continue
+		}
 		data, _ := json.Marshal(map[string]string{"server": r.Server})
 		switch r.Verdict {
 		case dnscheck.VerdictManipulated:

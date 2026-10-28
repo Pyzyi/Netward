@@ -84,7 +84,7 @@ func Defaults() Settings {
 		DHCPCheck:          true,
 		DNSCheck:           true,
 		InternetTargets:    []string{"1.1.1.1:443", "9.9.9.9:443", "dns.google:443"},
-		TripwirePorts:      []int{2323, 3389, 5555, 5900, 8081},
+		TripwirePorts:      []int{2323, 3389, 5555, 5900},
 		TripwireAllow:      []string{},
 		MQTT:               MQTT{Port: 1883, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"},
 		FritzBox:           FritzBox{Host: "fritz.box"},

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/netip"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -18,10 +19,24 @@ type addr string
 func (a addr) Network() string { return "tcp" }
 func (a addr) String() string  { return string(a) }
 
+// collect gathers the hits the worker delivers until none came for 100 ms.
+func collect(ch chan Hit) []Hit {
+	var out []Hit
+	for {
+		select {
+		case h := <-ch:
+			out = append(out, h)
+		case <-time.After(100 * time.Millisecond):
+			return out
+		}
+	}
+}
+
 func TestNoteFilters(t *testing.T) {
-	var got []Hit
+	ch := make(chan Hit, 100)
 	own := netip.MustParseAddr("192.168.1.5")
-	m := New(quietLog(), nil, func(ip netip.Addr) bool { return ip == own }, func(h Hit) { got = append(got, h) })
+	onLink := netip.MustParsePrefix("2003:a:b:c::/64")
+	m := New(quietLog(), nil, Host{Own: func(ip netip.Addr) bool { return ip == own }, OnLink: onLink.Contains}, func(h Hit) { ch <- h })
 	m.Configure(true, nil, []netip.Prefix{netip.MustParsePrefix("192.168.1.200/32")})
 	now := time.Unix(1_800_000_000, 0)
 	m.now = func() time.Time { return now }
@@ -35,17 +50,22 @@ func TestNoteFilters(t *testing.T) {
 		"192.168.1.42:5001",  // same address and port: quiet
 		"[fd00::7]:5000",     // ULA: reported
 		"100.101.1.2:5000",   // Tailscale: reported
+		"[fd00::8]:5000",     // same /64 as fd00::7: quiet
+		"[2003:a:b:c::9]:1",  // global IPv6 of the home network: reported
+		"[2a00::1]:1",        // global IPv6 elsewhere: not
 	} {
 		m.note(addr(a), 2323, "telnet")
 	}
-	if len(got) != 3 || got[0].IP.String() != "192.168.1.42" || got[1].IP.String() != "fd00::7" || got[2].IP.String() != "100.101.1.2" {
+	got := collect(ch)
+	if len(got) != 4 || got[0].IP.String() != "192.168.1.42" || got[1].IP.String() != "fd00::7" || got[2].IP.String() != "100.101.1.2" ||
+		got[3].IP.String() != "2003:a:b:c::9" {
 		t.Fatalf("hits = %+v", got)
 	}
 	m.note(addr("192.168.1.42:5000"), 3389, "rdp") // another port counts
 	now = now.Add(quiet)
 	m.note(addr("192.168.1.42:5000"), 2323, "telnet") // after the quiet time again
-	if len(got) != 5 {
-		t.Fatalf("hits = %d, want 5", len(got))
+	if got := collect(ch); len(got) != 2 {
+		t.Fatalf("hits = %d, want 2", len(got))
 	}
 	if st := m.Status(); st.LastHit == nil || st.LastHit.Port != 2323 {
 		t.Fatalf("last hit = %+v", st.LastHit)
@@ -55,7 +75,7 @@ func TestNoteFilters(t *testing.T) {
 func TestDecoyGreetsAndReports(t *testing.T) {
 	var mu sync.Mutex
 	hits := make(chan Hit, 4)
-	m := New(quietLog(), nil, nil, func(h Hit) { hits <- h })
+	m := New(quietLog(), nil, Host{}, func(h Hit) { hits <- h })
 	// Listen on loopback only; report it as if it came from the LAN.
 	var ln net.Listener
 	m.listen = func(port int) (net.Listener, error) {
@@ -102,7 +122,7 @@ func TestPrivilegedPorts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := New(quietLog(), map[int]net.Listener{23: pre}, nil, nil)
+	m := New(quietLog(), map[int]net.Listener{23: pre}, Host{}, nil)
 	m.listen = func(int) (net.Listener, error) { return nil, &net.OpError{Op: "listen", Err: errDenied} }
 	m.Configure(true, []int{445}, nil)
 	st := m.Status()
@@ -126,5 +146,29 @@ func TestService(t *testing.T) {
 	}
 	if _, err := ParsePorts([]string{"23", "0"}); err == nil {
 		t.Error("port 0 accepted")
+	}
+}
+
+func TestFloodIsLimited(t *testing.T) {
+	ch := make(chan Hit, 1000)
+	m := New(quietLog(), nil, Host{}, func(h Hit) { ch <- h })
+	now := time.Unix(1_800_000_000, 0)
+	m.now = func() time.Time { return now }
+	for i := range 5000 {
+		m.note(addr(netip.AddrFrom4([4]byte{10, byte(i >> 16), byte(i >> 8), byte(i)}).String()+":1"), 2323, "telnet")
+		m.note(addr("[fe80::"+strconv.Itoa(i%9999)+"]:1"), 2323, "telnet") // all one /64
+	}
+	if got := collect(ch); len(got) != perMinute {
+		t.Fatalf("hits in a flood = %d, want %d", len(got), perMinute)
+	}
+	now = now.Add(30 * time.Second) // the bucket refills slowly
+	for i := range 100 {
+		m.note(addr(netip.AddrFrom4([4]byte{172, 16, 0, byte(i)}).String()+":1"), 2323, "telnet")
+	}
+	if got := collect(ch); len(got) != perMinute/2 {
+		t.Fatalf("hits after 30 s = %d, want %d", len(got), perMinute/2)
+	}
+	if len(m.last) > maxTracked {
+		t.Fatalf("tracked %d addresses", len(m.last))
 	}
 }

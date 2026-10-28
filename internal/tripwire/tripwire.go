@@ -106,10 +106,13 @@ func greeting(service string) []byte {
 }
 
 const (
-	maxConns  = 32               // decoy connections handled at once
-	readLimit = 4096             // bytes read from a visitor, then discarded
-	holdFor   = 10 * time.Second // how long a visitor is kept talking
-	quiet     = 10 * time.Minute // one report per address and port in this time
+	maxConns   = 32               // decoy connections handled at once
+	readLimit  = 4096             // bytes read from a visitor, then discarded
+	holdFor    = 10 * time.Second // how long a visitor is kept talking
+	quiet      = 10 * time.Minute // one report per address (IPv6: per /64) and port in this time
+	maxTracked = 4096             // addresses remembered for that; beyond, reports are dropped
+	perMinute  = 20               // reports per minute over all addresses (token bucket)
+	queueLen   = 64               // reports waiting for the handler
 )
 
 // Manager runs the decoys.
@@ -122,23 +125,44 @@ type Manager struct {
 	want     map[int]bool
 	ln       map[int]net.Listener
 	state    map[int]string
-	reserved map[int]bool // privileged listeners from the start; cannot be reopened
-	own      func(netip.Addr) bool
+	reserved map[int]bool          // privileged listeners from the start; cannot be reopened
+	own      func(netip.Addr) bool // addresses of this host
+	onLink   func(netip.Addr) bool // inside a network of this host (global IPv6 of the LAN)
 	allow    []netip.Prefix
 	last     map[string]time.Time // ip/port -> last report
+	sweptAt  time.Time
+	tokens   float64
+	tokensAt time.Time
+	dropped  int // reports dropped by the limits since the last log line
 	lastHit  *HitView
 	sem      chan struct{}
+	hits     chan Hit
 	listen   func(port int) (net.Listener, error)
 	now      func() time.Time
 }
 
-// New creates a manager. hit is called for every reported connection (at
-// most once per address and port in ten minutes); own tells addresses of
-// the host itself, which are never reported. pre are listeners opened at
-// start while privileged (ports below 1024).
-func New(log *slog.Logger, pre map[int]net.Listener, own func(netip.Addr) bool, hit func(Hit)) *Manager {
-	m := &Manager{log: log, hit: hit, own: own, want: map[int]bool{}, ln: map[int]net.Listener{}, state: map[int]string{},
-		reserved: map[int]bool{}, last: map[string]time.Time{}, sem: make(chan struct{}, maxConns), now: time.Now}
+// Host tells the manager about the machine it runs on.
+type Host struct {
+	Own    func(netip.Addr) bool // an address of this host: never reported
+	OnLink func(netip.Addr) bool // inside one of the host's networks: counts as home network
+}
+
+// New creates a manager. hit is called one report at a time from a single
+// goroutine: at most once per address and port in ten minutes and at most
+// 20 per minute overall, so a flood of spoofed addresses cannot flood the
+// database or the notifications. pre are listeners opened at start while
+// privileged (ports below 1024).
+func New(log *slog.Logger, pre map[int]net.Listener, host Host, hit func(Hit)) *Manager {
+	m := &Manager{log: log, hit: hit, own: host.Own, onLink: host.OnLink, want: map[int]bool{}, ln: map[int]net.Listener{},
+		state: map[int]string{}, reserved: map[int]bool{}, last: map[string]time.Time{}, sem: make(chan struct{}, maxConns),
+		hits: make(chan Hit, queueLen), tokens: perMinute, now: time.Now}
+	go func() {
+		for h := range m.hits {
+			if m.hit != nil {
+				m.hit(h)
+			}
+		}
+	}()
 	m.listen = func(port int) (net.Listener, error) {
 		var lc net.ListenConfig
 		return lc.Listen(context.Background(), "tcp", ":"+strconv.Itoa(port))
@@ -212,9 +236,11 @@ func (m *Manager) Configure(enabled bool, ports []int, allow []netip.Prefix) {
 func (m *Manager) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.enabled = false
 	for port, l := range m.ln {
 		_ = l.Close()
 		delete(m.ln, port)
+		delete(m.state, port)
 	}
 }
 
@@ -236,11 +262,28 @@ func (m *Manager) Status() Status {
 
 func (m *Manager) serve(port int, l net.Listener) {
 	service := Service(port)
+	failures := 0
 	for {
 		c, err := l.Accept()
-		if err != nil {
-			return // closed
+		if errors.Is(err, net.ErrClosed) {
+			return
 		}
+		if err != nil {
+			// Out of file descriptors and the like: wait and try again, but
+			// do not keep claiming the port is watched if it never recovers.
+			if failures++; failures > 30 {
+				m.log.Error("tripwire port stopped", "port", port, "err", err)
+				m.mu.Lock()
+				if m.ln[port] == l {
+					m.state[port] = StateError
+				}
+				m.mu.Unlock()
+				return
+			}
+			time.Sleep(min(time.Second, time.Duration(failures)*50*time.Millisecond))
+			continue
+		}
+		failures = 0
 		select {
 		case m.sem <- struct{}{}:
 			go func() {
@@ -273,36 +316,56 @@ func (m *Manager) note(addr net.Addr, port int, service string) {
 		return
 	}
 	ip := ap.Addr().Unmap()
-	if ip.IsLoopback() || !internal(ip) || (m.own != nil && m.own(ip)) {
+	if ip.IsLoopback() || !(internal(ip) || (m.onLink != nil && m.onLink(ip))) || (m.own != nil && m.own(ip)) {
 		return
 	}
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	for _, p := range m.allow {
 		if p.Contains(ip) {
-			m.mu.Unlock()
 			return
 		}
 	}
 	now := m.now()
-	key := ip.String() + "/" + strconv.Itoa(port)
+	key := Group(ip) + "/" + strconv.Itoa(port)
 	if t, ok := m.last[key]; ok && now.Sub(t) < quiet {
-		m.mu.Unlock()
 		return
 	}
-	m.last[key] = now
-	if len(m.last) > 4096 { // forget old entries
+	if len(m.last) >= maxTracked && now.Sub(m.sweptAt) >= time.Minute {
+		m.sweptAt = now
 		for k, t := range m.last {
 			if now.Sub(t) >= quiet {
 				delete(m.last, k)
 			}
 		}
 	}
-	m.lastHit = &HitView{IP: ip.String(), Port: port, Service: service, At: now.UnixMilli()}
-	m.mu.Unlock()
-	m.log.Warn("tripwire: connection to a decoy service", "ip", ip, "port", port, "service", service)
-	if m.hit != nil {
-		m.hit(Hit{IP: ip, Port: port, Service: service, At: now})
+	m.tokens = min(perMinute, m.tokens+now.Sub(m.tokensAt).Minutes()*perMinute)
+	m.tokensAt = now
+	if len(m.last) >= maxTracked || m.tokens < 1 {
+		m.dropped++
+		return
 	}
+	m.tokens--
+	m.last[key] = now
+	m.lastHit = &HitView{IP: ip.String(), Port: port, Service: service, At: now.UnixMilli()}
+	select {
+	case m.hits <- Hit{IP: ip, Port: port, Service: service, At: now}:
+	default:
+		m.dropped++
+		return
+	}
+	m.log.Warn("tripwire: connection to a decoy service", "ip", ip, "port", port, "service", service, "droppedBefore", m.dropped)
+	m.dropped = 0
+}
+
+// Group is what one source counts as: the address, for IPv6 its /64 (a host
+// can pick any address in its network, privacy addresses change daily).
+func Group(ip netip.Addr) string {
+	if ip.Is6() && !ip.Is4In6() {
+		p, _ := ip.Prefix(64)
+		return p.String()
+	}
+	return ip.String()
 }
 
 // cgnat is 100.64.0.0/10, used by VPNs such as Tailscale for their clients.

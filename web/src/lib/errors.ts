@@ -36,6 +36,7 @@ const validationDE: Record<string, string> = {
   'max. 16': 'höchstens 16',
   'max. 32': 'höchstens 32',
   '1024-65535, each once': '1024 bis 65535, jeder Port nur einmal',
+  'must not be the port of the web interface': 'darf nicht der Port der Weboberfläche sein',
   'use an IP address or network such as 192.168.1.0/24': 'bitte eine IP-Adresse oder ein Netz wie 192.168.1.0/24',
 };
 

@@ -126,6 +126,7 @@ export const api = {
   runSecurity: () => request<void>('POST', '/security/run'),
   dismissFinding: (id: number, dismissed: boolean) => request<void>('POST', `/security/findings/${id}/dismiss`, { dismissed }),
   network: () => request<NetworkState>('GET', '/network'),
+  wifiCheck: () => request<{ local: boolean }>('GET', '/wifimap/ping?check=1'),
   floorPlans: () => request<FloorPlan[]>('GET', '/wifimap/plans'),
   addFloorPlan: (name: string, image: Blob) => request<FloorPlan>('POST', `/wifimap/plans?name=${encodeURIComponent(name)}`, image),
   renameFloorPlan: (id: number, name: string) => request<void>('PATCH', `/wifimap/plans/${id}`, { name }),

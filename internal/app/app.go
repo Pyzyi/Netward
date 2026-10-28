@@ -156,9 +156,24 @@ func Run(ctx context.Context, o Options) error {
 	sec.SetDNSCheck(settings.DNSCheck && !env.Demo)
 	var trip *tripwire.Manager
 	var tripStatus func() tripwire.Status
-	if !env.Demo {
-		trip = tripwire.New(log, o.Priv.Tripwire, netinfo.IsOwnAddr, func(hit tripwire.Hit) { sec.Tripwire(ctx, hit) })
-		trip.Configure(settings.Tripwire, settings.TripwirePorts, settings.TripwirePrefixes())
+	// The web interface port is never a decoy (it would lock the UI out at the next start).
+	tripPorts := func(s config.Settings) []int {
+		var out []int
+		for _, p := range s.TripwirePorts {
+			if p != env.Port {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	if env.Demo {
+		for _, l := range o.Priv.Tripwire {
+			_ = l.Close() // demo mode opens no decoys
+		}
+	} else {
+		trip = tripwire.New(log, o.Priv.Tripwire, tripwire.Host{Own: netinfo.IsOwnAddr, OnLink: netinfo.OnLink},
+			func(hit tripwire.Hit) { sec.Tripwire(ctx, hit) })
+		trip.Configure(settings.Tripwire, tripPorts(settings), settings.TripwirePrefixes())
 		defer trip.Close()
 		tripStatus = trip.Status
 	}
@@ -245,7 +260,7 @@ func Run(ctx context.Context, o Options) error {
 		sec.SetDHCPCheck(s.DHCPCheck)
 		sec.SetDNSCheck(s.DNSCheck && !env.Demo)
 		if trip != nil {
-			trip.Configure(s.Tripwire, s.TripwirePorts, s.TripwirePrefixes())
+			trip.Configure(s.Tripwire, tripPorts(s), s.TripwirePrefixes())
 		}
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)

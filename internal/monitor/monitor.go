@@ -789,7 +789,9 @@ func (m *Monitor) addEvent(ctx context.Context, kind, severity string, d *store.
 		m.log.Error("add event", "kind", kind, "err", err)
 		return
 	}
-	if d != nil && d.ID != 0 && lifecycleKinds[kind] {
+	// Repeats (another tripwire hit of the same device) stay out of the
+	// history, or they would push the real milestones out of it.
+	if repeat, _ := data["repeat"].(bool); d != nil && d.ID != 0 && lifecycleKinds[kind] && !repeat {
 		m.logDevice(ctx, d.ID, ev.TS, kind, ev.Data)
 	}
 	m.hub.Publish("event", ev)

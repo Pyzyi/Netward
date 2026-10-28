@@ -26,11 +26,21 @@
     }
   }
   void loadPlans();
+  // Only a change of the plan (not a reload of the list) resets the view.
+  const currentId = $derived(plan?.id ?? 0);
   $effect(() => {
-    const id = plan?.id;
+    const id = currentId;
     if (!id) return;
-    api.wifiPoints(id).then((v) => (view = v), (e) => toast(errorText(e), 'error'));
+    let current = true; // a slow answer for the previous plan must not win
+    pending = null;
+    last = null;
+    api.wifiPoints(id).then((v) => current && (view = v), (e) => current && toast(errorText(e), 'error'));
+    return () => {
+      current = false;
+    };
   });
+  // Leaving the page stops a running measurement.
+  $effect(() => () => abort?.abort());
 
   // Upload
   let uploadName = $state('');
@@ -63,16 +73,37 @@
   let abort: AbortController | null = null;
   const rooms = $derived([...new Set(view.points.map((p) => p.room).filter(Boolean))].sort());
 
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
   function place(e: MouseEvent) {
     if (phase) return;
     const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    pending = { x: Math.min(1, Math.max(0, (e.clientX - box.left) / box.width)), y: Math.min(1, Math.max(0, (e.clientY - box.top) / box.height)) };
+    pending = { x: clamp((e.clientX - box.left) / box.width), y: clamp((e.clientY - box.top) / box.height) };
+    last = null;
+  }
+  // Keyboard: Enter or Space sets a pin in the middle, arrow keys move it.
+  function placeKey(e: KeyboardEvent) {
+    if (phase) return;
+    const step = e.shiftKey ? 0.1 : 0.02;
+    const move: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!pending) pending = { x: 0.5, y: 0.5 };
+      else document.getElementById('room')?.focus();
+    } else if (move[e.key]) {
+      const p = pending ?? { x: 0.5, y: 0.5 };
+      pending = { x: clamp(p.x + move[e.key][0]), y: clamp(p.y + move[e.key][1]) };
+    } else return;
+    e.preventDefault();
     last = null;
   }
   async function run() {
     if (!pending || !plan) return;
     abort = new AbortController();
     try {
+      if (await api.wifiCheck().then((r) => r.local)) {
+        toast(t('err.measure_local'), 'error');
+        pending = null;
+        return;
+      }
       const m = await measure(abort.signal, (p, f) => {
         phase = p;
         progress = f;
@@ -140,8 +171,10 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   $effect(() => {
     if (!canvas || !plan) return;
-    const W = 160;
-    const H = Math.max(1, Math.round((W * plan.height) / plan.width));
+    // At most 160 cells on the long side, whatever the shape of the plan.
+    const long = Math.max(plan.width, plan.height);
+    const W = Math.max(1, Math.round((160 * plan.width) / long));
+    const H = Math.max(1, Math.round((160 * plan.height) / long));
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
@@ -223,8 +256,9 @@
           </div>
         </header>
         <p class="hint">{pending ? t('wifimap.placed') : t('wifimap.tapHint')}</p>
-        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-        <div class="map" style:aspect-ratio="{plan.width} / {plan.height}" onclick={place}>
+        <p class="sr-only" id="map-keys">{t('wifimap.keys')}</p>
+        <div class="map" style:aspect-ratio="{plan.width} / {plan.height}" onclick={place} onkeydown={placeKey}
+          role="button" tabindex="0" aria-label={t('wifimap.mapLabel', { name: plan.name })} aria-describedby="map-keys">
           <img src="/api/v1/wifimap/plans/{plan.id}/image?v={plan.createdAt}" alt={t('wifimap.planAlt', { name: plan.name })} draggable="false" />
           <canvas bind:this={canvas} aria-hidden="true"></canvas>
           {#each view.points as p (p.id)}
@@ -394,6 +428,10 @@
     cursor: crosshair;
     touch-action: manipulation;
     user-select: none;
+  }
+  .map:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
   .map img,
   .map canvas {

@@ -422,6 +422,9 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 				"Names that do not exist still get an address – often an ad page of the provider.")
 	case CheckTripwire:
 		ip, _ := data["ip"].(string)
+		if many, _ := data["many"].(bool); many {
+			ip = tr("viele Adressen", "many addresses")
+		}
 		svc, _ := data["service"].(string)
 		return tr("Gerät hat den Stolperdraht ausgelöst: ", "Device tripped the tripwire: ") + ip,
 			fmt.Sprintf(tr("Es hat sich mit dem Köder-Dienst %s verbunden, den kein normales Gerät benutzt. "+

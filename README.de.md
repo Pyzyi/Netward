@@ -272,7 +272,7 @@ Details: [docs/08](docs/08-software-und-support.md).
 
 **Was macht der Stolperdraht genau?** Eingeschaltet (*Einstellungen → Scannen*) lauscht Netzwart auf ein paar
 Ports, die im Heimnetz niemand benutzen sollte: standardmäßig 2323 (Telnet), 3389 (Remotedesktop), 5555
-(Android-Debugging), 5900 (VNC) und 8081 (Kamera-Login). Verbindet sich ein Gerät aus deinem Netz, gibt es einen
+(Android-Debugging), 5900 (VNC); weitere lassen sich ergänzen, etwa 8888 für einen falschen Kamera-Login. Verbindet sich ein Gerät aus deinem Netz, gibt es einen
 kritischen Befund und eine Benachrichtigung. Eigene Scanner lassen sich per IP oder Netz ausnehmen. Verbindungen aus
 dem Internet (Portweiterleitung) und vom Netzwart-Rechner selbst zählen nie.
 
