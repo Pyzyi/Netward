@@ -17,7 +17,7 @@ It also checks your network for the usual weak spots: open Telnet or RDP, device
 Notifications via ntfy, Gotify, Pushover, Telegram, Discord, Slack, webhook and e-mail. Home Assistant via MQTT. Optional FRITZ!Box integration with Wi-Fi diagnosis. No cloud, no subscription, no telemetry.&#xD;
 &#xD;
 Needs the host network for layer-2 discovery. The container is read-only and drops every Linux capability right after start-up. Open the web UI within 30 minutes of the first start to create your account (there is no default password).</Overview>
-  <Changes>[b]0.2.1[/b] New look: calm panels, larger network ring with legend, clearer status labels.</Changes>
+  <Changes>[b]0.3.2[/b] Wi-Fi map with heatmap from phone measurements, tripwire decoy ports, DNS manipulation check, device history and inventory.</Changes>
   <Category>Network:Management Security: Tools:System</Category>
   <WebUI>http://[IP]:[PORT:8840]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml</TemplateURL>

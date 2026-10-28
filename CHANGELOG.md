@@ -3,13 +3,31 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
-## Unveröffentlicht
+## 0.3.2 – 2026-10-28
 
 ### Neu
+- **WLAN-Karte:** Grundriss hochladen, mit dem Handy durch die Wohnung gehen und antippen, wo man steht. Netzwart
+  misst Reaktionszeit, Download und Upload zwischen Handy und Netzwart (ohne Router-Zugang) und zeichnet eine Karte
+  mit Hinweisen wie „Im Kinderzimmer nur 38 Mbit/s, ein Verstärker im Flur würde helfen“. Mit FRITZ!Box kommen Band
+  und Signal dazu. Fotos werden im Browser verkleinert und neu kodiert (ohne Standortdaten).
+- **Stolperdraht** (standardmäßig aus): Köder-Ports, die wie Telnet, Remotedesktop, ADB, VNC oder ein Kamera-Login
+  aussehen. Jede Verbindung aus dem Heimnetz ist ein kritischer Befund mit Benachrichtigung. Ports unter 1024 über
+  `NETZWART_TRIPWIRE_PORTS` (braucht `cap_add: NET_BIND_SERVICE`). Ausnahmen für eigene Scanner.
+- **Angriffserkennung im LAN:** neue Übersicht auf der Sicherheitsseite (Router-Adresse, Adressvergabe, DNS,
+  Stolperdraht). Neu ist die DNS-Prüfung im Sicherheitscheck: Liefert ein DNS-Server im Netz falsche Adressen für
+  bekannte Namen, gibt es einen kritischen Befund; leitet er nicht existierende Namen um, eine Warnung. Sperren durch
+  Pi-hole oder AdGuard sind kein Befund. Abschaltbar.
+- **Geräte-Lebenslauf:** Chronik je Gerät mit erstem Auftauchen, Systemwechsel, neuen Ports, Updates und Ausfällen.
+  Sie bleibt auch nach Ablauf der Aufbewahrungsfrist erhalten.
+- **Inventar:** Kaufdatum, Garantie und Seriennummer je Gerät, auch im CSV-Export.
 - README auf Englisch als Startseite, Deutsch in `README.de.md`; englische Screenshots.
 - `NETZWART_DEMO=en` startet die Demo mit englischen Geräte- und Personennamen.
 - Vorbereitete Einträge für die App-Stores von CasaOS/ZimaOS, Unraid und TrueNAS in `deploy/`.
 - Beitragsleitfaden (`CONTRIBUTING.md`) und Issue-Vorlagen.
+
+### Datenbank
+- Migration 7: Inventarfelder an `devices`, Tabelle `device_log`.
+- Migration 8: Tabellen `floor_plans` und `wifi_points`.
 
 ## 0.2.1 – 2026-10-27
 

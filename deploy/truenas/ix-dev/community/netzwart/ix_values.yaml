@@ -1,7 +1,7 @@
 images:
   image:
     repository: ghcr.io/pyzyi/netzwart
-    tag: 0.2.1
+    tag: 0.3.2
 
 consts:
   netzwart_container_name: netzwart

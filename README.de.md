@@ -48,7 +48,16 @@ aber auf jedem Linux-Host mit Docker.
 - **Sicherheitscheck.** Riskante offene Dienste (Telnet, SMB, RDP, unverschlüsselte Datenbanken …), UPnP am Router,
   IP-Konflikte, unbekannte Geräte. Neu in 0.2: ein zweiter DHCP-Server im Netz, ein anderes Gerät auf der
   Router-Adresse (ARP-Spoofing) und bekannte Geräte, die sich plötzlich als anderes System melden.
+  Neu in 0.3.2: DNS-Server im Netz, die für bekannte Namen falsche Adressen liefern.
   Jeder Befund mit konkretem Tipp, was zu tun ist.
+- **Stolperdraht** (neu in 0.3.2, einschaltbar). Köder-Dienste, die wie Telnet, Remotedesktop, ADB oder ein
+  Kamera-Login aussehen. Kein normales Gerät spricht sie an; eine Verbindung ist ein starkes Zeichen für
+  Schadsoftware oder jemanden, der sich umsieht – fast ohne Fehlalarme. Die Köder grüßen nur und speichern nichts.
+- **WLAN-Karte** (neu in 0.3.2). Grundriss hochladen, mit dem Handy durch die Wohnung gehen und antippen, wo du
+  stehst. Netzwart misst Tempo und Reaktionszeit zwischen Handy und Netzwart und zeichnet eine Karte mit Hinweisen
+  wie „Im Kinderzimmer nur 38 Mbit/s, ein Verstärker im Flur würde helfen“. Ohne Zugriff auf den Router.
+- **Geräte-Lebenslauf und Inventar** (neu in 0.3.2). Chronik je Gerät (erstmals gesehen, Systemwechsel, neue Ports,
+  Updates, Ausfälle), die länger bleibt als der übrige Verlauf; dazu Kaufdatum, Garantie und Seriennummer.
 - **Personen** (neu in 0.2). „Wer ist zu Hause“ anhand der Handys und Uhren, auf Wunsch je Person als
   `device_tracker` in Home Assistant. Die Zeit im Heimnetz je Tag nur, wenn die Person zugestimmt hat.
 - **Internet-Monitor und Nachweis für den Provider.** Latenz und Ausfallhistorie; unterscheidet „Router weg“,
@@ -71,7 +80,11 @@ aber auf jedem Linux-Host mit Docker.
     <td align="center"><img src="docs/screenshots/mobile.png" width="260" alt="Ansicht auf dem Handy mit Netzring"></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/wifimap.png" alt="WLAN-Karte: Farbverlauf auf dem Grundriss mit Hinweis, wo ein Verstärker hilft"></td>
     <td><img src="docs/screenshots/wlan.png" alt="WLAN-Diagnose: Hinweise und Signal je Gerät"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/ids.png" alt="Angriffserkennung im LAN: Router-Adresse, DHCP, DNS und Stolperdraht"></td>
     <td><img src="docs/screenshots/persons.png" alt="Personen: wer zu Hause ist"></td>
   </tr>
 </table>
@@ -156,13 +169,13 @@ erreichbar. Wer das verpasst, startet den Container einfach neu. Es gibt kein St
 ### Updates
 
 Neue Versionen erscheinen unter [Releases](https://github.com/Pyzyi/netzwart/releases) mit einer Beschreibung, was
-neu ist. Das Image-Tag `latest` zeigt immer auf das neueste Release, `0.1` auf die neueste 0.1.x-Version.
+neu ist. Das Image-Tag `latest` zeigt immer auf das neueste Release, `0.3` auf die neueste 0.3.x-Version.
 Zwischenstände der Entwicklung heißen `edge` und sind nicht für den Alltag gedacht.
 
 **Aktualisieren ohne Neuinstallation** – Geräte, Namen, Verlauf, Konten und Einstellungen bleiben erhalten:
 
 - **ZimaOS / CasaOS:** Am zuverlässigsten: In den Einstellungen der App beim Image die Versionsnummer eintragen
-  (z. B. `ghcr.io/pyzyi/netzwart:0.2.1` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
+  (z. B. `ghcr.io/pyzyi/netzwart:0.3.2` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
   Mit `latest` die App neu erstellen bzw. das Image neu laden (je nach ZimaOS-Version „Update“, „Rebuild“ oder
   Speichern ohne Änderung).
 - **Unraid:** auf der Docker-Seite „Nach Updates suchen“.
@@ -197,6 +210,9 @@ Beim Start öffnet Netzwart als root genau zwei Sockets, übergibt `/data` an de
 **alle** Rechte unwiderruflich ab. `CHOWN`, `SETUID` und `SETGID` werden nur für diesen Wechsel gebraucht.
 Ohne `NET_RAW` läuft Netzwart weiter, erkennt Geräte dann aber langsamer und nur im eigenen /24-Netz.
 
+Optional: `NET_BIND_SERVICE` braucht es nur für Stolperdraht-Köder auf Ports unter 1024 (z. B. 23 oder 445, siehe
+`NETZWART_TRIPWIRE_PORTS`). Sie werden vor dem Wechsel geöffnet; der laufende Prozess hat trotzdem keine Capabilities.
+
 Mehr dazu: [Sicherheitsrichtlinie](SECURITY.md) · [Bedrohungsmodell](docs/03-bedrohungsmodell.md)
 
 ## Einstellungen per Umgebungsvariable
@@ -215,6 +231,7 @@ Alles Weitere stellst du in der Oberfläche ein. Diese Variablen braucht man nur
 | `PUID`, `PGID` | `10001` | Benutzer, dem der Datenordner gehört |
 | `NETZWART_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `NETZWART_DEMO` | – | `1` (deutsch) oder `en` (englisch) startet mit Beispieldaten ohne zu scannen |
+| `NETZWART_TRIPWIRE_PORTS` | – | Stolperdraht-Köder, die beim Start geöffnet werden, z. B. `23,445` (Ports unter 1024 brauchen `cap_add: NET_BIND_SERVICE`) |
 
 Netzwart antwortet nur auf IP-Adressen, `localhost` und lokale Namen (`.local`, `.lan`, `.home.arpa`, `.fritz.box` …).
 Andere Hostnamen müssen in `NETZWART_ALLOWED_HOSTS` stehen. Das schützt vor DNS-Rebinding-Angriffen aus dem Browser.
@@ -242,7 +259,9 @@ Unbekannte Geräte mit privater Adresse verschwinden nach 14 Tagen offline von s
 die du selbst einträgst (Benachrichtigungen, MQTT, FRITZ!Box), für den Internet-Monitor mit `1.1.1.1:443`,
 `9.9.9.9:443` und `dns.google:443` (änderbar oder abschaltbar) und – nur wenn du es einschaltest – einmal täglich
 mit GitHub, um nach neuen Versionen zu fragen. Die Software-Bewertung arbeitet mit einer eingebauten Wissensbasis
-(Datenstand steht in der Oberfläche) und fragt keinen Online-Dienst.
+(Datenstand steht in der Oberfläche) und fragt keinen Online-Dienst. Der Sicherheitscheck fragt außerdem die
+DNS-Server in deinem Netz nach `one.one.one.one`, `dns.google`, `dns.quad9.net` und einem zufälligen Namen unter
+`example.com` (abschaltbar); dein DNS-Server leitet diese Fragen eventuell ins Internet weiter.
 
 **Woher weiß Netzwart, welche Software ein Gerät hat?** Aus dem, was Geräte im Netz von sich aus ankündigen
 (mDNS, UPnP, DHCP), von der FRITZ!Box, und im Sicherheitscheck aus zwei Abfragen: der Begrüßungszeile eines
@@ -250,6 +269,16 @@ SSH-Servers (es wird nichts gesendet) und der Versionsangabe, die Windows beim e
 Anmeldung nennt. Die Anmeldung wird nie abgeschlossen, es werden keine Zugangsdaten gesendet. iPhones verraten
 ihre iOS-Version grundsätzlich nicht; dort hilft das Modell („kann höchstens iOS 16“) oder deine Angabe.
 Details: [docs/08](docs/08-software-und-support.md).
+
+**Was macht der Stolperdraht genau?** Eingeschaltet (*Einstellungen → Scannen*) lauscht Netzwart auf ein paar
+Ports, die im Heimnetz niemand benutzen sollte: standardmäßig 2323 (Telnet), 3389 (Remotedesktop), 5555
+(Android-Debugging), 5900 (VNC) und 8081 (Kamera-Login). Verbindet sich ein Gerät aus deinem Netz, gibt es einen
+kritischen Befund und eine Benachrichtigung. Eigene Scanner lassen sich per IP oder Netz ausnehmen. Verbindungen aus
+dem Internet (Portweiterleitung) und vom Netzwart-Rechner selbst zählen nie.
+
+**Was misst die WLAN-Karte?** Die Strecke zwischen deinem Handy und Netzwart: Reaktionszeit, Download und Upload,
+etwa zehn Sekunden je Stelle. Hängt Netzwart am Kabel, zeigt das die Qualität deines WLANs. Das Internet-Tempo
+misst die Karte nicht, und sie sendet nichts an fremde Server.
 
 **Mehrere Netze/VLANs?** Netzwart sieht jedes Netz, in dem der Host eine Schnittstelle hat. Hinter Routern liegende
 Netze sind auf Layer 2 nicht sichtbar.
@@ -279,7 +308,8 @@ Netzwart wurde wie ein Teamprojekt geplant und geprüft, mit dem Qualitätsmodel
 5. [UX- und Designkonzept](docs/05-ux-design.md)
 6. [Teststrategie](docs/06-teststrategie.md)
 7. [Review-Protokoll](docs/07-review-protokoll.md)
-8. [Software und Support (0.1)](docs/08-software-und-support.md) · [Änderungen](CHANGELOG.md)
+8. [Software und Support (0.1)](docs/08-software-und-support.md)
+9. [Version 0.2](docs/09-version-0.2.md) · [Version 0.3.2](docs/10-version-0.3.md) · [Änderungen](CHANGELOG.md)
 
 ## Lizenz
 

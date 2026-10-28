@@ -39,7 +39,7 @@ Leitsatz: *So einfach wie Fing, so offen wie NetAlertX, sicherer als beide.*
   Sicherheitssoftware erkannt und erweitert die Angriffsfläche erheblich. Stattdessen verlinkt
   Netzwart auf die Sperrfunktion des Routers (z. B. FRITZ!Box-Kindersicherung).
 - **Cloud-Geräteerkennung**. Sie würde Daten aus dem Heimnetz an Dritte senden.
-- **Speedtest**. Er erzeugt Last und braucht externe Server; Internet-Monitoring misst stattdessen Latenz und Ausfälle.
+- **Speedtest**. Er erzeugt Last und braucht externe Server; Internet-Monitoring misst stattdessen Latenz und Ausfälle. Die WLAN-Karte (F-42) misst nur im Heimnetz zwischen Handy und Netzwart, nie gegen externe Server.
 
 ## 3. Personas
 
@@ -100,6 +100,10 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-36 | Bekannte, aktiv ausgenutzte Lücken (0.2) | Offline-Schnappschuss (CISA KEV + CVE List v5, je Release); bei genauer Version von iOS, iPadOS, macOS oder tvOS kritischer Befund mit CVEs und „behoben in“; eigene Angaben bitten um Bestätigung; Datenstand sichtbar; nie „keine Lücken“ |
 | F-37 | Personen (0.2) | Personen mit Geräten; „zu Hause seit …“ auf der Übersicht; Zeit je Tag nur mit bestätigtem Einverständnis; je Person ein Home-Assistant-`device_tracker` (abschaltbar); keine Kommen/Gehen-Meldungen |
 | F-38 | Verhaltens-Baseline (0.2, klein) | Wechsel der Systemfamilie eines etablierten, bekannten Geräts (zweimal bestätigt) wird Befund mit „Neu eingerichtet“/„Kenne ich nicht“; neue Ports bei zwei übereinstimmenden Scans gleichen Umfangs als Ereignis |
+| F-39 | Geräte-Lebenslauf und Inventar (0.3.2) | Chronik je Gerät (erstes Auftauchen, Systemwechsel, neue Ports, Versionswechsel, Ausfälle ab 30 min bei durchlaufenden Geräten), überdauert die Aufbewahrungsfrist, max. 500 Einträge je Gerät; Kaufdatum, Garantie und Seriennummer im Gerätedetail und im CSV-Export ([10](10-version-0.3.md)) |
+| F-40 | DNS-Prüfung (0.3.2) | Im Sicherheitscheck (abschaltbar) werden die DNS-Server im Netz nach drei Namen mit fester Adresse und einem nicht existierenden Namen gefragt; falsche Adresse = kritischer Befund, Umleitung nicht existierender Namen = Warnung, Sperren (0.0.0.0) sind kein Befund; Übersicht „Angriffserkennung im LAN“ mit ARP, DHCP und DNS |
+| F-41 | Stolperdraht (0.3.2, opt-in) | Köder-Ports (Standard 2323, 3389, 5555, 5900, 8081; Ports < 1024 nur per `NETZWART_TRIPWIRE_PORTS` und `NET_BIND_SERVICE`) melden jede Verbindung aus dem Heimnetz als kritischen Befund je Gerät; Ausnahmen per IP/Netz; Inhalt wird nie gespeichert; Status je Port sichtbar |
+| F-42 | WLAN-Karte (0.3.2) | Grundriss hochladen, am Handy Position antippen und messen (Reaktionszeit, Download, Upload zwischen Browser und Netzwart, ohne Router-Zugang); Karte mit Farbverlauf und Hinweisen je Raum inkl. Ort für einen Verstärker; Messungen vom Netzwart-Rechner selbst werden abgelehnt |
 
 ### Could (Roadmap)
 

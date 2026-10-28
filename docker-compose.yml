@@ -19,6 +19,8 @@ services:
       - SETUID
       - SETGID
       - NET_RAW
+      # Optional, nur für Stolperdraht-Köder auf Ports unter 1024 (NETZWART_TRIPWIRE_PORTS):
+      # - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -27,6 +29,8 @@ services:
       NETZWART_PORT: "8840"
       # Optional: zusätzliche Hostnamen hinter einem Reverse-Proxy
       # NETZWART_ALLOWED_HOSTS: netzwart.example.com
+      # Optional: Stolperdraht-Köder auf Ports unter 1024 (braucht NET_BIND_SERVICE oben)
+      # NETZWART_TRIPWIRE_PORTS: "23,445"
     volumes:
       - /DATA/AppData/netzwart:/data
     x-casaos:

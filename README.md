@@ -64,6 +64,15 @@ Synology, a Raspberry Pi.
   - UPnP on the router, IP conflicts, unknown devices
   - a second DHCP server, ARP spoofing of the router address, and known devices that suddenly identify as a
     different system
+  - DNS servers on your network that return wrong addresses for well-known names
+- **Tripwire** (opt-in). Decoy services that look like Telnet, remote desktop, ADB or a camera login. No normal
+  device ever touches them, so a connection is a strong sign of malware or of someone looking around, with almost
+  no false alarms. The decoys only greet and keep nothing that is sent.
+- **Wi-Fi map.** Upload a floor plan, walk around with your phone and tap where you stand. Netzwart measures speed
+  and response time between the phone and itself and draws a heatmap with advice like *"Kids' room: only
+  38 Mbit/s – a repeater near the hallway would help."* No router access needed.
+- **Device history and inventory.** A timeline per device (first seen, new system, new ports, updates, outages)
+  that outlives the event retention, plus purchase date, warranty and serial number for small offices.
 - **Software and updates.** Netzwart shows which system a device runs, as far as it reveals it on the network, and
   whether that system still receives security updates. This covers Windows 10/11, iOS and iPadOS by model, macOS,
   Android, Debian, Ubuntu, Synology DSM and FRITZ!OS.
@@ -85,7 +94,11 @@ Synology, a Raspberry Pi.
     <td><img src="docs/screenshots/en/security.png" alt="Security check with findings and advice"></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/en/wifimap.png" alt="Wi-Fi map: heatmap on a floor plan with advice where a repeater would help"></td>
     <td><img src="docs/screenshots/en/wlan.png" alt="Wi-Fi diagnosis: hints and signal per device"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/en/ids.png" alt="Attack detection on the LAN: router address, DHCP, DNS and tripwire"></td>
     <td><img src="docs/screenshots/en/persons.png" alt="People: who is at home"></td>
   </tr>
   <tr>
@@ -158,11 +171,11 @@ local network**. If you miss that window, restart the container.
 ## Updates
 
 Every release is on the [releases page](https://github.com/Pyzyi/netzwart/releases) with notes on what changed. The
-image tag `latest` always points to the newest release. To pin a minor version, use `0.2`. Development builds are
+image tag `latest` always points to the newest release. To pin a minor version, use `0.3`. Development builds are
 tagged `edge`.
 
 - **Docker Compose:** `docker compose pull && docker compose up -d`
-- **ZimaOS / CasaOS:** open the app settings and set the image tag to the new version (e.g. `0.2.1`), then save.
+- **ZimaOS / CasaOS:** open the app settings and set the image tag to the new version (e.g. `0.3.2`), then save.
   With `latest`, use "rebuild" or re-pull the image.
 - **Unraid:** *Check for updates* on the Docker tab.
 - **TrueNAS:** edit the app and save; with a version tag, change the tag.
@@ -190,6 +203,9 @@ At start, Netzwart opens exactly two sockets as root and hands `/data` over to t
 **all** privileges irrevocably. `CHOWN`, `SETUID` and `SETGID` are only needed for that switch. Without `NET_RAW`,
 Netzwart still runs, but it discovers devices more slowly and only in its own /24 network.
 
+Optional: `NET_BIND_SERVICE` is only needed if you want tripwire decoys on ports below 1024 (e.g. 23 or 445, see
+`NETZWART_TRIPWIRE_PORTS`). They are opened before the switch, so the running process still has no capabilities.
+
 More: [security policy](SECURITY.md) · [threat model](docs/03-bedrohungsmodell.md) (German)
 
 ## Environment variables
@@ -208,6 +224,7 @@ Everything else is configured in the web interface. You only need these in speci
 | `PUID`, `PGID` | `10001` | Owner of the data folder |
 | `NETZWART_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `NETZWART_DEMO` | – | `1` (German) or `en` (English) starts with sample data and does not scan |
+| `NETZWART_TRIPWIRE_PORTS` | – | Tripwire decoys opened at start, e.g. `23,445` (ports below 1024 need `cap_add: NET_BIND_SERVICE`) |
 
 Netzwart only answers to IP addresses, `localhost` and local names (`.local`, `.lan`, `.home.arpa`, `.fritz.box` …).
 Other host names must be listed in `NETZWART_ALLOWED_HOSTS`. This protects against DNS rebinding attacks from the
@@ -237,6 +254,10 @@ private address disappear by themselves after 14 days offline.
 - `1.1.1.1:443`, `9.9.9.9:443` and `dns.google:443` for the internet monitor (configurable or off)
 - GitHub once a day, if you turn on the update check
 
+The security check also asks the DNS servers on your network about `one.one.one.one`, `dns.google`,
+`dns.quad9.net` and a random name under `example.com` (can be turned off). Your DNS server may forward these
+questions to the internet.
+
 **How does Netzwart know which software a device runs?** From what devices announce on the network by themselves
 (mDNS, UPnP, DHCP) and from the FRITZ!Box. The security check adds two probes:
 - the greeting line of an SSH server (nothing is sent)
@@ -248,6 +269,16 @@ yourself.
 
 **Does it work with any router?** Yes. The FRITZ!Box integration is an optional extra; discovery, presence,
 notifications and the security check work with any router.
+
+**What does the tripwire do exactly?** When you turn it on (*Settings → Scanning*), Netzwart listens on a few ports
+that nothing on your network should use: by default 2323 (Telnet), 3389 (remote desktop), 5555 (Android debugging),
+5900 (VNC) and 8081 (camera login). A device on your network that connects there gets a critical finding and you
+get a notification. Your own scanners can be excluded by IP or network. Connections from the internet (port
+forwarding) and from the Netzwart host itself never count.
+
+**What does the Wi-Fi map measure?** The path between your phone and Netzwart: response time, download and upload,
+about ten seconds per spot. If Netzwart is connected by cable, that shows the quality of your Wi-Fi. It does not
+measure your internet speed and sends nothing to outside servers.
 
 **Multiple networks / VLANs?** Netzwart sees every network the host has an interface in. Networks behind other routers
 are not visible on layer 2.
