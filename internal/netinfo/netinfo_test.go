@@ -38,21 +38,6 @@ docker0	000011AC	00000000	0001	0	0	0	0000FFFF	0	0	0
 	}
 }
 
-func TestParseARPCache(t *testing.T) {
-	in := `IP address       HW type     Flags       HW address            Mask     Device
-192.168.1.1      0x1         0x2         3c:a6:2f:11:22:33     *        eth0
-192.168.1.77     0x1         0x0         00:00:00:00:00:00     *        eth0
-192.168.1.20     0x1         0x2         b8:27:eb:aa:bb:cc     *        eth0
-`
-	n, err := parseARPCache(strings.NewReader(in))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(n) != 2 || n[1].MAC.String() != "b8:27:eb:aa:bb:cc" {
-		t.Fatalf("unexpected neighbors %+v", n)
-	}
-}
-
 func TestParseResolvConf(t *testing.T) {
 	got := parseResolvConf(strings.NewReader("# comment\nnameserver 192.168.1.1\nnameserver fe80::1%eth0\nsearch lan\n"))
 	if len(got) != 2 || got[0].String() != "192.168.1.1" {

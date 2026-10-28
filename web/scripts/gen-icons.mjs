@@ -7,13 +7,12 @@ const dir = new URL('../node_modules/@phosphor-icons/core/assets/', import.meta.
 
 // UI icons (regular weight)
 const ui = [
-  'check', 'x', 'trash', 'shield-check', 'shield-warning', 'sign-out', 'sign-in', 'info', 'bell', 'bell-slash', 'warning',
-  'warning-circle', 'check-circle', 'question', 'star', 'gear-six', 'arrows-clockwise', 'pencil-simple', 'globe-simple',
-  'pulse', 'wifi-slash', 'wifi-high', 'user-plus', 'shuffle', 'paper-plane-tilt', 'magnifying-glass', 'power', 'plus',
-  'git-merge', 'lock-simple', 'squares-four', 'key', 'dots-three', 'download-simple', 'copy', 'caret-right',
-  'caret-down', 'caret-left', 'arrow-left', 'devices', 'clock-counter-clockwise', 'list-bullets', 'moon', 'sun',
-  'broadcast', 'heartbeat', 'arrow-square-out', 'eye', 'eye-slash', 'funnel', 'circle-half', 'upload-simple',
-  'map-trifold', 'gauge',
+  'check', 'x', 'trash', 'shield-check', 'shield-warning', 'sign-out', 'sign-in', 'info', 'bell', 'warning',
+  'warning-circle', 'check-circle', 'question', 'star', 'gear-six', 'arrows-clockwise', 'pencil-simple',
+  'globe-simple', 'pulse', 'wifi-slash', 'wifi-high', 'user-plus', 'shuffle', 'paper-plane-tilt', 'magnifying-glass',
+  'power', 'plus', 'git-merge', 'lock-simple', 'squares-four', 'key', 'dots-three', 'download-simple', 'copy',
+  'caret-right', 'caret-down', 'caret-left', 'devices', 'broadcast', 'eye-slash', 'upload-simple', 'map-trifold',
+  'gauge',
 ];
 // Device glyphs (duotone)
 const devices = [

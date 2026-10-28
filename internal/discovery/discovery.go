@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
-	"strings"
 	"syscall"
 	"time"
 
@@ -319,10 +318,4 @@ func TCPAlive(ctx context.Context, ip netip.Addr, port uint16, timeout time.Dura
 		return true
 	}
 	return errors.Is(err, syscall.ECONNREFUSED)
-}
-
-// CleanInstance normalises a DNS-SD instance name for display.
-func CleanInstance(s string) string {
-	s = strings.ReplaceAll(s, `\032`, " ")
-	return textutil.Clean(s, textutil.MaxName)
 }

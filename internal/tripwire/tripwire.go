@@ -9,7 +9,6 @@ package tripwire
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -376,17 +375,4 @@ var cgnat = netip.MustParsePrefix("100.64.0.0/10")
 // not what the tripwire is about.
 func internal(ip netip.Addr) bool {
 	return ip.IsPrivate() || ip.IsLinkLocalUnicast() || cgnat.Contains(ip)
-}
-
-// ParsePorts reads a list like "23,2323" (NETZWART_TRIPWIRE_PORTS).
-func ParsePorts(v []string) ([]int, error) {
-	var out []int
-	for _, s := range v {
-		p, err := strconv.Atoi(s)
-		if err != nil || p < 1 || p > 65535 {
-			return nil, fmt.Errorf("invalid port %q", s)
-		}
-		out = append(out, p)
-	}
-	return out, nil
 }

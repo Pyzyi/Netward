@@ -370,26 +370,10 @@ textarea {
 }
 
 /* Panels group content on the canvas. */
-.card,
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-}
-
-.card-head,
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 52px;
-  padding: 12px 16px;
-}
-
-.card-body,
-.panel-body {
-  padding: 0 16px 16px;
 }
 
 /* A section inside a page: a panel with a title row. */
@@ -765,13 +749,6 @@ details[open] > summary:not(.custom)::before {
   .dl dd + dt {
     margin-top: 10px;
   }
-}
-
-.divider {
-  height: 1px;
-  background: var(--border);
-  border: 0;
-  margin: 0;
 }
 
 .stack {

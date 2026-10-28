@@ -36,7 +36,7 @@ const SLOT_MS = 30 * 60_000;
 const SLOTS = 48;
 let stripTimer: ReturnType<typeof setInterval> | undefined;
 let stripsLoading = false;
-export async function loadStrips() {
+async function loadStrips() {
   // Hidden tabs and signed-out pages must not poll: every authenticated
   // request would otherwise keep the session from idling out.
   if (stripsLoading || document.hidden || !auth.state?.authenticated) return;
@@ -127,7 +127,7 @@ export async function loadAll() {
   }
 }
 
-export async function refreshOverview() {
+async function refreshOverview() {
   try {
     store.overview = await api.overview();
   } catch {

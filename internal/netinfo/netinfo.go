@@ -208,52 +208,7 @@ func parseResolvConf(r io.Reader) []netip.Addr {
 	return out
 }
 
-// Neighbor is an entry of the kernel ARP cache.
-type Neighbor struct {
-	IP        netip.Addr
-	MAC       net.HardwareAddr
-	Interface string
-}
-
-// ARPCache returns complete entries from /proc/net/arp.
-func ARPCache() ([]Neighbor, error) {
-	f, err := os.Open("/proc/net/arp")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return parseARPCache(f)
-}
-
 var errFormat = errors.New("unexpected /proc/net/arp format")
-
-func parseARPCache(r io.Reader) ([]Neighbor, error) {
-	var out []Neighbor
-	sc := bufio.NewScanner(r)
-	if !sc.Scan() {
-		return nil, errFormat
-	}
-	for sc.Scan() {
-		f := strings.Fields(sc.Text())
-		if len(f) < 6 {
-			continue
-		}
-		// Flags 0x2 = ATF_COM (complete entry)
-		if f[2] == "0x0" {
-			continue
-		}
-		ip, err := netip.ParseAddr(f[0])
-		if err != nil {
-			continue
-		}
-		mac, err := net.ParseMAC(f[3])
-		if err != nil || len(mac) != 6 {
-			continue
-		}
-		out = append(out, Neighbor{IP: ip, MAC: mac, Interface: f[5]})
-	}
-	return out, sc.Err()
-}
 
 // IsOwnAddr reports whether ip belongs to an interface of this host.
 func IsOwnAddr(ip netip.Addr) bool {

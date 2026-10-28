@@ -150,13 +150,3 @@ func ipFilter() ([]bpf.RawInstruction, error) {
 		bpf.RetConstant{Val: 0},                                                  // 12: drop
 	})
 }
-
-// RawAvailable reports whether this process may create AF_PACKET sockets.
-func RawAvailable() bool {
-	fd, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW|unix.SOCK_CLOEXEC, 0)
-	if err != nil {
-		return false
-	}
-	unix.Close(fd)
-	return true
-}

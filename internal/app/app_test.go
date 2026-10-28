@@ -130,7 +130,7 @@ func TestSeedDemoEnglish(t *testing.T) {
 	if DemoWLANLang("en").APs[1].Name != "Upstairs repeater" {
 		t.Fatal("repeater not renamed")
 	}
-	if DemoWLAN().APs[1].Name != "Repeater OG" {
+	if DemoWLANLang("de").APs[1].Name != "Repeater OG" {
 		t.Fatal("German demo changed")
 	}
 }

@@ -144,9 +144,6 @@ func TestService(t *testing.T) {
 			t.Errorf("Service(%d) = %q, want %q", port, got, want)
 		}
 	}
-	if _, err := ParsePorts([]string{"23", "0"}); err == nil {
-		t.Error("port 0 accepted")
-	}
 }
 
 func TestFloodIsLimited(t *testing.T) {

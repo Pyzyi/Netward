@@ -378,14 +378,8 @@ func DemoTripwire() tripwire.Status {
 	return st
 }
 
-// DemoWLAN is the Wi-Fi of the demo home: the FRITZ!Box downstairs and a
-// repeater upstairs whose own link is weak, so the children's laptop ends
-// up on 2.4 GHz behind it (docs/09, F3).
-func DemoWLAN() fritzbox.WLANState {
-	return DemoWLANLang("de")
-}
-
-// DemoWLANLang is DemoWLAN with the repeater named in the demo language.
+// DemoWLANLang is the Wi-Fi of the demo home: the FRITZ!Box downstairs and a
+// repeater upstairs, named in the demo language.
 func DemoWLANLang(lang string) fritzbox.WLANState {
 	const box, rep = "3c:a6:2f:5e:11:01", "3c:a6:2f:5e:22:02"
 	c := func(mac, ap, band string, ch, dbm, rate, maxRate int, can5 bool) fritzbox.WLANClient {

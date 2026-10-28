@@ -93,9 +93,3 @@ func TestTCPAlive(t *testing.T) {
 		t.Fatal("RST not treated as alive")
 	}
 }
-
-func TestCleanInstance(t *testing.T) {
-	if got := CleanInstance(`Living\032Room`); got != "Living Room" {
-		t.Fatal(got)
-	}
-}
