@@ -175,7 +175,7 @@ image tag `latest` always points to the newest release. To pin a minor version, 
 tagged `edge`.
 
 - **Docker Compose:** `docker compose pull && docker compose up -d`
-- **ZimaOS / CasaOS:** open the app settings and set the image tag to the new version (e.g. `0.3.2`), then save.
+- **ZimaOS / CasaOS:** open the app settings and set the image tag to the new version (e.g. `0.3.3`), then save.
   With `latest`, use "rebuild" or re-pull the image.
 - **Unraid:** *Check for updates* on the Docker tab.
 - **TrueNAS:** edit the app and save; with a version tag, change the tag.

@@ -3,6 +3,22 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## 0.3.3 – 2026-10-28
+
+### Sicherheit
+- Ersteinrichtung über einen Reverse-Proxy nur von vertrauten Proxys (`NETZWART_TRUSTED_PROXIES`).
+- Login-Bremse gegen Fluten mit vielen Adressen/Namen gehärtet (IPv6 je /64, feste Grenze).
+- Benachrichtigungen ohne Weiterleitungen; FRITZ!Box-Sitzungs-ID nicht mehr im Log; Ping nur mit Antworten vom
+  Ziel; Live-Strom mit absoluter Sitzungsdauer; Cloud-Metadaten-Dienste gesperrt; Warnung bei nicht vertrautem Proxy.
+- `factory-reset` über die Kommandozeile wirkt beim nächsten Start.
+- CI: Release nur bei sicher fehlendem Tag und nur von main; wöchentlicher Scan des veröffentlichten Images.
+
+### Behoben
+- E-Mail: Zeilen mit Punkt am Anfang kamen mit zwei Punkten an.
+
+### Intern
+- Ungenutzter Code, Texte, Icons und CSS entfernt.
+
 ## 0.3.2 – 2026-10-28
 
 ### Neu
