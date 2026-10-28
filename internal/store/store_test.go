@@ -402,3 +402,46 @@ func withExtraMigration(t *testing.T) {
 	migrations = append(orig[:len(orig):len(orig)], `CREATE TABLE test_extra (x INTEGER);`)
 	t.Cleanup(func() { migrations = orig })
 }
+
+func TestDeviceLogTrimAndMerge(t *testing.T) {
+	ctx := context.Background()
+	st, err := Open(ctx, filepath.Join(t.TempDir(), "l.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	a := Device{MAC: "aa:00:00:00:00:01", FirstSeen: 1, LastSeen: 1}
+	b := Device{MAC: "aa:00:00:00:00:02", FirstSeen: 1, LastSeen: 1}
+	if err := st.InsertDevice(ctx, &a); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.InsertDevice(ctx, &b); err != nil {
+		t.Fatal(err)
+	}
+	for i := range deviceLogKeep + 20 {
+		if err := st.AddDeviceLog(ctx, a.ID, int64(i), "outage", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.TrimDeviceLog(ctx); err != nil {
+		t.Fatal(err)
+	}
+	log, _ := st.DeviceLog(ctx, a.ID, 0)
+	if len(log) != deviceLogKeep || log[0].TS != deviceLogKeep+19 {
+		t.Fatalf("kept %d entries, newest %d", len(log), log[0].TS)
+	}
+	day := "2024-01-02"
+	if err := st.PatchDevice(ctx, a.ID, DevicePatch{PurchaseDate: &day}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.MergeDevices(ctx, a.ID, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	merged, _ := st.GetDevice(ctx, b.ID)
+	if merged.PurchaseDate != day {
+		t.Fatal("purchase date lost in merge")
+	}
+	if log, _ := st.DeviceLog(ctx, b.ID, 0); len(log) != deviceLogKeep {
+		t.Fatalf("history not moved: %d", len(log))
+	}
+}

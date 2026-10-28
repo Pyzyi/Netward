@@ -41,6 +41,9 @@ type Device struct {
 	LastSeen        int64  `json:"lastSeen"`
 	EnrichedAt      int64  `json:"enrichedAt"`
 	PortsScannedAt  int64  `json:"portsScannedAt"`
+	PurchaseDate    string `json:"purchaseDate"`  // YYYY-MM-DD, typed in by the user
+	WarrantyUntil   string `json:"warrantyUntil"` // YYYY-MM-DD, typed in by the user
+	Serial          string `json:"serial"`
 	New             bool   `json:"new"` // first seen after the learning phase and not yet acknowledged
 	// Software is the short software verdict, filled in by the monitor.
 	Software *SoftwareSummary `json:"software,omitempty"`
@@ -55,7 +58,8 @@ type SoftwareSummary struct {
 
 const deviceCols = `id, ident, mac, ip, name, hostname, vendor, vendor_official, model, os, type, type_confidence,
 	type_override, location, notes, known, favorite, watch, mac_kind, proxy, via_proxy, online, is_gateway, is_self,
-	interface, dhcp_fingerprint, dhcp_vendor, first_seen, last_seen, enriched_at, ports_scanned_at`
+	interface, dhcp_fingerprint, dhcp_vendor, first_seen, last_seen, enriched_at, ports_scanned_at, purchase_date,
+	warranty_until, serial`
 
 type scanner interface{ Scan(...any) error }
 
@@ -64,7 +68,8 @@ func scanDevice(r scanner) (Device, error) {
 	err := r.Scan(&d.ID, &d.Ident, &d.MAC, &d.IP, &d.Name, &d.Hostname, &d.Vendor, &d.VendorOfficial, &d.Model, &d.OS,
 		&d.DetectedType, &d.TypeConfidence, &d.TypeOverride, &d.Location, &d.Notes, &d.Known, &d.Favorite,
 		&d.Watch, &d.MACKind, &d.Proxy, &d.ViaProxy, &d.Online, &d.IsGateway, &d.IsSelf, &d.Interface, &d.DHCPFingerprint,
-		&d.DHCPVendor, &d.FirstSeen, &d.LastSeen, &d.EnrichedAt, &d.PortsScannedAt)
+		&d.DHCPVendor, &d.FirstSeen, &d.LastSeen, &d.EnrichedAt, &d.PortsScannedAt, &d.PurchaseDate, &d.WarrantyUntil,
+		&d.Serial)
 	d.Type = d.DetectedType
 	if d.TypeOverride != "" {
 		d.Type = d.TypeOverride
@@ -158,13 +163,16 @@ func (s *Store) TouchLastSeen(ctx context.Context, seen map[int64]int64) error {
 
 // DevicePatch holds user-editable fields; nil means "unchanged".
 type DevicePatch struct {
-	Name         *string `json:"name"`
-	TypeOverride *string `json:"type"`
-	Location     *string `json:"location"`
-	Notes        *string `json:"notes"`
-	Known        *bool   `json:"known"`
-	Favorite     *bool   `json:"favorite"`
-	Watch        *bool   `json:"watch"`
+	Name          *string `json:"name"`
+	TypeOverride  *string `json:"type"`
+	Location      *string `json:"location"`
+	Notes         *string `json:"notes"`
+	Known         *bool   `json:"known"`
+	Favorite      *bool   `json:"favorite"`
+	Watch         *bool   `json:"watch"`
+	PurchaseDate  *string `json:"purchaseDate"`
+	WarrantyUntil *string `json:"warrantyUntil"`
+	Serial        *string `json:"serial"`
 }
 
 // PatchDevice applies user edits.
@@ -195,6 +203,15 @@ func (s *Store) PatchDevice(ctx context.Context, id int64, p DevicePatch) error 
 	}
 	if p.Watch != nil {
 		add("watch", b2i(*p.Watch))
+	}
+	if p.PurchaseDate != nil {
+		add("purchase_date", *p.PurchaseDate)
+	}
+	if p.WarrantyUntil != nil {
+		add("warranty_until", *p.WarrantyUntil)
+	}
+	if p.Serial != nil {
+		add("serial", *p.Serial)
 	}
 	if len(sets) == 0 {
 		return nil
@@ -427,6 +444,7 @@ func (s *Store) MergeDevices(ctx context.Context, from, into int64) error {
 			`UPDATE presence SET device_id = ?2 WHERE device_id = ?1 AND ended_at IS NOT NULL`,
 			`DELETE FROM presence WHERE device_id = ?1`,
 			`UPDATE events SET device_id = ?2 WHERE device_id = ?1`,
+			`UPDATE device_log SET device_id = ?2 WHERE device_id = ?1`,
 			`INSERT OR IGNORE INTO person_devices (device_id, person_id, presence)
 				SELECT ?2, person_id, presence FROM person_devices WHERE device_id = ?1`,
 			`INSERT OR IGNORE INTO device_addresses (device_id, ip, interface, first_seen, last_seen)
@@ -442,6 +460,9 @@ func (s *Store) MergeDevices(ctx context.Context, from, into int64) error {
 				name = CASE WHEN name = '' THEN (SELECT name FROM devices WHERE id = ?1) ELSE name END,
 				notes = CASE WHEN notes = '' THEN (SELECT notes FROM devices WHERE id = ?1) ELSE notes END,
 				location = CASE WHEN location = '' THEN (SELECT location FROM devices WHERE id = ?1) ELSE location END,
+				purchase_date = CASE WHEN purchase_date = '' THEN (SELECT purchase_date FROM devices WHERE id = ?1) ELSE purchase_date END,
+				warranty_until = CASE WHEN warranty_until = '' THEN (SELECT warranty_until FROM devices WHERE id = ?1) ELSE warranty_until END,
+				serial = CASE WHEN serial = '' THEN (SELECT serial FROM devices WHERE id = ?1) ELSE serial END,
 				type_override = CASE WHEN type_override = '' THEN (SELECT type_override FROM devices WHERE id = ?1) ELSE type_override END,
 				known = MAX(known, (SELECT known FROM devices WHERE id = ?1)),
 				favorite = MAX(favorite, (SELECT favorite FROM devices WHERE id = ?1)),

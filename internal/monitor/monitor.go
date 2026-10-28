@@ -374,6 +374,7 @@ func (m *Monitor) observeLocked(ctx context.Context, s l2.Sighting) {
 	}
 	now := s.At.UnixMilli()
 	changed := false
+	prevSeen := e.d.LastSeen
 	if provesPresence(s) && now > e.d.LastSeen {
 		e.d.LastSeen = now
 		m.dirty[e.d.ID] = now
@@ -388,7 +389,7 @@ func (m *Monitor) observeLocked(ctx context.Context, s l2.Sighting) {
 		}
 	}
 	if provesPresence(s) && !e.d.Online {
-		m.setOnline(ctx, e, now)
+		m.setOnline(ctx, e, now, prevSeen)
 		changed = true
 	}
 	if s.DHCP != nil && m.applyDHCP(e, s.DHCP) {
@@ -559,13 +560,14 @@ func (m *Monitor) trackAddress(ctx context.Context, e *entry, ip netip.Addr, ifa
 	return true
 }
 
-func (m *Monitor) setOnline(ctx context.Context, e *entry, now int64) {
+func (m *Monitor) setOnline(ctx context.Context, e *entry, now, prevSeen int64) {
 	e.d.Online = true
 	_ = m.st.OpenPresence(ctx, e.d.ID, now)
 	if m.wasOnline[e.d.ID] {
 		delete(m.wasOnline, e.d.ID) // it was there before Netzwart restarted
 		return
 	}
+	m.noteOutage(ctx, e, prevSeen, now)
 	if e.d.Watch {
 		snap := m.view(e)
 		m.addEvent(ctx, notify.KindDeviceOnline, "info", &snap, nil)
@@ -785,6 +787,9 @@ func (m *Monitor) addEvent(ctx context.Context, kind, severity string, d *store.
 	if err := m.st.AddEvent(ctx, &ev); err != nil {
 		m.log.Error("add event", "kind", kind, "err", err)
 		return
+	}
+	if d != nil && d.ID != 0 && lifecycleKinds[kind] {
+		m.logDevice(ctx, d.ID, ev.TS, kind, ev.Data)
 	}
 	m.hub.Publish("event", ev)
 }

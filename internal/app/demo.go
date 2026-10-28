@@ -255,6 +255,39 @@ func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 		Data: json.RawMessage(`{"from":"windows","to":"linux"}`), LastSeen: now.UnixMilli()})
 	idc, _ := json.Marshal(map[string]any{"name": demoText(lang, "Laptop Kinder"), "from": "windows", "to": "linux", "deviceType": "laptop"})
 	events = append(events, store.Event{TS: changedAt, Kind: "identity_changed", Severity: "warning", DeviceID: laptop, Data: idc})
+	_ = st.AddDeviceLog(ctx, laptop, changedAt, "identity_changed", idc)
+
+	// Device history and inventory (docs/10, F1).
+	day := func(daysAgo int) int64 { return now.AddDate(0, 0, -daysAgo).UnixMilli() }
+	logs := []struct {
+		mac  string
+		ago  int
+		kind string
+		data map[string]any
+	}{
+		{"3c:a6:2f:5e:11:01", 28, "software_changed", map[string]any{"product": "fritzos", "from": "7.57", "to": "8.00"}},
+		{"3c:a6:2f:5e:11:01", 16, "software_changed", map[string]any{"product": "fritzos", "from": "8.00", "to": "8.20"}},
+		{"3c:a6:2f:5e:11:01", 12, "outage", map[string]any{"from": day(12) - 47*60_000, "to": day(12)}},
+		{"00:11:32:a4:7b:20", 26, "software_changed", map[string]any{"product": "dsm", "from": "7.1.1", "to": "7.2.2"}},
+		{"00:11:32:a4:7b:20", 21, "outage", map[string]any{"from": day(21) - 135*60_000, "to": day(21)}},
+		{"00:11:32:a4:7b:20", 6, "port_new", map[string]any{"name": "DiskStation", "port": 5001, "service": "https", "ip": "192.168.178.21"}},
+		{"ec:71:db:12:40:3e", 3, "outage", map[string]any{"from": day(3) - 52*60_000, "to": day(3)}},
+		{"04:42:1a:c3:55:12", 18, "port_new", map[string]any{"name": "Gaming-PC", "port": 3389, "service": "rdp", "ip": "192.168.178.42"}},
+	}
+	for _, l := range logs {
+		data, _ := json.Marshal(l.data)
+		_ = st.AddDeviceLog(ctx, ids[l.mac], day(l.ago), l.kind, data)
+	}
+	inv := []struct{ mac, bought, warranty, serial string }{
+		{"3c:a6:2f:5e:11:01", "2023-03-14", "2028-03-14", "A123.456.78.901.234"},
+		{"00:11:32:a4:7b:20", "2022-11-25", "2025-11-25", "2180RRV4K9P3"},
+		{"00:e0:4c:68:10:14", "2024-11-20", now.AddDate(0, 0, 24).Format("2006-01-02"), "ZC-24-0831"},
+		{"04:42:1a:c3:55:12", "2021-08-02", "2023-08-02", ""},
+	}
+	for _, v := range inv {
+		b, w, sn := v.bought, v.warranty, v.serial
+		_ = st.PatchDevice(ctx, ids[v.mac], store.DevicePatch{PurchaseDate: &b, WarrantyUntil: &w, Serial: &sn})
+	}
 
 	// The household (docs/09, F4): Anna agreed to show her time at home.
 	for _, p := range []struct {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/netip"
 	"strings"
+	"time"
 
 	"github.com/Pyzyi/netzwart/internal/classify"
 	"github.com/Pyzyi/netzwart/internal/proto"
@@ -29,8 +30,11 @@ func (m *Monitor) PatchDevice(ctx context.Context, id int64, p store.DevicePatch
 		*v = c
 		return nil
 	}
-	if err := errors.Join(clean(p.Name, 64), clean(p.Location, 64)); err != nil {
+	if err := errors.Join(clean(p.Name, 64), clean(p.Location, 64), clean(p.Serial, 64)); err != nil {
 		return store.Device{}, err
+	}
+	if !validDay(p.PurchaseDate) || !validDay(p.WarrantyUntil) {
+		return store.Device{}, ErrInvalid
 	}
 	if p.Notes != nil {
 		if len([]rune(*p.Notes)) > 2000 {
@@ -77,6 +81,15 @@ func (m *Monitor) PatchDevice(ctx context.Context, id int64, p store.DevicePatch
 	}
 	if p.Watch != nil {
 		e.d.Watch = *p.Watch
+	}
+	if p.PurchaseDate != nil {
+		e.d.PurchaseDate = *p.PurchaseDate
+	}
+	if p.WarrantyUntil != nil {
+		e.d.WarrantyUntil = *p.WarrantyUntil
+	}
+	if p.Serial != nil {
+		e.d.Serial = *p.Serial
 	}
 	m.reclassify(e)
 	m.publish(e)
@@ -149,6 +162,7 @@ func (m *Monitor) mergeDevices(ctx context.Context, from, into int64) (store.Dev
 	fresh.Online = dst.d.Online
 	fresh.LastSeen = max(dst.d.LastSeen, fresh.LastSeen)
 	dst.d.Name, dst.d.Notes, dst.d.Location = fresh.Name, fresh.Notes, fresh.Location
+	dst.d.PurchaseDate, dst.d.WarrantyUntil, dst.d.Serial = fresh.PurchaseDate, fresh.WarrantyUntil, fresh.Serial
 	dst.d.TypeOverride, dst.d.Known, dst.d.Favorite, dst.d.Watch = fresh.TypeOverride, fresh.Known, fresh.Favorite, fresh.Watch
 	dst.d.FirstSeen = fresh.FirstSeen
 	for k, v := range src.names {
@@ -352,12 +366,13 @@ func (m *Monitor) ApplyRouterHosts(ctx context.Context, hosts []RouterHost, at i
 			changed = true
 		}
 		if h.Active && h.WLAN && !e.d.IsSelf {
+			prevSeen := e.d.LastSeen
 			if at > e.d.LastSeen {
 				e.d.LastSeen = at
 				m.dirty[e.d.ID] = at
 			}
 			if !e.d.Online {
-				m.setOnline(ctx, e, at)
+				m.setOnline(ctx, e, at, prevSeen)
 				changed = true
 			}
 		}
@@ -368,4 +383,14 @@ func (m *Monitor) ApplyRouterHosts(ctx context.Context, hosts []RouterHost, at i
 		}
 	}
 	return matched
+}
+
+// validDay accepts an unset value, an empty string (clears the field) or a
+// calendar day YYYY-MM-DD between 1980 and 2100.
+func validDay(v *string) bool {
+	if v == nil || *v == "" {
+		return true
+	}
+	t, err := time.Parse("2006-01-02", *v)
+	return err == nil && t.Year() >= 1980 && t.Year() <= 2100
 }

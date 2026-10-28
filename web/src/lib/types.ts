@@ -35,6 +35,10 @@ export interface Device {
   lastSeen: number;
   enrichedAt: number;
   portsScannedAt: number;
+  /** Inventory, typed in by the user (YYYY-MM-DD or empty). */
+  purchaseDate: string;
+  warrantyUntil: string;
+  serial: string;
   new: boolean;
   /** Short software verdict; missing when nothing is known. */
   software?: { status: SoftwareStatus; product: string; name: string };
@@ -404,4 +408,12 @@ export interface UpdateStatus {
   available: boolean;
   checkedAt?: number;
   error?: string;
+}
+
+/** A milestone in the history of a device (docs/10, F1). */
+export interface HistoryEntry {
+  id: number;
+  ts: number;
+  kind: string;
+  data: Record<string, unknown>;
 }

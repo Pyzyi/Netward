@@ -254,12 +254,19 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request, _ *session
 		buf.WriteString("\xef\xbb\xbf") // UTF-8 BOM so spreadsheet apps detect the encoding
 		cw := csv.NewWriter(&buf)
 		_ = cw.Write([]string{"name", "hostname", "ip", "mac", "vendor", "type", "location", "known", "favorite", "watch",
-			"online", "first_seen", "last_seen", "notes"})
+			"online", "first_seen", "last_seen", "notes", "model", "software", "purchase_date", "warranty_until", "serial"})
 		ts := func(ms int64) string { return time.UnixMilli(ms).UTC().Format(time.RFC3339) }
+		sw := func(d store.Device) string {
+			if d.Software == nil {
+				return ""
+			}
+			return csvSafe(d.Software.Name)
+		}
 		for _, d := range devs {
 			_ = cw.Write([]string{csvSafe(d.Name), csvSafe(d.Hostname), d.IP, d.MAC, csvSafe(d.Vendor), d.Type,
 				csvSafe(d.Location), strconv.FormatBool(d.Known), strconv.FormatBool(d.Favorite), strconv.FormatBool(d.Watch),
-				strconv.FormatBool(d.Online), ts(d.FirstSeen), ts(d.LastSeen), csvSafe(d.Notes)})
+				strconv.FormatBool(d.Online), ts(d.FirstSeen), ts(d.LastSeen), csvSafe(d.Notes), csvSafe(d.Model), sw(d),
+				d.PurchaseDate, d.WarrantyUntil, csvSafe(d.Serial)})
 		}
 		cw.Flush()
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")

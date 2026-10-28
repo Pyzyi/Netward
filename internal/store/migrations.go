@@ -226,4 +226,21 @@ CREATE TABLE person_devices (
 );
 CREATE INDEX person_devices_person ON person_devices(person_id);
 `,
+	// 7: device history and inventory (docs/10, F1). device_log keeps the
+	// milestones of a device (system change, new ports, updates, outages)
+	// beyond the event retention; purchase, warranty and serial are typed in
+	// by the user.
+	`
+ALTER TABLE devices ADD COLUMN purchase_date TEXT NOT NULL DEFAULT '';
+ALTER TABLE devices ADD COLUMN warranty_until TEXT NOT NULL DEFAULT '';
+ALTER TABLE devices ADD COLUMN serial TEXT NOT NULL DEFAULT '';
+CREATE TABLE device_log (
+	id        INTEGER PRIMARY KEY,
+	device_id INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	ts        INTEGER NOT NULL,
+	kind      TEXT NOT NULL,
+	data      TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX device_log_device ON device_log(device_id, ts);
+`,
 }

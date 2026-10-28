@@ -286,8 +286,19 @@ const de = {
   'device.section.network': 'Netzwerk',
   'device.section.identity': 'Erkannt als',
   'device.section.ports': 'Offene Ports',
-  'device.section.notes': 'Notizen und Ort',
-  'device.section.history': 'Verlauf',
+  'device.section.notes': 'Inventar und Notizen',
+  'device.section.history': 'Lebenslauf',
+  'device.field.purchaseDate': 'Gekauft am',
+  'device.field.warrantyUntil': 'Garantie bis',
+  'device.field.serial': 'Seriennummer',
+  'life.firstSeen': 'Zum ersten Mal im Netz',
+  'life.purchased': 'Gekauft',
+  'life.warrantyEnds': 'Garantie endet',
+  'life.warrantyEnded': 'Garantie abgelaufen',
+  'life.outage': '{d} nicht erreichbar',
+  'life.software': 'Software aktualisiert: {from} → {to}',
+  'life.more': 'Ältere Einträge ({n})',
+  'life.hint': 'Was sich an diesem Gerät geändert hat: neue Adresse oder offene Ports, anderes System, Updates, Ausfälle. Ausfälle zählen nur bei Geräten, die immer an sein sollten (Router, NAS, Kamera …).',
   'device.presence.online': 'online in {pct} % der beobachteten Zeit',
   'device.presence.gap': 'Netzwart lief nicht',
   'device.presence.unknown': 'Noch nicht bekannt',
@@ -325,7 +336,7 @@ const de = {
   'device.field.location': 'Ort',
   'device.field.locationPlaceholder': 'z. B. Wohnzimmer',
   'device.field.notes': 'Notizen',
-  'device.field.notesPlaceholder': 'Seriennummer, Besitzer, Besonderheiten …',
+  'device.field.notesPlaceholder': 'Besitzer, Zubehör, Besonderheiten …',
   'device.macKind.random': 'Private (zufällige) Adresse – typisch für Handys und Laptops',
   'device.macKind.virtual': 'Virtuelle Maschine oder Container',
   'device.names.source.dhcp': 'DHCP',
@@ -1172,8 +1183,19 @@ const en: Record<Key, string> = {
   'device.section.network': 'Network',
   'device.section.identity': 'Identified as',
   'device.section.ports': 'Open ports',
-  'device.section.notes': 'Notes and location',
+  'device.section.notes': 'Inventory and notes',
   'device.section.history': 'History',
+  'device.field.purchaseDate': 'Purchased on',
+  'device.field.warrantyUntil': 'Warranty until',
+  'device.field.serial': 'Serial number',
+  'life.firstSeen': 'First seen on the network',
+  'life.purchased': 'Purchased',
+  'life.warrantyEnds': 'Warranty ends',
+  'life.warrantyEnded': 'Warranty ended',
+  'life.outage': 'Unreachable for {d}',
+  'life.software': 'Software updated: {from} → {to}',
+  'life.more': 'Older entries ({n})',
+  'life.hint': 'What changed about this device: new address or open ports, another system, updates, outages. Outages only count for devices that should always be on (router, NAS, camera …).',
   'device.presence.online': 'online {pct} % of the observed time',
   'device.presence.gap': 'Netzwart was not running',
   'device.presence.unknown': 'Not seen yet',
@@ -1211,7 +1233,7 @@ const en: Record<Key, string> = {
   'device.field.location': 'Location',
   'device.field.locationPlaceholder': 'e.g. Living room',
   'device.field.notes': 'Notes',
-  'device.field.notesPlaceholder': 'Serial number, owner, details …',
+  'device.field.notesPlaceholder': 'Owner, accessories, details …',
   'device.macKind.random': 'Private (random) address – typical for phones and laptops',
   'device.macKind.virtual': 'Virtual machine or container',
   'device.names.source.dhcp': 'DHCP',
@@ -1845,6 +1867,15 @@ export function durationSince(ms: number): string {
   if (days >= 2) return t('common.sinceDays', { n: days });
   if (days === 1 && ms >= 36 * 3600000) return t('common.sinceDay');
   return duration(ms);
+}
+
+/** A time ahead as words: "in 3 Monaten", "in 2 years". */
+export function inFuture(ms: number): string {
+  const days = Math.round(ms / 86400000);
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  if (days < 60) return rtf.format(days, 'day');
+  if (days < 730) return rtf.format(Math.round(days / 30.44), 'month');
+  return rtf.format(Math.round(days / 365.25), 'year');
 }
 
 /** "2026-10-13" as a long local date ("13. Oktober 2026"). */

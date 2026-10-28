@@ -412,6 +412,21 @@ func (s *Server) handleDeviceEvents(w http.ResponseWriter, r *http.Request, _ *s
 	writeJSON(w, http.StatusOK, evs)
 }
 
+// handleDeviceHistory returns the milestones of a device (docs/10, F1).
+func (s *Server) handleDeviceHistory(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
+	id, ok := pathID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_id", "")
+		return
+	}
+	log, err := s.d.Store.DeviceLog(r.Context(), id, 200)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, log)
+}
+
 func (s *Server) requireScanner(w http.ResponseWriter) bool {
 	if s.d.Scanner == nil {
 		writeError(w, http.StatusConflict, "demo_mode", "")

@@ -14,8 +14,8 @@
   import { deviceTypes, displayName, modelName, typeLabel, vendorName } from '../lib/devices';
   import { link, navigate } from '../lib/router.svelte';
   import { eventText } from '../lib/events';
-  import { dateTime, durationSince, relTime, t } from '../lib/i18n.svelte';
-  import type { DeviceResponse, EventItem, Presence, WlanAccessPoint, WlanClient } from '../lib/types';
+  import { dateLong, dateTime, duration, durationSince, inFuture, relTime, t } from '../lib/i18n.svelte';
+  import type { DeviceResponse, EventItem, HistoryEntry, Presence, WlanAccessPoint, WlanClient } from '../lib/types';
 
   let { id, onclose }: { id: number; onclose: () => void } = $props();
 
@@ -36,7 +36,8 @@
   let notFound = $state(false);
   let presence = $state<Presence | null>(null);
   let range = $state<'24h' | '7d' | '30d'>('24h');
-  let history = $state<EventItem[]>([]);
+  let history = $state<HistoryEntry[]>([]);
+  let historyAll = $state(false);
   let nameDraft = $state('');
   let notes = $state('');
   let location = $state('');
@@ -145,16 +146,52 @@
   }
   async function loadHistory() {
     try {
-      history = await api.deviceEvents(id);
+      history = await api.deviceHistory(id);
     } catch {
       history = [];
     }
   }
 
+  // The history of the device (docs/10, F1): what the server recorded, plus
+  // first sighting, purchase and the end of the warranty.
+  type LifeItem = { key: string; ts: number; text: string; day: boolean; tone?: 'warn' | 'danger' | 'future' };
+  const dayMs = (iso: string) => {
+    const [y, m, dd] = iso.split('-').map(Number);
+    return new Date(y, m - 1, dd).getTime();
+  };
+  const life = $derived.by(() => {
+    if (!d) return [] as LifeItem[];
+    const name = displayName(d);
+    const items: LifeItem[] = history.map((h) => {
+      const data = h.data ?? {};
+      if (h.kind === 'outage') {
+        return { key: `h${h.id}`, ts: h.ts, day: false, tone: 'warn' as const,
+          text: t('life.outage', { d: duration(Number(data.to) - Number(data.from)) }) };
+      }
+      if (h.kind === 'software_changed') {
+        return { key: `h${h.id}`, ts: h.ts, day: false, text: t('life.software', { from: String(data.from), to: String(data.to) }) };
+      }
+      const ev: EventItem = { id: h.id, ts: h.ts, kind: h.kind, severity: 'info', data };
+      const tone = h.kind === 'security_finding' || h.kind === 'identity_changed' || h.kind === 'ip_conflict' ? ('warn' as const) : undefined;
+      return { key: `h${h.id}`, ts: h.ts, day: false, tone, text: eventText(ev, name) };
+    });
+    items.push({ key: 'first', ts: d.firstSeen, day: false, text: t('life.firstSeen') });
+    if (d.purchaseDate) items.push({ key: 'buy', ts: dayMs(d.purchaseDate), day: true, text: t('life.purchased') });
+    if (d.warrantyUntil) {
+      const end = dayMs(d.warrantyUntil);
+      const future = end > clock.now;
+      items.push({ key: 'warranty', ts: end, day: true, tone: future ? 'future' : undefined,
+        text: future ? `${t('life.warrantyEnds')} · ${inFuture(end - clock.now)}` : t('life.warrantyEnded') });
+    }
+    return items.sort((a, b) => b.ts - a.ts);
+  });
+  const lifeShown = $derived(historyAll ? life : life.slice(0, 10));
+
   $effect(() => {
     void id;
     detail = null;
     presence = null;
+    historyAll = false;
     void load();
     void loadHistory();
     panel?.scrollTo({ top: 0 });
@@ -516,6 +553,23 @@
 
     <section class="section">
       <h3>{t('device.section.notes')}</h3>
+      <div class="inv">
+        <div class="field">
+          <label for="buy">{t('device.field.purchaseDate')}</label>
+          <input id="buy" class="input" type="date" min="1980-01-01" max="2100-12-31" value={d.purchaseDate}
+            onchange={(e) => e.currentTarget.value !== d.purchaseDate && patch({ purchaseDate: e.currentTarget.value })} />
+        </div>
+        <div class="field">
+          <label for="warr">{t('device.field.warrantyUntil')}</label>
+          <input id="warr" class="input" type="date" min="1980-01-01" max="2100-12-31" value={d.warrantyUntil}
+            onchange={(e) => e.currentTarget.value !== d.warrantyUntil && patch({ warrantyUntil: e.currentTarget.value })} />
+        </div>
+      </div>
+      <div class="field">
+        <label for="serial">{t('device.field.serial')}</label>
+        <input id="serial" class="input mono" maxlength="64" autocomplete="off" value={d.serial}
+          onblur={(e) => e.currentTarget.value.trim() !== d.serial && patch({ serial: e.currentTarget.value.trim() })} />
+      </div>
       <div class="field">
         <label for="loc">{t('device.field.location')}</label>
         <input id="loc" class="input" bind:value={location} maxlength="64" placeholder={t('device.field.locationPlaceholder')}
@@ -530,18 +584,21 @@
 
     <section class="section last">
       <h3>{t('device.section.history')}</h3>
-      {#if history.length === 0}
-        <p class="muted">{t('device.history.empty')}</p>
-      {:else}
-        <ul class="history">
-          {#each history.slice(0, 15) as e (e.id)}
-            <li>
-              <span>{eventText(e, displayName(d))}</span>
-              <time class="faint small" datetime={new Date(e.ts).toISOString()} title={dateTime(e.ts)}>{relTime(e.ts, clock.now)}</time>
-            </li>
-          {/each}
-        </ul>
+      <ol class="life">
+        {#each lifeShown as it (it.key)}
+          <li class={it.tone ?? ''}>
+            <span class="life-dot" aria-hidden="true"></span>
+            <span class="life-text">{it.text}</span>
+            <time class="faint small" datetime={new Date(it.ts).toISOString()} title={it.day ? undefined : dateTime(it.ts)}>
+              {it.day ? dateLong(new Date(it.ts).toLocaleDateString('sv')) : dateTime(it.ts)}
+            </time>
+          </li>
+        {/each}
+      </ol>
+      {#if life.length > 10 && !historyAll}
+        <button class="btn small ghost more" type="button" onclick={() => (historyAll = true)}>{t('life.more', { n: life.length - 10 })}</button>
       {/if}
+      <p class="hint">{t('life.hint')}</p>
     </section>
 
     <Dialog bind:open={forgetOpen} title={t('device.forget.title', { name: displayName(d) })}>
@@ -777,8 +834,7 @@
     font-size: 12px;
     color: var(--text-2);
   }
-  .ports,
-  .history {
+  .ports {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -791,19 +847,61 @@
   .port {
     font-weight: 500;
   }
-  .ports li + li,
-  .history li + li {
+  .ports li + li {
     border-top: 1px solid var(--border);
   }
-  .history li {
-    display: flex;
-    justify-content: space-between;
+  .inv {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    padding: 7px 0;
+  }
+  .life {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .life li {
+    position: relative;
+    display: grid;
+    gap: 1px;
+    padding: 0 0 12px 20px;
     font-size: 14px;
   }
-  .history time {
-    white-space: nowrap;
+  /* A thin line connects the entries, a dot marks each one. */
+  .life li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 10px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--border-strong);
+  }
+  .life li:last-child::before {
+    display: none;
+  }
+  .life-dot {
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--control-border);
+  }
+  .life li.warn .life-dot {
+    border-color: var(--amber);
+  }
+  .life li.future .life-dot {
+    border-style: dashed;
+  }
+  .life li.future .life-text {
+    color: var(--text-2);
+  }
+  .more {
+    justify-self: start;
+    margin-left: -9px;
   }
   @keyframes slide {
     from {

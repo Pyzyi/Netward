@@ -1,7 +1,6 @@
 import type {
   AuthState, Channel, Device, DeviceResponse, EventItem, Finding, Overview, Presence, Session, Settings, SystemInfo,
-  InternetStatus, LineSample, NetworkState, Person, PersonStatus, ReportRequest, SoftwareAssessment, WlanView,
-} from './types';
+  InternetStatus, LineSample, NetworkState, Person, PersonStatus, ReportRequest, SoftwareAssessment, WlanView, HistoryEntry } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -82,13 +81,17 @@ export const api = {
   device: (id: number) => request<DeviceResponse>('GET', `/devices/${id}`),
   setSoftware: (id: number, body: { manual?: { product: string; version: string }; edition?: string }) =>
     request<SoftwareAssessment>('PUT', `/devices/${id}/software`, body),
-  patchDevice: (id: number, patch: Partial<Record<'name' | 'type' | 'location' | 'notes', string> & Record<'known' | 'favorite' | 'watch', boolean>>) =>
+  patchDevice: (
+    id: number,
+    patch: Partial<Record<'name' | 'type' | 'location' | 'notes' | 'purchaseDate' | 'warrantyUntil' | 'serial', string> & Record<'known' | 'favorite' | 'watch', boolean>>,
+  ) =>
     request<Device>('PATCH', `/devices/${id}`, patch),
   deleteDevice: (id: number) => request<void>('DELETE', `/devices/${id}`),
   mergeDevice: (id: number, into: number) => request<Device>('POST', `/devices/${id}/merge`, { into }),
   presence: (id: number, range: '24h' | '7d' | '30d') => request<Presence>('GET', `/devices/${id}/presence?range=${range}`),
   strips: () => request<{ from: number; slot: number; strips: Record<string, string> }>('GET', '/presence/strips'),
   deviceEvents: (id: number) => request<EventItem[]>('GET', `/devices/${id}/events`),
+  deviceHistory: (id: number) => request<HistoryEntry[]>('GET', `/devices/${id}/history`),
   wake: (id: number) => request<void>('POST', `/devices/${id}/wake`),
   ping: (id: number) => request<{ ok: boolean; rttMs: number }>('POST', `/devices/${id}/ping`),
   portScan: (id: number) => request<{ ports: DeviceResponse['ports'] }>('POST', `/devices/${id}/portscan`),

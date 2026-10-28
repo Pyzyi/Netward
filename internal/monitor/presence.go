@@ -185,6 +185,9 @@ func (m *Monitor) Maintain(ctx context.Context) {
 	if err := m.st.Prune(ctx, now.AddDate(0, 0, -s.RetentionDays).UnixMilli()); err != nil {
 		m.log.Error("prune", "err", err)
 	}
+	if err := m.st.TrimDeviceLog(ctx); err != nil {
+		m.log.Error("trim device history", "err", err)
+	}
 	if s.ExpireRandomDays <= 0 {
 		return
 	}

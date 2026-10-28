@@ -170,6 +170,7 @@ func (s *Server) Handler() http.Handler {
 	authed("GET /api/v1/devices/{id}/presence", s.handlePresence)
 	authed("GET /api/v1/presence/strips", s.handlePresenceStrips)
 	authed("GET /api/v1/devices/{id}/events", s.handleDeviceEvents)
+	authed("GET /api/v1/devices/{id}/history", s.handleDeviceHistory)
 	authed("POST /api/v1/devices/{id}/wake", s.handleWake)
 	authed("POST /api/v1/devices/{id}/ping", s.handlePing)
 	authed("POST /api/v1/devices/{id}/portscan", s.handlePortScan)

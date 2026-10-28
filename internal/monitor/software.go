@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -43,6 +44,12 @@ func (m *Monitor) observeSoftware(e *entry, obs []software.Observation) {
 			continue
 		}
 		e.sw[o.Source] = row
+		if had && e.d.ID != 0 && old.Product == row.Product && old.Version != "" && row.Version != "" && old.Version != row.Version {
+			data, _ := json.Marshal(map[string]string{"product": row.Product, "from": old.Version, "to": row.Version})
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			m.logDevice(ctx, e.d.ID, now, KindSoftwareChanged, data)
+			cancel()
+		}
 		if e.d.ID != 0 {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			if err := m.st.UpsertSoftware(ctx, row); err != nil {

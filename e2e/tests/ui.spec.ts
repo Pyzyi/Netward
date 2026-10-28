@@ -258,3 +258,17 @@ test('security headers and API protections', async ({ request, baseURL }) => {
   expect(foreign.status()).toBe(403);
   expect(baseURL).toBeTruthy();
 });
+
+test('device history: milestones, purchase and warranty', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/devices');
+  await page.locator('a.main', { hasText: 'FRITZ!Box' }).first().click();
+  const detail = page.locator('aside.detail');
+  const life = detail.locator('section', { has: page.getByRole('heading', { name: 'Lebenslauf' }) });
+  await expect(life.getByText('Software aktualisiert: 8.00 → 8.20')).toBeVisible();
+  await expect(life.getByText('47 min nicht erreichbar')).toBeVisible();
+  await expect(life.getByText(/^Garantie endet · in /)).toBeVisible();
+  await expect(detail.getByLabel('Seriennummer')).toHaveValue('A123.456.78.901.234');
+  expect(problems).toEqual([]);
+});
