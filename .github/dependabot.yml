@@ -1,0 +1,34 @@
+version: 2
+# New releases wait a week before an update is proposed: compromised packages
+# are usually discovered and pulled within days.
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      go: { patterns: ['*'] }
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      web: { patterns: ['*'] }
+    ignore:
+      # svelte-check pins its TypeScript peer range; majors move together by hand.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: monthly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      actions: { patterns: ['*'] }

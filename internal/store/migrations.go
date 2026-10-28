@@ -1,0 +1,277 @@
+package store
+
+// migrations are applied in order, each in its own transaction. Never edit a
+// released migration; append a new one instead.
+var migrations = []string{
+	// 1: initial schema
+	`
+CREATE TABLE devices (
+	id               INTEGER PRIMARY KEY,
+	ident            TEXT NOT NULL UNIQUE,  -- MAC, or "MAC/IP" for clients behind a MAC-NAT repeater
+	mac              TEXT NOT NULL,
+	ip               TEXT NOT NULL DEFAULT '',
+	name             TEXT NOT NULL DEFAULT '',
+	hostname         TEXT NOT NULL DEFAULT '',
+	vendor           TEXT NOT NULL DEFAULT '',
+	vendor_official  TEXT NOT NULL DEFAULT '',
+	model            TEXT NOT NULL DEFAULT '',
+	os               TEXT NOT NULL DEFAULT '',
+	type             TEXT NOT NULL DEFAULT 'unknown',
+	type_confidence  INTEGER NOT NULL DEFAULT 0,
+	type_override    TEXT NOT NULL DEFAULT '',
+	location         TEXT NOT NULL DEFAULT '',
+	notes            TEXT NOT NULL DEFAULT '',
+	known            INTEGER NOT NULL DEFAULT 0,
+	favorite         INTEGER NOT NULL DEFAULT 0,
+	watch            INTEGER NOT NULL DEFAULT 0,
+	mac_kind         TEXT NOT NULL DEFAULT 'universal', -- universal | random | virtual
+	proxy            INTEGER NOT NULL DEFAULT 0,          -- answers ARP for several IPs (repeater)
+	via_proxy        INTEGER NOT NULL DEFAULT 0,          -- identity is MAC/IP behind a proxy
+	online           INTEGER NOT NULL DEFAULT 0,
+	is_gateway       INTEGER NOT NULL DEFAULT 0,
+	is_self          INTEGER NOT NULL DEFAULT 0,
+	interface        TEXT NOT NULL DEFAULT '',
+	dhcp_fingerprint TEXT NOT NULL DEFAULT '',
+	dhcp_vendor      TEXT NOT NULL DEFAULT '',
+	first_seen       INTEGER NOT NULL,
+	last_seen        INTEGER NOT NULL,
+	enriched_at      INTEGER NOT NULL DEFAULT 0,
+	ports_scanned_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX devices_ip ON devices(ip);
+CREATE INDEX devices_mac ON devices(mac);
+CREATE INDEX devices_online ON devices(online, last_seen);
+
+CREATE TABLE device_names (
+	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	source     TEXT NOT NULL,
+	name       TEXT NOT NULL,
+	updated_at INTEGER NOT NULL,
+	PRIMARY KEY (device_id, source)
+);
+
+CREATE TABLE device_services (
+	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	source     TEXT NOT NULL,
+	service    TEXT NOT NULL,
+	detail     TEXT NOT NULL DEFAULT '',
+	updated_at INTEGER NOT NULL,
+	PRIMARY KEY (device_id, source, service)
+);
+
+CREATE TABLE device_ports (
+	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	port       INTEGER NOT NULL,
+	proto      TEXT NOT NULL DEFAULT 'tcp',
+	service    TEXT NOT NULL DEFAULT '',
+	first_seen INTEGER NOT NULL,
+	last_seen  INTEGER NOT NULL,
+	PRIMARY KEY (device_id, port, proto)
+);
+
+CREATE TABLE device_addresses (
+	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	ip         TEXT NOT NULL,
+	interface  TEXT NOT NULL DEFAULT '',
+	first_seen INTEGER NOT NULL,
+	last_seen  INTEGER NOT NULL,
+	PRIMARY KEY (device_id, ip)
+);
+
+CREATE TABLE presence (
+	id         INTEGER PRIMARY KEY,
+	device_id  INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	started_at INTEGER NOT NULL,
+	ended_at   INTEGER
+);
+CREATE INDEX presence_device ON presence(device_id, started_at);
+CREATE UNIQUE INDEX presence_open ON presence(device_id) WHERE ended_at IS NULL;
+
+CREATE TABLE events (
+	id        INTEGER PRIMARY KEY,
+	ts        INTEGER NOT NULL,
+	kind      TEXT NOT NULL,
+	severity  TEXT NOT NULL DEFAULT 'info',
+	device_id INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+	data      TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX events_ts ON events(ts);
+CREATE INDEX events_device ON events(device_id, ts);
+
+CREATE TABLE internet_outages (
+	id         INTEGER PRIMARY KEY,
+	started_at INTEGER NOT NULL,
+	ended_at   INTEGER
+);
+
+CREATE TABLE monitor_gaps (
+	id         INTEGER PRIMARY KEY,
+	started_at INTEGER NOT NULL,
+	ended_at   INTEGER NOT NULL
+);
+
+CREATE TABLE security_findings (
+	id         INTEGER PRIMARY KEY,
+	check_id   TEXT NOT NULL,
+	device_id  INTEGER REFERENCES devices(id) ON DELETE CASCADE,
+	severity   TEXT NOT NULL,
+	data       TEXT NOT NULL DEFAULT '{}',
+	first_seen INTEGER NOT NULL,
+	last_seen  INTEGER NOT NULL,
+	dismissed  INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX security_findings_key ON security_findings(check_id, IFNULL(device_id, 0), data);
+
+CREATE TABLE settings (
+	key   TEXT PRIMARY KEY,
+	value TEXT NOT NULL
+);
+
+CREATE TABLE users (
+	id            INTEGER PRIMARY KEY,
+	username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	password_hash TEXT NOT NULL,
+	created_at    INTEGER NOT NULL,
+	updated_at    INTEGER NOT NULL
+);
+
+CREATE TABLE sessions (
+	id           INTEGER PRIMARY KEY,
+	token_hash   BLOB NOT NULL UNIQUE,
+	user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	csrf_token   TEXT NOT NULL,
+	created_at   INTEGER NOT NULL,
+	last_seen_at INTEGER NOT NULL,
+	expires_at   INTEGER NOT NULL,
+	remember     INTEGER NOT NULL DEFAULT 0,
+	user_agent   TEXT NOT NULL DEFAULT '',
+	ip           TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX sessions_expires ON sessions(expires_at);
+
+CREATE TABLE channels (
+	id         INTEGER PRIMARY KEY,
+	name       TEXT NOT NULL,
+	kind       TEXT NOT NULL,
+	config     TEXT NOT NULL DEFAULT '{}',
+	events     TEXT NOT NULL DEFAULT '[]',
+	enabled    INTEGER NOT NULL DEFAULT 1,
+	created_at INTEGER NOT NULL,
+	updated_at INTEGER NOT NULL
+);
+`,
+	// 2: the presence strips read every span overlapping the last 24 hours;
+	// without this index that is a full scan of the presence table.
+	`CREATE INDEX presence_ended ON presence(ended_at);`,
+	// 3: what devices reveal about their software (docs/08). One row per
+	// device and source; "manual" and "edition" rows are set by the user.
+	`
+CREATE TABLE software (
+	device_id        INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	source           TEXT NOT NULL,
+	product          TEXT NOT NULL,
+	version          TEXT NOT NULL DEFAULT '',
+	evidence         TEXT NOT NULL DEFAULT '',
+	update_available INTEGER NOT NULL DEFAULT 0,
+	seen_at          INTEGER NOT NULL,
+	PRIMARY KEY (device_id, source)
+);
+`,
+	// 4: evidence for the provider report (docs/09, F5). Outages get their
+	// kind (router: the router itself did not answer, so it does not count
+	// against the provider; internet; dns), latency is kept as 5-minute
+	// buckets of the 30-second checks.
+	`
+ALTER TABLE internet_outages ADD COLUMN kind TEXT NOT NULL DEFAULT 'internet';
+CREATE TABLE internet_latency (
+	ts        INTEGER PRIMARY KEY,
+	median_ms INTEGER NOT NULL,
+	max_ms    INTEGER NOT NULL,
+	lost      INTEGER NOT NULL,
+	samples   INTEGER NOT NULL
+);
+`,
+	// 5: connection data from the FRITZ!Box (docs/09, F5), stored when it
+	// changes and at least hourly. reconnect marks a new connection
+	// (resync or the provider's nightly disconnect).
+	`
+CREATE TABLE line_samples (
+	ts            INTEGER PRIMARY KEY,
+	access        TEXT NOT NULL,
+	link_up       INTEGER NOT NULL,
+	down_kbps     INTEGER NOT NULL,
+	up_kbps       INTEGER NOT NULL,
+	down_max_kbps INTEGER NOT NULL,
+	up_max_kbps   INTEGER NOT NULL,
+	reconnect     INTEGER NOT NULL DEFAULT 0
+);
+`,
+	// 6: persons and their devices (docs/09, F4). A device belongs to at
+	// most one person; presence marks the devices that tell whether the
+	// person is at home. track_time is opt-in and needs the person's
+	// consent (consent_at).
+	`
+CREATE TABLE persons (
+	id          INTEGER PRIMARY KEY,
+	name        TEXT NOT NULL,
+	track_time  INTEGER NOT NULL DEFAULT 0,
+	consent_at  INTEGER NOT NULL DEFAULT 0,
+	home_assist INTEGER NOT NULL DEFAULT 0,
+	created_at  INTEGER NOT NULL
+);
+CREATE TABLE person_devices (
+	device_id INTEGER PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
+	person_id INTEGER NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+	presence  INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX person_devices_person ON person_devices(person_id);
+`,
+	// 7: device history and inventory (docs/10, F1). device_log keeps the
+	// milestones of a device (system change, new ports, updates, outages)
+	// beyond the event retention; purchase, warranty and serial are typed in
+	// by the user.
+	`
+ALTER TABLE devices ADD COLUMN purchase_date TEXT NOT NULL DEFAULT '';
+ALTER TABLE devices ADD COLUMN warranty_until TEXT NOT NULL DEFAULT '';
+ALTER TABLE devices ADD COLUMN serial TEXT NOT NULL DEFAULT '';
+CREATE TABLE device_log (
+	id        INTEGER PRIMARY KEY,
+	device_id INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	ts        INTEGER NOT NULL,
+	kind      TEXT NOT NULL,
+	data      TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX device_log_device ON device_log(device_id, ts);
+`,
+	// 8: Wi-Fi map (docs/10, F4): floor plans and the speed measured at
+	// points on them. x and y are relative (0..1) so the plan can be shown
+	// at any size.
+	`
+CREATE TABLE floor_plans (
+	id         INTEGER PRIMARY KEY,
+	name       TEXT NOT NULL,
+	mime       TEXT NOT NULL,
+	image      BLOB NOT NULL,
+	width      INTEGER NOT NULL,
+	height     INTEGER NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE TABLE wifi_points (
+	id         INTEGER PRIMARY KEY,
+	plan_id    INTEGER NOT NULL REFERENCES floor_plans(id) ON DELETE CASCADE,
+	x          REAL NOT NULL,
+	y          REAL NOT NULL,
+	room       TEXT NOT NULL DEFAULT '',
+	down_mbps  REAL NOT NULL,
+	up_mbps    REAL NOT NULL,
+	latency_ms REAL NOT NULL,
+	jitter_ms  REAL NOT NULL,
+	device_id  INTEGER REFERENCES devices(id) ON DELETE SET NULL,
+	band       TEXT NOT NULL DEFAULT '',
+	signal_dbm INTEGER NOT NULL DEFAULT 0,
+	ap         TEXT NOT NULL DEFAULT '',
+	ts         INTEGER NOT NULL
+);
+CREATE INDEX wifi_points_plan ON wifi_points(plan_id);
+`,
+}

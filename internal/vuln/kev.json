@@ -1,0 +1,2519 @@
+{
+ "kevCatalogVersion": "2026.10.27",
+ "kevCommit": "30a09b6f3f7e2f03618cc8c95d212966d3c14e6e",
+ "cveCommit": "5e11caaddebb5cbb40ad0c4ef1fd78060558cdbb",
+ "entries": [
+  {
+   "cve": "CVE-2020-27930",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT211931",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "10.15"
+     },
+     {
+      "from": "0",
+      "fixed": "11.0"
+     },
+     {
+      "from": "0",
+      "fixed": "12.4"
+     },
+     {
+      "from": "0",
+      "fixed": "2020"
+     },
+     {
+      "from": "0",
+      "fixed": "5.3"
+     },
+     {
+      "from": "0",
+      "fixed": "6.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2020-27932",
+   "name": "Apple Multiple Products Type Confusion Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT211931",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "10.15"
+     },
+     {
+      "from": "0",
+      "fixed": "11.0"
+     },
+     {
+      "from": "0",
+      "fixed": "12.4"
+     },
+     {
+      "from": "0",
+      "fixed": "2020"
+     },
+     {
+      "from": "0",
+      "fixed": "5.3"
+     },
+     {
+      "from": "0",
+      "fixed": "6.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2020-27950",
+   "name": "Apple Multiple Products Memory Initialization Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT211931",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "10.15"
+     },
+     {
+      "from": "0",
+      "fixed": "11.0"
+     },
+     {
+      "from": "0",
+      "fixed": "12.4"
+     },
+     {
+      "from": "0",
+      "fixed": "2020"
+     },
+     {
+      "from": "0",
+      "fixed": "5.3"
+     },
+     {
+      "from": "0",
+      "fixed": "6.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-1782",
+   "name": "Apple Multiple Products Race Condition Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.2"
+     },
+     {
+      "from": "0",
+      "fixed": "14.4"
+     },
+     {
+      "from": "0",
+      "fixed": "7.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-1789",
+   "name": "Apple Multiple Products Type Confusion Vulnerability",
+   "added": "2022-05-04",
+   "url": "https://support.apple.com/en-us/HT212147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.2"
+     },
+     {
+      "from": "0",
+      "fixed": "14.0"
+     },
+     {
+      "from": "0",
+      "fixed": "14.4"
+     },
+     {
+      "from": "0",
+      "fixed": "7.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-1870",
+   "name": "Apple iOS, iPadOS, and macOS WebKit Remote Code Execution Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-1871",
+   "name": "Apple iOS, iPadOS, and macOS WebKit Remote Code Execution Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-1879",
+   "name": "Apple iOS, iPadOS, and watchOS WebKit Cross-Site Scripting (XSS) Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212256",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30657",
+   "name": "Apple macOS Unspecified Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212325",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.3"
+     },
+     {
+      "from": "0",
+      "fixed": "2021"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30661",
+   "name": "Apple Multiple Products WebKit Storage Use-After-Free Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212317",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.3"
+     },
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "14.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30663",
+   "name": "Apple Multiple Products WebKit Integer Overflow Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212532",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.3"
+     },
+     {
+      "from": "0",
+      "fixed": "12.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.1"
+     },
+     {
+      "from": "0",
+      "fixed": "14.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30665",
+   "name": "Apple Multiple Products WebKit Memory Corruption Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212532",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.3"
+     },
+     {
+      "from": "0",
+      "fixed": "12.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.6"
+     },
+     {
+      "from": "0",
+      "fixed": "7.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30666",
+   "name": "Apple iOS WebKit Buffer Overflow Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212341",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30713",
+   "name": "Apple macOS Unspecified Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212529",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30761",
+   "name": "Apple iOS WebKit Memory Corruption Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212548",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30762",
+   "name": "Apple iOS WebKit Use-After-Free Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212548",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30807",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212622",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.7"
+     },
+     {
+      "from": "0",
+      "fixed": "7.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30858",
+   "name": "Apple iOS, iPadOS, macOS Use-After-Free Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212804",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30860",
+   "name": "Apple Multiple Products Integer Overflow Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212804",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30869",
+   "name": "Apple iOS, iPadOS, and macOS Type Confusion Vulnerability",
+   "added": "2021-11-03",
+   "url": "https://support.apple.com/en-us/HT212147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.2"
+     },
+     {
+      "from": "0",
+      "fixed": "12.5"
+     },
+     {
+      "from": "0",
+      "fixed": "2021"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30883",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2022-05-23",
+   "url": "https://support.apple.com/en-us/HT212869",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     },
+     {
+      "from": "0",
+      "fixed": "15.0"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     },
+     {
+      "from": "0",
+      "fixed": "15.0"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     },
+     {
+      "from": "0",
+      "fixed": "12.0"
+     },
+     {
+      "from": "0",
+      "fixed": "15.1"
+     },
+     {
+      "from": "0",
+      "fixed": "8.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30900",
+   "name": "Apple iOS, iPadOS, and macOS Out-of-Bounds Write Vulnerability",
+   "added": "2023-03-30",
+   "url": "https://support.apple.com/kb/HT212872",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     },
+     {
+      "from": "0",
+      "fixed": "15.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "14.8"
+     },
+     {
+      "from": "0",
+      "fixed": "15.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30952",
+   "name": "Apple Multiple Products Integer Overflow or Wraparound Vulnerability",
+   "added": "2026-03-05",
+   "url": "https://support.apple.com/en-us/HT212975",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.1"
+     },
+     {
+      "from": "0",
+      "fixed": "15.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-30983",
+   "name": "Apple iOS and iPadOS Buffer Overflow Vulnerability",
+   "added": "2022-06-27",
+   "url": "https://support.apple.com/en-us/HT212976",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2021-31010",
+   "name": "Apple iOS, macOS, watchOS Sandbox Bypass Vulnerability",
+   "added": "2022-08-25",
+   "url": "https://support.apple.com/en-us/HT212804",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     },
+     {
+      "from": "0",
+      "fixed": "2021"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-22587",
+   "name": "Apple Memory Corruption Vulnerability",
+   "added": "2022-01-28",
+   "url": "https://support.apple.com/en-us/HT213055",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     },
+     {
+      "from": "0",
+      "fixed": "12.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-22620",
+   "name": "Apple iOS, iPadOS, and macOS Webkit Use-After-Free Vulnerability",
+   "added": "2022-02-11",
+   "url": "https://support.apple.com/en-us/HT213091",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.2"
+     },
+     {
+      "from": "0",
+      "fixed": "15.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-22674",
+   "name": "Apple macOS Out-of-Bounds Read Vulnerability",
+   "added": "2022-04-04",
+   "url": "https://support.apple.com/en-us/HT213255",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.6"
+     },
+     {
+      "from": "0",
+      "fixed": "12.3"
+     },
+     {
+      "from": "0",
+      "fixed": "2022"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-22675",
+   "name": "Apple macOS Out-of-Bounds Write Vulnerability",
+   "added": "2022-04-04",
+   "url": "https://support.apple.com/en-us/HT213256",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-32893",
+   "name": "Apple iOS and macOS Out-of-Bounds Write Vulnerability",
+   "added": "2022-08-18",
+   "url": "https://support.apple.com/en-us/HT213414",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-32894",
+   "name": "Apple iOS and macOS Out-of-Bounds Write Vulnerability",
+   "added": "2022-08-18",
+   "url": "https://support.apple.com/en-us/HT213412",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-32917",
+   "name": "Apple iOS, iPadOS, and macOS Remote Code Execution Vulnerability",
+   "added": "2022-09-14",
+   "url": "https://support.apple.com/en-us/HT213446",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "15.7"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-42827",
+   "name": "Apple iOS and iPadOS Out-of-Bounds Write Vulnerability",
+   "added": "2022-10-25",
+   "url": "https://support.apple.com/en-us/HT213489",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-42856",
+   "name": "Apple iOS Type Confusion Vulnerability",
+   "added": "2022-12-14",
+   "url": "https://support.apple.com/en-us/HT213535",
+   "products": {
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "13.1"
+     },
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.1"
+     },
+     {
+      "from": "0",
+      "fixed": "16.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-48503",
+   "name": "Apple Multiple Products Unspecified Vulnerability",
+   "added": "2025-10-20",
+   "url": "https://support.apple.com/en-us/HT213345",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.5"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2022-48618",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2024-01-31",
+   "url": "https://support.apple.com/en-us/HT213535",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.1"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-23529",
+   "name": "Apple Multiple Products WebKit Type Confusion Vulnerability",
+   "added": "2023-02-14",
+   "url": "https://support.apple.com/en-us/HT213635",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-28204",
+   "name": "Apple Multiple Products WebKit Out-of-Bounds Read Vulnerability",
+   "added": "2023-05-22",
+   "url": "https://support.apple.com/en-us/HT213758",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.4"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-28205",
+   "name": "Apple Multiple Products WebKit Use-After-Free Vulnerability",
+   "added": "2023-04-10",
+   "url": "https://support.apple.com/en-us/HT213723",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-28206",
+   "name": "Apple iOS, iPadOS, and macOS IOSurfaceAccelerator Out-of-Bounds Write Vulnerability",
+   "added": "2023-04-10",
+   "url": "https://support.apple.com/en-us/HT213723",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-32373",
+   "name": "Apple Multiple Products WebKit Use-After-Free Vulnerability",
+   "added": "2023-05-22",
+   "url": "https://support.apple.com/en-us/HT213758",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.4"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-32409",
+   "name": "Apple Multiple Products WebKit Sandbox Escape Vulnerability",
+   "added": "2023-05-22",
+   "url": "https://support.apple.com/en-us/HT213758",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.4"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-32434",
+   "name": "Apple Multiple Products Integer Overflow Vulnerability",
+   "added": "2023-06-23",
+   "url": "https://support.apple.com/en-us/HT213810",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-32435",
+   "name": "Apple Multiple Products WebKit Memory Corruption Vulnerability",
+   "added": "2023-06-23",
+   "url": "https://support.apple.com/en-us/HT213670",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-32439",
+   "name": "Apple Multiple Products WebKit Type Confusion Vulnerability",
+   "added": "2023-06-23",
+   "url": "https://support.apple.com/en-us/HT213811",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.5"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-37450",
+   "name": "Apple Multiple Products WebKit Code Execution Vulnerability",
+   "added": "2023-07-13",
+   "url": "https://support.apple.com/en-us/HT213826",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.5"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-38606",
+   "name": "Apple Multiple Products Kernel Unspecified Vulnerability",
+   "added": "2023-07-26",
+   "url": "https://support.apple.com/en-us/HT213846",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.5"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41061",
+   "name": "Apple iOS, iPadOS, and watchOS Wallet Code Execution Vulnerability",
+   "added": "2023-09-11",
+   "url": "https://support.apple.com/en-us/HT213905",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41064",
+   "name": "Apple iOS, iPadOS, and macOS ImageIO Buffer Overflow Vulnerability",
+   "added": "2023-09-11",
+   "url": "https://support.apple.com/en-us/HT213914",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41974",
+   "name": "Apple iOS and iPadOS Use-After-Free Vulnerability",
+   "added": "2026-03-05",
+   "url": "https://support.apple.com/en-us/120949",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "17"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "17"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41990",
+   "name": "Apple Multiple Products Code Execution Vulnerability",
+   "added": "2024-01-08",
+   "url": "https://support.apple.com/en-us/HT213606",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "11.7"
+     },
+     {
+      "from": "0",
+      "fixed": "12.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.2"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "16.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41991",
+   "name": "Apple Multiple Products Improper Certificate Validation Vulnerability",
+   "added": "2023-09-25",
+   "url": "https://support.apple.com/en-us/HT213927",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41992",
+   "name": "Apple Multiple Products Kernel Privilege Escalation Vulnerability",
+   "added": "2023-09-25",
+   "url": "https://support.apple.com/en-us/HT213932",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.7"
+     },
+     {
+      "from": "0",
+      "fixed": "13.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-41993",
+   "name": "Apple Multiple Products WebKit Code Execution Vulnerability",
+   "added": "2023-09-25",
+   "url": "https://support.apple.com/en-us/HT213940",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-42824",
+   "name": "Apple iOS and iPadOS Kernel Privilege Escalation Vulnerability",
+   "added": "2023-10-05",
+   "url": "https://support.apple.com/en-us/HT213972",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.7"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-42916",
+   "name": "Apple Multiple Products WebKit Out-of-Bounds Read Vulnerability",
+   "added": "2023-12-04",
+   "url": "https://support.apple.com/en-us/HT214033",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "17.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "17.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-42917",
+   "name": "Apple Multiple Products WebKit Memory Corruption Vulnerability",
+   "added": "2023-12-04",
+   "url": "https://support.apple.com/en-us/HT214033",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "17.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "17.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2023-43000",
+   "name": "Apple Multiple products Use-After-Free Vulnerability",
+   "added": "2026-03-05",
+   "url": "https://support.apple.com/en-us/120331",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.5"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2024-23222",
+   "name": "Apple Multiple Products WebKit Type Confusion Vulnerability",
+   "added": "2024-01-23",
+   "url": "https://support.apple.com/en-us/118479",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "17.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.7"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "17.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.7.3"
+     },
+     {
+      "from": "0",
+      "fixed": "13.6.4"
+     },
+     {
+      "from": "0",
+      "fixed": "14.3"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "17.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2024-23225",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2024-03-06",
+   "url": "https://support.apple.com/en-us/120880",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.7.6"
+     },
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.7.6"
+     },
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.7.4"
+     },
+     {
+      "from": "0",
+      "fixed": "13.6.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2024-23296",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2024-03-06",
+   "url": "https://support.apple.com/en-us/120881",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "16.7.8"
+     },
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "16.7.8"
+     },
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "12.7.6"
+     },
+     {
+      "from": "0",
+      "fixed": "13.6.7"
+     },
+     {
+      "from": "0",
+      "fixed": "14.4"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "17.4"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2024-44308",
+   "name": "Apple Multiple Products Code Execution Vulnerability",
+   "added": "2024-11-21",
+   "url": "https://support.apple.com/en-us/121752",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "17.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "18.1.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "17.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "18.1.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.1.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2024-44309",
+   "name": "Apple Multiple Products Cross-Site Scripting (XSS) Vulnerability",
+   "added": "2024-11-21",
+   "url": "https://support.apple.com/en-us/121752",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "17.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "18.1.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "17.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "18.1.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.1.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-24085",
+   "name": "Apple Multiple Products Use-After-Free Vulnerability",
+   "added": "2025-01-29",
+   "url": "https://support.apple.com/en-us/122066",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "17.7.6"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "14.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "15.3"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "18.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-24200",
+   "name": "Apple iOS and iPadOS Incorrect Authorization Vulnerability",
+   "added": "2025-02-12",
+   "url": "https://support.apple.com/en-us/122173",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "17.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-24201",
+   "name": "Apple Multiple Products WebKit Out-of-Bounds Write Vulnerability",
+   "added": "2025-03-13",
+   "url": "https://support.apple.com/en-us/122281",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "17.7.6"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.3.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-31200",
+   "name": "Apple Multiple Products Memory Corruption Vulnerability",
+   "added": "2025-04-17",
+   "url": "https://support.apple.com/en-us/122282",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.4.1"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-31201",
+   "name": "Apple Multiple Products Arbitrary Read and Write Vulnerability",
+   "added": "2025-04-17",
+   "url": "https://support.apple.com/en-us/122282",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.4.1"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "18.4.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-31277",
+   "name": "Apple Multiple Products Buffer Overflow Vulnerability",
+   "added": "2026-03-20",
+   "url": "https://support.apple.com/en-us/124147",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.6"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.6"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.6"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "18.6"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-43200",
+   "name": "Apple Multiple Products Unspecified Vulnerability",
+   "added": "2025-06-16",
+   "url": "https://support.apple.com/en-us/122173",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.4"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "17.7.5"
+     },
+     {
+      "from": "0",
+      "fixed": "18.3.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.7.4"
+     },
+     {
+      "from": "0",
+      "fixed": "14.7.4"
+     },
+     {
+      "from": "0",
+      "fixed": "15.3.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-43300",
+   "name": "Apple iOS, iPadOS, and macOS Out-of-Bounds Write Vulnerability",
+   "added": "2025-08-21",
+   "url": "https://support.apple.com/en-us/124925",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "15.8.5"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.12"
+     },
+     {
+      "from": "0",
+      "fixed": "18.6.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "15.8.5"
+     },
+     {
+      "from": "0",
+      "fixed": "16.7.12"
+     },
+     {
+      "from": "0",
+      "fixed": "17.7.10"
+     },
+     {
+      "from": "0",
+      "fixed": "18.6.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "13.7.8"
+     },
+     {
+      "from": "0",
+      "fixed": "14.7.8"
+     },
+     {
+      "from": "0",
+      "fixed": "15.6.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-43510",
+   "name": "Apple Multiple Products Improper Locking Vulnerability",
+   "added": "2026-03-20",
+   "url": "https://support.apple.com/en-us/125632",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14.8.2"
+     },
+     {
+      "from": "0",
+      "fixed": "15.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-43520",
+   "name": "Apple Multiple Products Classic Buffer Overflow Vulnerability",
+   "added": "2026-03-20",
+   "url": "https://support.apple.com/en-us/125632",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14.8.2"
+     },
+     {
+      "from": "0",
+      "fixed": "15.7.2"
+     },
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "26.1"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2025-43529",
+   "name": "Apple Multiple Products Use-After-Free WebKit Vulnerability",
+   "added": "2025-12-15",
+   "url": "https://support.apple.com/en-us/125884",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.7.3"
+     },
+     {
+      "from": "0",
+      "fixed": "26.2"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.7.3"
+     },
+     {
+      "from": "0",
+      "fixed": "26.2"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "26.2"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "26.2"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2026-20700",
+   "name": "Apple Multiple Buffer Overflow Vulnerability",
+   "added": "2026-02-12",
+   "url": "https://support.apple.com/en-us/126346",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "26.3"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "26.3"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "26.3"
+     }
+    ],
+    "tvos": [
+     {
+      "from": "0",
+      "fixed": "26.3"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2026-65400",
+   "name": "Apple macOS Improper Authentication Vulnerability",
+   "added": "2026-08-18",
+   "url": "https://support.apple.com/en-us/148170",
+   "products": {
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "14.8.9"
+     },
+     {
+      "from": "0",
+      "fixed": "15.7.9"
+     },
+     {
+      "from": "0",
+      "fixed": "26.6.1"
+     },
+     {
+      "from": "0",
+      "fixed": "26.7"
+     },
+     {
+      "from": "0",
+      "fixed": "27"
+     }
+    ]
+   }
+  },
+  {
+   "cve": "CVE-2026-86950",
+   "name": "Apple Multiple Products Out-of-Bounds Write Vulnerability",
+   "added": "2026-09-29",
+   "url": "https://support.apple.com/en-us/149225",
+   "products": {
+    "ios": [
+     {
+      "from": "0",
+      "fixed": "18.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "26.7.1"
+     }
+    ],
+    "ipados": [
+     {
+      "from": "0",
+      "fixed": "18.7.11"
+     },
+     {
+      "from": "0",
+      "fixed": "26.7.1"
+     }
+    ],
+    "macos": [
+     {
+      "from": "0",
+      "fixed": "15.8.1"
+     },
+     {
+      "from": "0",
+      "fixed": "26.7.1"
+     }
+    ]
+   }
+  }
+ ]
+}

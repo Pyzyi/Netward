@@ -1,0 +1,839 @@
+/* Netzwart design system "Klartext" (docs/05-ux-design.md, section 0).
+   Calm panels on a neutral canvas, sentence-case labels, colour for state,
+   monospace only for addresses. The dark band and the Netzring stay. */
+
+:root {
+  /* surfaces */
+  --bg: #f3f4f6; /* canvas */
+  --surface: #ffffff; /* panels, dialogs, menus */
+  --surface-2: #eef0f2; /* hover, quiet fills */
+  --surface-3: #e4e7ea;
+  --tile: #eef0f2; /* device glyph tiles */
+  --border: #e2e5e9; /* hairlines inside panels */
+  --border-strong: #d1d5db;
+  --control-border: #868c95; /* 3:1 on canvas and white (WCAG 1.4.11) */
+
+  /* text */
+  --text: #15181d;
+  --text-2: #565c66;
+  --text-3: #565c66;
+
+  /* the dark band: header and the overview stage */
+  --ink: #0f1722;
+  --ink-2: #19222f;
+  --ink-line: #273242;
+  --on-ink: #eef1f5;
+  --on-ink-2: #a3adbb;
+
+  /* primary actions are neutral ink; blue marks selection and focus */
+  --primary: #15181d;
+  --primary-hover: #2c313a;
+  --on-primary: #ffffff;
+  --accent: #2856c7;
+  --accent-hover: #1f47ab;
+  --accent-soft: #e6ecfa;
+  --accent-text: #ffffff;
+  --link: var(--text);
+
+  /* state */
+  --ok: #17734a; /* online text */
+  --ok-soft: #e1f2e9;
+  --signal: #1fa66a; /* online marks */
+  --warn: #8f5a00; /* new / attention text */
+  --warn-soft: #fbefd5;
+  --amber: #e29b12; /* new marks */
+  --danger: #b4322a;
+  --danger-soft: #fbe5e2;
+  --off: #a2a7af; /* offline marks; offline text uses --text-2 */
+  --focus: #2856c7;
+
+  --shadow-pop: 0 16px 40px rgb(15 23 34 / 0.14), 0 2px 6px rgb(15 23 34 / 0.06);
+  --shadow-panel: -10px 0 36px rgb(15 23 34 / 0.12);
+  --shadow-raise: 0 1px 2px rgb(15 23 34 / 0.08);
+
+  --radius-s: 6px;
+  --radius: 10px;
+  --radius-l: 12px;
+  --font: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --page: 1240px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0e1218;
+    --surface: #161b22;
+    --surface-2: #1c222b;
+    --surface-3: #252c37;
+    --tile: #212833;
+    --border: #262e39;
+    --border-strong: #333c49;
+    --control-border: #6e7887;
+    --text: #e7eaee;
+    --text-2: #9ea7b3;
+    --text-3: #9ea7b3;
+    --ink: #151c27;
+    --ink-2: #1e2734;
+    --ink-line: #2b3545;
+    --on-ink: #e7eaee;
+    --on-ink-2: #9aa4b1;
+    --primary: #e7eaee;
+    --primary-hover: #ffffff;
+    --on-primary: #0e1218;
+    --accent: #7ea2ff;
+    --accent-hover: #9cb8ff;
+    --accent-soft: #1d2740;
+    --accent-text: #0e1218;
+    --link: var(--text);
+    --ok: #4fd39a;
+    --ok-soft: #13291f;
+    --signal: #3fc98b;
+    --warn: #f0b443;
+    --warn-soft: #2c2312;
+    --amber: #f0b443;
+    --danger: #ff8478;
+    --danger-soft: #331a19;
+    --off: #5a6474;
+    --focus: #7ea2ff;
+    --shadow-pop: 0 16px 40px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.3);
+    --shadow-panel: -10px 0 36px rgb(0 0 0 / 0.5);
+    --shadow-raise: 0 1px 2px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1218;
+  --surface: #161b22;
+  --surface-2: #1c222b;
+  --surface-3: #252c37;
+  --tile: #212833;
+  --border: #262e39;
+  --border-strong: #333c49;
+  --control-border: #6e7887;
+  --text: #e7eaee;
+  --text-2: #9ea7b3;
+  --text-3: #9ea7b3;
+  --ink: #151c27;
+  --ink-2: #1e2734;
+  --ink-line: #2b3545;
+  --on-ink: #e7eaee;
+  --on-ink-2: #9aa4b1;
+  --primary: #e7eaee;
+  --primary-hover: #ffffff;
+  --on-primary: #0e1218;
+  --accent: #7ea2ff;
+  --accent-hover: #9cb8ff;
+  --accent-soft: #1d2740;
+  --accent-text: #0e1218;
+  --link: var(--text);
+  --ok: #4fd39a;
+  --ok-soft: #13291f;
+  --signal: #3fc98b;
+  --warn: #f0b443;
+  --warn-soft: #2c2312;
+  --amber: #f0b443;
+  --danger: #ff8478;
+  --danger-soft: #331a19;
+  --off: #5a6474;
+  --focus: #7ea2ff;
+  --shadow-pop: 0 16px 40px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-panel: -10px 0 36px rgb(0 0 0 / 0.5);
+  --shadow-raise: 0 1px 2px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+h2 {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Links in running text are underlined; navigation links show it on hover. */
+a {
+  color: var(--link);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+p a,
+.hint a {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+}
+
+p a:hover,
+.hint a:hover {
+  text-decoration-color: currentColor;
+}
+
+.btn,
+.btn:hover {
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Addresses, ports, versions: the only things in monospace. */
+.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.faint {
+  color: var(--text-3);
+}
+
+/* Small label above a value or a group, in sentence case. */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-raise);
+  transition: background 120ms var(--ease), border-color 120ms var(--ease), color 120ms var(--ease);
+  user-select: none;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--control-border);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+/* Unavailable primary action: quiet outline; the reason is shown next to it */
+.btn.primary:disabled {
+  background: transparent;
+  border-color: var(--control-border);
+  color: var(--text-2);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: transparent;
+}
+
+.btn.danger {
+  color: var(--danger);
+}
+
+.btn.danger.solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.btn.small {
+  height: 28px;
+  padding: 0 9px;
+  font-size: 13px;
+  gap: 5px;
+}
+
+.btn.icon {
+  width: 32px;
+  padding: 0;
+}
+
+.btn.icon.small {
+  width: 28px;
+}
+
+/* A toggle button that is on */
+.btn.pressed {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Panels group content on the canvas. */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* A section inside a page: a panel with a title row. */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+
+/* Count next to a heading: "Geräte 30" */
+.count-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Forms */
+.field {
+  display: grid;
+  gap: 6px;
+  align-content: start; /* fields with and without hints line up */
+}
+
+.field > label,
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.error-text {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  transition: border-color 120ms var(--ease), box-shadow 120ms var(--ease);
+}
+
+.textarea {
+  height: auto;
+  min-height: 84px;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.select {
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 256 256' fill='%23565c66'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: var(--text-2);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-3);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.check input {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-content: center;
+  margin: 2px 0 0;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--control-border);
+  border-radius: 5px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.check input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.check input:checked::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border: solid var(--accent-text);
+  border-width: 0 0 2px 2px;
+  transform: rotate(-45deg);
+}
+
+/* Disclosure: our own chevron instead of the native triangle */
+summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary:not(.custom)::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 10px 2px 2px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+  transition: transform 120ms var(--ease);
+}
+
+details[open] > summary:not(.custom)::before {
+  transform: rotate(45deg);
+}
+
+/* Segmented control for filters and ranges */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  max-width: 100%;
+  justify-self: start;
+}
+
+.seg button {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+.seg button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(15 23 34 / 0.12), 0 0 0 1px var(--border);
+}
+
+.seg .count {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status labels: small tinted chips in sentence case */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.badge.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.badge.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.badge.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.badge.accent {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* Status dot before a word: "● Online" */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--off);
+  flex: none;
+}
+
+.dot.ok {
+  background: var(--signal);
+}
+
+.dot.warn {
+  background: var(--amber);
+}
+
+.dot.danger {
+  background: var(--danger);
+}
+
+/* Notices */
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.notice > svg:first-child {
+  flex: none;
+  margin-top: 2px;
+}
+
+.notice.warn {
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+  background: var(--warn-soft);
+}
+
+.notice.warn > svg:first-child {
+  color: var(--warn);
+}
+
+.notice.danger {
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  background: var(--danger-soft);
+}
+
+.notice.danger > svg:first-child {
+  color: var(--danger);
+}
+
+.notice.info {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.notice.info > svg:first-child {
+  color: var(--text-2);
+}
+
+/* Skeleton loading */
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.dl {
+  display: grid;
+  grid-template-columns: minmax(110px, 36%) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.dl dt {
+  color: var(--text-2);
+}
+
+.dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .dl dd + dt {
+    margin-top: 10px;
+  }
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Page frame for every page below the band */
+.wrap {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 28px 32px 56px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.page-head .lead {
+  margin-top: 4px;
+  color: var(--text-2);
+  max-width: 64ch;
+  text-wrap: pretty;
+}
+
+/* Back link above a page title: "‹ Geräte" */
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.crumb:hover {
+  color: var(--text);
+}
+
+/* Lists inside panels: rows separated by hairlines */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rows > li + li {
+  border-top: 1px solid var(--border);
+}
+
+dialog::backdrop {
+  background: rgb(10 14 20 / 0.45);
+}
+
+:root[data-theme='dark'] dialog::backdrop {
+  background: rgb(0 0 0 / 0.66);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) dialog::backdrop {
+    background: rgb(0 0 0 / 0.66);
+  }
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    padding: 20px 16px 40px;
+  }
+  h1 {
+    font-size: 22px;
+  }
+}

@@ -1,0 +1,30 @@
+Netzwart
+Copyright (c) 2026 Pyzyi – MIT License (see LICENSE)
+
+This software includes or is built with the following third-party components.
+
+Go modules compiled into the binary
+-----------------------------------
+modernc.org/sqlite, libc, mathutil, memory   BSD-3-Clause   https://gitlab.com/cznic
+golang.org/x/crypto, x/net, x/sys            BSD-3-Clause   https://go.googlesource.com
+github.com/dustin/go-humanize                MIT            https://github.com/dustin/go-humanize
+github.com/google/uuid                       BSD-3-Clause   https://github.com/google/uuid
+github.com/remyoudompheng/bigfft             BSD-3-Clause   https://github.com/remyoudompheng/bigfft
+Go standard library and runtime              BSD-3-Clause   https://go.dev
+
+Web interface (bundled into the binary)
+---------------------------------------
+Svelte                                       MIT            https://svelte.dev
+Phosphor Icons (@phosphor-icons/core)        MIT            https://phosphoricons.com
+IBM Plex Sans / IBM Plex Mono                SIL OFL 1.1    https://github.com/IBM/plex
+  (via @fontsource; the fonts are unmodified)
+
+Data
+----
+Vendor names are derived from the IEEE Registration Authority public listings
+(MA-L, MA-M, MA-S) as mirrored by the "oui-data" npm package (BSD-2-Clause,
+https://github.com/silverwind/oui-data). Vendor names were shortened to their
+common brand names.
+
+FRITZ!Box is a trademark of AVM GmbH / FRITZ! GmbH. Fing and NetAlertX are
+mentioned for comparison only; Netzwart is not affiliated with either project.

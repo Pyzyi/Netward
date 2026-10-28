@@ -1,0 +1,72 @@
+# Netzwart – Netzwerk-Wächter für dein Heimnetz.
+# ZimaOS: App Store → „+“ → „Benutzerdefinierte App installieren“ → „Importieren“ → diese Datei einfügen.
+# Andere Systeme: `docker compose up -d`, danach http://<server-ip>:8840 öffnen.
+name: netzwart
+
+services:
+  netzwart:
+    image: ghcr.io/pyzyi/netward:latest
+    container_name: netzwart
+    restart: unless-stopped
+    # Layer-2-Scans (ARP, DHCP, mDNS) funktionieren nur im Netzwerk des Hosts.
+    network_mode: host
+    # Minimale Rechte: Netzwart öffnet damit seine Sockets und gibt danach
+    # alle Rechte ab (läuft als UID 10001 ohne Capabilities).
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_RAW
+      # Optional, nur für Stolperdraht-Köder auf Ports unter 1024 (NETZWART_TRIPWIRE_PORTS):
+      # - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    environment:
+      TZ: Europe/Berlin
+      NETZWART_PORT: "8840"
+      # Optional: zusätzliche Hostnamen hinter einem Reverse-Proxy
+      # NETZWART_ALLOWED_HOSTS: netzwart.example.com
+      # Optional: Stolperdraht-Köder auf Ports unter 1024 (braucht NET_BIND_SERVICE oben)
+      # NETZWART_TRIPWIRE_PORTS: "23,445"
+    volumes:
+      - /DATA/AppData/netzwart:/data
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            de_de: Zeitzone
+            en_us: Time zone
+        - container: NETZWART_PORT
+          description:
+            de_de: Port der Weboberfläche
+            en_us: Web UI port
+      volumes:
+        - container: /data
+          description:
+            de_de: Datenbank und Sicherungen
+            en_us: Database and backups
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: netzwart
+  author: Pyzyi
+  developer: Netzwart
+  category: Network
+  icon: https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png
+  tagline:
+    de_de: Jedes Gerät in deinem Netz im Blick
+    en_us: Every device on your network at a glance
+  description:
+    de_de: Netzwart erkennt alle Geräte im Heimnetz, zeigt wer online ist, meldet neue Geräte und prüft das Netz auf typische Schwachstellen. Ohne Cloud, ohne Abo.
+    en_us: Netzwart discovers every device on your home network, shows who is online, alerts you about new devices and checks the network for common weaknesses. No cloud, no subscription.
+  title:
+    de_de: Netzwart
+    en_us: Netzwart
+  index: /
+  port_map: "8840"
+  scheme: http

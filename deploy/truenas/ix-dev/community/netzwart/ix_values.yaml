@@ -1,0 +1,12 @@
+images:
+  image:
+    repository: ghcr.io/pyzyi/netward
+    tag: 0.3.3
+
+consts:
+  netzwart_container_name: netzwart
+  data_path: /data
+  notes_body: |
+    There is no default password. Open the Web UI within 30 minutes of the first start
+    and create your account (only possible from your local network). If you miss that
+    window, restart the app.

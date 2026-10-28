@@ -1,0 +1,79 @@
+name: Update vendor database
+
+on:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Download IEEE registry mirror
+        id: pkg
+        run: |
+          mkdir -p "$RUNNER_TEMP/oui" && cd "$RUNNER_TEMP/oui"
+          # npm verifies the tarball against the registry's integrity hash.
+          npm pack oui-data --silent --json > pack.json
+          echo "version=$(jq -r '.[0].version' pack.json)" >> "$GITHUB_OUTPUT"
+          echo "integrity=$(jq -r '.[0].integrity' pack.json)" >> "$GITHUB_OUTPUT"
+          tar xzf oui-data-*.tgz
+      - name: Regenerate table
+        run: |
+          gzip -dc internal/oui/oui.tsv.gz > "$RUNNER_TEMP/old.tsv"
+          go run ./tools/ouigen -in "$RUNNER_TEMP/oui/package/index.json" -out internal/oui/oui.tsv.gz
+          go test ./internal/oui
+          gzip -dc internal/oui/oui.tsv.gz > "$RUNNER_TEMP/new.tsv"
+          # The registry changes by a few hundred entries a week. A large
+          # rewrite (a broken or tampered package) needs a look by hand.
+          removed=$(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^<' || true)
+          old=$(wc -l < "$RUNNER_TEMP/old.tsv")
+          if [ "$removed" -gt $((old / 50)) ]; then
+            echo "::error::$removed of $old entries removed or changed; check oui-data by hand"; exit 1
+          fi
+      - name: Describe the change for review
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
+          INTEGRITY: ${{ steps.pkg.outputs.integrity }}
+        run: |
+          {
+            echo "Weekly refresh of the embedded IEEE OUI table (MA-L, MA-M, MA-S) from oui-data $VERSION."
+            echo
+            echo "Package integrity: \`$INTEGRITY\`"
+            echo
+            echo "Entries: $(wc -l < "$RUNNER_TEMP/old.tsv") → $(wc -l < "$RUNNER_TEMP/new.tsv")"
+            echo "Lines removed or changed: $(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^<' || true), added or changed: $(diff "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | grep -c '^>' || true)"
+            echo "Published by: $(npm view "oui-data@$VERSION" _npmUser.name 2>/dev/null || echo unknown)"
+            echo
+            echo '<details><summary>Changed entries (first 300 lines)</summary>'
+            echo
+            echo '```diff'
+            diff -u "$RUNNER_TEMP/old.tsv" "$RUNNER_TEMP/new.tsv" | tail -n +3 | grep '^[+-]' | head -300 || true
+            echo '```'
+            echo '</details>'
+            echo
+            echo 'CI does not run automatically on pull requests opened by GitHub Actions: close and reopen this PR to start it.'
+          } > "$RUNNER_TEMP/body.md"
+      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: chore/oui-update
+          commit-message: 'chore(oui): update vendor database to oui-data ${{ steps.pkg.outputs.version }}'
+          title: 'chore(oui): update vendor database to oui-data ${{ steps.pkg.outputs.version }}'
+          body-path: ${{ runner.temp }}/body.md
+          delete-branch: true

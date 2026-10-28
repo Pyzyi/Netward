@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as expected / Etwas funktioniert nicht wie erwartet
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security issues: please use [private vulnerability reporting](https://github.com/Pyzyi/Netward/security/advisories/new) instead.
+        English or German are both fine.
+  - type: input
+    id: version
+    attributes:
+      label: Netzwart version
+      description: Settings → About
+      placeholder: "0.3.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - ZimaOS
+        - CasaOS
+        - Unraid
+        - TrueNAS SCALE
+        - Synology
+        - Raspberry Pi / other Linux with Docker
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead? Steps to reproduce help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: "`docker logs netzwart` – remove anything private first: passwords (a password reset prints the new one) and MAC addresses"
+      render: text
