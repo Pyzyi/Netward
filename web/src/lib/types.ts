@@ -171,7 +171,7 @@ export interface Overview {
 
 export interface Finding {
   id: number;
-  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited' | 'identity_changed';
+  check: 'risky_port' | 'upnp_igd' | 'ip_conflict' | 'unknown_devices' | 'software_outdated' | 'software_update' | 'gateway_mac' | 'dhcp_rogue' | 'known_exploited' | 'identity_changed' | 'dns_manipulated' | 'dns_redirect';
   deviceId?: number;
   severity: 'info' | 'warning' | 'critical';
   data: { port?: number; service?: string; ip?: string; product?: string; status?: string; kind?: 'conflict' | 'changed'; server?: string; fixed?: string; manual?: string; uncertain?: string; from?: string; to?: string };
@@ -202,6 +202,15 @@ export interface NetworkState {
     accepted: boolean;
   }[];
   probe?: { at: number; answers: number };
+  dns?: { at: number; results: DnsResult[] };
+}
+
+/** One DNS server checked against names with fixed answers (docs/10, F2). */
+export interface DnsResult {
+  server: string;
+  verdict: 'ok' | 'manipulated' | 'redirects' | 'unreachable';
+  answers: { name: string; status: 'ok' | 'blocked' | 'wrong' | 'noanswer'; got?: string[] }[];
+  missing: { name: string; status: 'ok' | 'blocked' | 'wrong' | 'noanswer'; got?: string[] };
 }
 
 /** Connection data from the FRITZ!Box (docs/09, F5); rates in kbit/s. */
@@ -315,6 +324,7 @@ export interface Settings {
   internetTargets: string[];
   securityScanDays: number;
   dhcpCheck: boolean;
+  dnsCheck: boolean;
   updateCheck: boolean;
   mqtt: MQTTSettings;
   fritzbox: FritzBoxSettings;

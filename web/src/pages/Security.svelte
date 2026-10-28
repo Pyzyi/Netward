@@ -8,7 +8,7 @@
   import { link } from '../lib/router.svelte';
   import { displayName } from '../lib/devices';
   import { dateLong, has, relTime, t } from '../lib/i18n.svelte';
-  import type { Finding, NetworkState } from '../lib/types';
+  import type { DnsResult, Finding, NetworkState } from '../lib/types';
 
   let findings = $state<Finding[]>([]);
   let status = $state<{ running: boolean; lastRunAt: number }>({ running: false, lastRunAt: 0 });
@@ -59,6 +59,42 @@
     }
   }
   const gateway = (f: Finding) => net.gateways.find((g) => g.ip === f.data.ip);
+  const dnsOf = (f: Finding) => net.dns?.results.find((r) => r.server === f.data.server);
+
+  // The LAN attack detection overview (docs/10, F2): one line per trick.
+  const arpState = $derived.by(() => {
+    const g = net.gateways[0];
+    if (!g) return { tone: '', text: t('security.ids.arp.none') };
+    const bad = net.gateways.find((x) => x.conflict);
+    if (bad) return { tone: 'danger', text: t('security.ids.arp.conflict', { ip: bad.ip }) };
+    const moved = net.gateways.find((x) => x.change);
+    if (moved) return { tone: 'warn', text: t('security.ids.arp.changed', { ip: moved.ip }) };
+    return { tone: 'ok', text: t('security.ids.arp.ok', { ip: g.ip, vendor: g.vendor || t('security.net.unknownVendor'), d: dateLong(new Date(g.since).toLocaleDateString('sv')) }) };
+  });
+  const dhcpTone = $derived(
+    net.dhcpServers.length === 0 ? '' : findings.some((f) => !f.dismissed && f.check === 'dhcp_rogue' && f.severity !== 'info') ? 'warn' : 'ok',
+  );
+  const dnsTone = $derived.by(() => {
+    const rs = net.dns?.results ?? [];
+    if ((store.settings && !store.settings.dnsCheck) || rs.length === 0) return '';
+    if (rs.some((r) => r.verdict === 'manipulated')) return 'danger';
+    if (rs.some((r) => r.verdict === 'redirects')) return 'warn';
+    return rs.every((r) => r.verdict === 'unreachable') ? '' : 'ok';
+  });
+  function dnsLine(r: DnsResult): string {
+    switch (r.verdict) {
+      case 'manipulated': {
+        const a = r.answers.find((x) => x.status === 'wrong')!;
+        return t('security.ids.dns.manipulated', { server: r.server, name: a.name, got: (a.got ?? []).join(', ') });
+      }
+      case 'redirects':
+        return t('security.ids.dns.redirects', { server: r.server, got: (r.missing.got ?? []).join(', ') });
+      case 'unreachable':
+        return t('security.ids.dns.unreachable', { server: r.server });
+    }
+    const blocked = r.answers.filter((x) => x.status === 'blocked').map((x) => x.name);
+    return blocked.length ? t('security.ids.dns.blocked', { server: r.server, names: blocked.join(', ') }) : t('security.ids.dns.ok', { server: r.server });
+  }
   const server = (f: Finding) => net.dhcpServers.find((d) => d.serverId === f.data.server);
 
   $effect(() => {
@@ -117,6 +153,10 @@
       }
       case 'dhcp_rogue':
         return t(f.severity === 'info' ? 'security.dhcp.titleAsk' : 'security.dhcp.title', { server: f.data.server ?? '' });
+      case 'dns_manipulated':
+        return t('security.dns.manipulated.title', { server: f.data.server ?? '' });
+      case 'dns_redirect':
+        return t('security.dns.redirect.title', { server: f.data.server ?? '' });
       case 'software_outdated':
       case 'software_update': {
         const name = (f.deviceId ? store.devices.get(f.deviceId)?.software?.name : '') || t('common.unknown');
@@ -139,6 +179,8 @@
     if (f.check === 'identity_changed') return t('security.identity.why', { from: t(`os.family.${f.data.from}`), to: t(`os.family.${f.data.to}`) });
     if (f.check === 'known_exploited') return t('security.exploited.why') + (f.data.manual ? ' ' + t('security.exploited.whyManual') : '');
     if (f.check === 'dhcp_rogue') return t('security.dhcp.why') + (f.severity === 'critical' ? ' ' + t('security.dhcp.whyOther') : '');
+    if (f.check === 'dns_manipulated') return t('security.dns.manipulated.why');
+    if (f.check === 'dns_redirect') return t('security.dns.redirect.why');
     return t({ upnp_igd: 'security.upnp.why', ip_conflict: 'security.conflict.why', unknown_devices: 'security.unknown.why' }[f.check]);
   }
   function todo(f: Finding): string {
@@ -148,6 +190,8 @@
     if (f.check === 'identity_changed') return t('security.identity.todo');
     if (f.check === 'known_exploited') return t(f.data.uncertain ? 'security.exploited.todo.uncertain' : 'security.exploited.todo', { fixed: f.data.fixed ?? '' });
     if (f.check === 'dhcp_rogue') return t('security.dhcp.todo');
+    if (f.check === 'dns_manipulated') return t('security.dns.manipulated.todo');
+    if (f.check === 'dns_redirect') return t('security.dns.redirect.todo');
     return t({ upnp_igd: 'security.upnp.todo', ip_conflict: 'security.conflict.todo', unknown_devices: 'security.unknown.todo' }[f.check]);
   }
 </script>
@@ -239,6 +283,9 @@
               <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => acceptNetwork(f)}>
                 <Icon name="check" size={14} /> {t('security.dhcp.accept')}
               </button>
+            {:else if f.check === 'dns_manipulated' || f.check === 'dns_redirect'}
+              {@const r = dnsOf(f)}
+              {#if r}<p class="dns-detail">{dnsLine(r)}</p>{/if}
             {:else if f.check === 'identity_changed'}
               <div class="row-btns">
                 <button class="btn small" type="button" disabled={busy || demo} title={demo ? t('err.demo_mode') : undefined} onclick={() => resolveIdentity(f, true)}>
@@ -260,28 +307,61 @@
     </ol>
   {/if}
 
-  {#if !loading && (net.gateways.length || net.dhcpServers.length || net.probe)}
-    <section class="netinfo">
-      <h2>{t('security.net.title')}</h2>
-      <dl class="net">
-        {#each net.gateways as g (g.ip)}
+  {#if !loading}
+    <section class="ids" aria-labelledby="ids-title">
+      <h2 id="ids-title">{t('security.ids.title')}</h2>
+      <p class="hint">{t('security.ids.lead')}</p>
+      <ul class="ids-list">
+        <li>
+          <span class="dot {arpState.tone}" aria-hidden="true"></span>
           <div>
-            <dt>{t('security.net.router', { ip: g.ip })}</dt>
-            <dd>{g.vendor || t('security.net.unknownVendor')} <span class="mono faint">{g.mac}</span> <span class="faint">· {t('security.net.since', { d: dateLong(new Date(g.since).toLocaleDateString('sv')) })}</span></dd>
+            <h3>{t('security.ids.arp')}</h3>
+            <p>{arpState.text}</p>
           </div>
-        {/each}
-        {#each net.dhcpServers as d (d.serverId)}
+        </li>
+        <li>
+          <span class="dot {dhcpTone}" aria-hidden="true"></span>
           <div>
-            <dt>{t('security.net.dhcp', { ip: d.serverId })}</dt>
-            <dd>{d.vendor || t('security.net.unknownVendor')} <span class="mono faint">{d.mac}</span>{#if d.accepted}{' '}<span class="faint">· {t('security.net.accepted')}</span>{/if}</dd>
+            <h3>{t('security.ids.dhcp')}</h3>
+            <p>
+              {#if net.dhcpServers.length === 0}{t('security.ids.dhcp.none')}
+              {:else if net.dhcpServers.length === 1}{t('security.ids.dhcp.one', { server: net.dhcpServers[0].serverId })}
+              {:else}{t('security.ids.dhcp.many', { n: net.dhcpServers.length })}{/if}
+            </p>
+            {#if net.dhcpServers.length}
+              <dl class="net">
+                {#each net.dhcpServers as d (d.serverId)}
+                  <div>
+                    <dt>{t('security.net.dhcp', { ip: d.serverId })}</dt>
+                    <dd>{d.vendor || t('security.net.unknownVendor')} <span class="mono faint">{d.mac}</span>{#if d.accepted}{' '}<span class="faint">· {t('security.net.accepted')}</span>{/if}</dd>
+                  </div>
+                {/each}
+              </dl>
+            {/if}
+            <p class="faint small">
+              {#if store.settings && !store.settings.dhcpCheck}{t('security.net.probeOff')}
+              {:else if net.probe}{t(`security.net.probe.${net.probe.answers > 1 ? 'n' : net.probe.answers}`, { t: relTime(net.probe.at, clock.now), n: net.probe.answers })}
+              {:else}{t('security.net.probeNever')}{/if}
+            </p>
           </div>
-        {/each}
-      </dl>
-      <p class="faint small">
-        {#if store.settings && !store.settings.dhcpCheck}{t('security.net.probeOff')}
-        {:else if net.probe}{t(`security.net.probe.${net.probe.answers > 1 ? 'n' : net.probe.answers}`, { t: relTime(net.probe.at, clock.now), n: net.probe.answers })}
-        {:else}{t('security.net.probeNever')}{/if}
-      </p>
+        </li>
+        <li>
+          <span class="dot {dnsTone}" aria-hidden="true"></span>
+          <div>
+            <h3>{t('security.ids.dns')}</h3>
+            {#if store.settings && !store.settings.dnsCheck}
+              <p>{t('security.ids.dns.off')}</p>
+            {:else if !net.dns}
+              <p>{t('security.ids.dns.never')}</p>
+            {:else if net.dns.results.length === 0}
+              <p>{t('security.ids.dns.empty')}</p>
+            {:else}
+              {#each net.dns.results as r (r.server)}<p>{dnsLine(r)}</p>{/each}
+              <p class="faint small">{t('security.ids.checked', { t: relTime(net.dns.at, clock.now) })}</p>
+            {/if}
+          </div>
+        </li>
+      </ul>
     </section>
   {/if}
 
@@ -456,7 +536,7 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  .netinfo,
+  .ids,
   .hints {
     margin-top: 16px;
     display: grid;
@@ -466,8 +546,36 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
-  .netinfo .net div {
+  .ids-list {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+  }
+  .ids-list > li {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .ids-list > li + li {
+    border-top: 1px solid var(--border);
+  }
+  .ids-list > li > .dot {
+    margin-top: 6px;
+  }
+  .ids-list > li > div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .ids-list h3 {
+    font-size: 14px;
+  }
+  .ids .net div {
     grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .dns-detail {
+    font-size: 14px;
   }
   .net div {
     display: grid;
@@ -500,7 +608,7 @@
     border-top: 1px solid var(--border);
   }
   @media (max-width: 640px) {
-    .netinfo .net div {
+    .ids .net div {
       grid-template-columns: minmax(0, 1fr);
       gap: 0;
     }

@@ -7,10 +7,12 @@ import (
 	"net"
 	"net/netip"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Pyzyi/netzwart/internal/config"
+	"github.com/Pyzyi/netzwart/internal/dnscheck/dnschecktest"
 	"github.com/Pyzyi/netzwart/internal/hub"
 	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/monitor"
@@ -188,5 +190,63 @@ func TestRogueDHCPEscalationAlerts(t *testing.T) {
 	New(st2, mon2, h, r2, log).EvaluateNetwork(ctx)
 	if len(r2.evs) != 2 || r2.evs[0].Severity != "warning" {
 		t.Fatalf("foreign router without reference: %+v", r2.evs)
+	}
+}
+
+func TestDNSCheckFindsManipulatedServer(t *testing.T) {
+	ctx := context.Background()
+	st, err := store.Open(ctx, filepath.Join(t.TempDir(), "s.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := hub.New()
+	mon, err := monitor.New(ctx, st, h, nil, config.Defaults(), log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mon.SetNetwork([]netip.Addr{netip.MustParseAddr("192.0.2.1")}, nil)
+	bad := map[string]string{"one.one.one.one": "1.1.1.1", "dns.google": "203.0.113.9", "dns.quad9.net": "9.9.9.9"}
+	srv := dnschecktest.Server(t, bad, "")
+	r := &rec{}
+	c := New(st, mon, h, r, log)
+	c.SetDNSCheck(true)
+	c.dnsTestPort = srv.Port()
+	c.dnsDial = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		var d net.Dialer
+		return d.DialContext(ctx, network, srv.String())
+	}
+	c.run(ctx)
+	fs, _ := st.ListFindings(ctx)
+	var dns []store.Finding
+	for _, f := range fs {
+		if f.CheckID == CheckDNSManipulated {
+			dns = append(dns, f)
+		}
+	}
+	if len(dns) != 1 || dns[0].Severity != "critical" || string(dns[0].Data) != `{"server":"192.0.2.1"}` {
+		t.Fatalf("findings %+v", fs)
+	}
+	if n := mon.Network().DNS; n == nil || len(n.Results) != 1 || n.Results[0].Answers[1].Got[0] != "203.0.113.9" {
+		t.Fatalf("stored check %+v", n)
+	}
+	alerted := false
+	for _, e := range r.evs {
+		if title, _ := e.Data["title"].(string); strings.HasPrefix(title, "DNS-Server liefert falsche Adressen") {
+			alerted = true
+		}
+	}
+	if !alerted {
+		t.Fatal("no notification for a manipulating DNS server")
+	}
+	// Switched off: the finding goes away on the next run.
+	c.SetDNSCheck(false)
+	c.run(ctx)
+	fs, _ = st.ListFindings(ctx)
+	for _, f := range fs {
+		if f.CheckID == CheckDNSManipulated {
+			t.Fatal("DNS finding kept after the check was switched off")
+		}
 	}
 }

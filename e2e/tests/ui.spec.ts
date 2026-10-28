@@ -272,3 +272,14 @@ test('device history: milestones, purchase and warranty', async ({ page }) => {
   await expect(detail.getByLabel('Seriennummer')).toHaveValue('A123.456.78.901.234');
   expect(problems).toEqual([]);
 });
+
+test('LAN attack detection: router, DHCP and DNS at a glance', async ({ page }) => {
+  const problems = watch(page);
+  await login(page);
+  await page.goto('/security');
+  const ids = page.locator('section.ids');
+  await expect(ids.getByRole('heading', { name: 'Angriffserkennung im LAN' })).toBeVisible();
+  await expect(ids.getByText('192.168.178.80 antwortet korrekt und blockiert dns.google (Filter wie Pi-hole).')).toBeVisible();
+  await expect(ids.getByText(/192\.168\.178\.1 gehört seit .* zu AVM/)).toBeVisible();
+  expect(problems).toEqual([]);
+});

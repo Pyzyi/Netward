@@ -24,6 +24,12 @@
     if (err) dhcpCheck = !v;
     toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
   }
+  let dnsCheck = $state(init.dnsCheck ?? true);
+  async function saveDnsCheck(v: boolean) {
+    const err = await updateSettings((x) => (x.dnsCheck = v));
+    if (err) dnsCheck = !v;
+    toast(err ? t('err.invalid_settings', { msg: err }) : t('common.saved'), err ? 'error' : 'ok');
+  }
   let busy = $state(false);
   let error = $state('');
 
@@ -110,6 +116,7 @@
     </select>
   </div>
   <Toggle bind:checked={dhcpCheck} label={t('settings.dhcpCheck')} hint={t('settings.dhcpCheckHint')} onchange={saveDhcpCheck} />
+  <Toggle bind:checked={dnsCheck} label={t('settings.dnsCheck')} hint={t('settings.dnsCheckHint')} onchange={saveDnsCheck} />
 </SettingsCard>
 
 <style>

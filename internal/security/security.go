@@ -104,6 +104,10 @@ type Checker struct {
 	swLastRun int64
 	prober    DHCPProber // nil without raw sockets or in demo mode
 	dhcpCheck bool
+	dnsCheck  bool
+	// Tests only: how DNS servers are reached.
+	dnsDial     func(ctx context.Context, network, address string) (net.Conn, error)
+	dnsTestPort uint16
 }
 
 // DHCPProber sends the active DHCP check (implemented by the scanner).
@@ -229,6 +233,13 @@ func (c *Checker) run(ctx context.Context) {
 		defer wg.Done()
 		c.probeDHCP(ctx)
 	}()
+	// Whether the network's DNS servers answer honestly (docs/10, F2).
+	var dnsFound []store.Finding
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dnsFound = c.checkDNS(ctx, runStart)
+	}()
 	sem := make(chan struct{}, 4)
 	var checked []int64
 	for _, d := range devs {
@@ -267,6 +278,9 @@ func (c *Checker) run(ctx context.Context) {
 		}(d, ip)
 	}
 	wg.Wait()
+	for _, f := range dnsFound {
+		add(f)
+	}
 
 	unknown := 0
 	for _, d := range devs {
@@ -330,7 +344,8 @@ func (c *Checker) run(ctx context.Context) {
 				data = map[string]any{}
 			}
 			data["title"], data["detail"] = Describe(f.CheckID, data, "de")
-			c.mon.AddEvent(ctx, notify.KindSecurity, f.Severity, f.DeviceID, map[string]any{"check": f.CheckID, "port": data["port"], "service": data["service"]})
+			c.mon.AddEvent(ctx, notify.KindSecurity, f.Severity, f.DeviceID, map[string]any{"check": f.CheckID, "port": data["port"],
+				"service": data["service"], "server": data["server"]})
 			c.notifier.Notify(notify.Event{Kind: notify.KindSecurity, Severity: f.Severity, TS: runStart, Device: dev, Data: data})
 		}
 	}
@@ -339,6 +354,10 @@ func (c *Checker) run(ctx context.Context) {
 	}
 	if err := c.st.PruneFindings(ctx, runStart, checked, []string{CheckRiskyPort, CheckUPnP, CheckConflict, CheckUnknown}); err != nil {
 		c.log.Error("prune findings", "err", err)
+	}
+	// DNS findings are confirmed by each run; switching the check off clears them.
+	if err := c.st.PruneFindings(ctx, runStart, nil, []string{CheckDNSManipulated, CheckDNSRedirect}); err != nil {
+		c.log.Error("prune DNS findings", "err", err)
 	}
 	c.log.Info("security check finished", "findings", len(findings), "took", time.Since(start).Round(time.Millisecond))
 }
@@ -391,6 +410,16 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 		return fmt.Sprintf(tr("Gerät meldet sich als anderes System (%s statt %s)", "Device reports as another system (%s instead of %s)"), family(to, lang), family(from, lang)),
 			tr("Ein bekanntes Gerät fragt plötzlich wie ein anderes Betriebssystem nach einer Adresse. Wurde es neu eingerichtet? Sonst könnte ein anderes Gerät seine Kennung nutzen.",
 				"A known device suddenly asks for an address like a different operating system. Was it set up anew? Otherwise another device may be using its identity.")
+	case CheckDNSManipulated:
+		srv, _ := data["server"].(string)
+		return tr("DNS-Server liefert falsche Adressen: ", "DNS server returns wrong addresses: ") + srv,
+			tr("Bekannte Namen zeigen auf fremde Adressen. So lassen sich Anmeldeseiten fälschen. Prüfe die DNS-Einstellungen im Router.",
+				"Well-known names point to foreign addresses. This is how login pages get faked. Check the DNS settings of your router.")
+	case CheckDNSRedirect:
+		srv, _ := data["server"].(string)
+		return tr("DNS-Server leitet Tippfehler um: ", "DNS server redirects mistyped names: ") + srv,
+			tr("Namen, die es nicht gibt, bekommen trotzdem eine Adresse – oft eine Werbeseite des Anbieters.",
+				"Names that do not exist still get an address – often an ad page of the provider.")
 	case CheckKnownExploited:
 		sw, _ := data["software"].(string)
 		fixed, _ := data["fixed"].(string)

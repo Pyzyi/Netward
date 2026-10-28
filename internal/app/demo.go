@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/dnscheck"
 	"github.com/Pyzyi/netzwart/internal/fritzbox"
 	"github.com/Pyzyi/netzwart/internal/monitor"
 	"github.com/Pyzyi/netzwart/internal/scanner"
@@ -231,6 +232,18 @@ func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 			FirstSeen: now.Add(-26 * time.Hour).UnixMilli(), LastSeen: seen},
 	})
 	_ = st.SetSetting(ctx, "net_dhcp_probe", monitor.DHCPProbe{At: now.Add(-3 * time.Hour).UnixMilli(), Answers: 2})
+	// DNS check (docs/10, F2): the Pi-hole blocks the public resolvers on purpose.
+	ok := func(name string, ip ...string) dnscheck.Answer {
+		return dnscheck.Answer{Name: name, Status: dnscheck.StatusOK, Got: ip}
+	}
+	_ = st.SetSetting(ctx, "net_dns_check", monitor.DNSCheck{At: now.Add(-3 * time.Hour).UnixMilli(), Results: []dnscheck.Result{
+		{Server: "192.168.178.80", Verdict: dnscheck.VerdictOK, Answers: []dnscheck.Answer{ok("one.one.one.one", "1.1.1.1", "1.0.0.1"),
+			{Name: "dns.google", Status: dnscheck.StatusBlocked, Got: []string{"0.0.0.0"}}, ok("dns.quad9.net", "9.9.9.9")},
+			Missing: dnscheck.Answer{Name: "netzwart-5f1c9a2e7b3d4c60.example.com", Status: dnscheck.StatusOK}},
+		{Server: "192.168.178.1", Verdict: dnscheck.VerdictOK, Answers: []dnscheck.Answer{ok("one.one.one.one", "1.1.1.1", "1.0.0.1"),
+			ok("dns.google", "8.8.8.8", "8.8.4.4"), ok("dns.quad9.net", "9.9.9.9", "149.112.112.112")},
+			Missing: dnscheck.Answer{Name: "netzwart-0b7d2c94e15a8f36.example.com", Status: dnscheck.StatusOK}},
+	}})
 	_ = st.SetSetting(ctx, "net_gateway_refs", []monitor.GatewayRef{
 		{IP: "192.168.178.1", MAC: "3c:a6:2f:5e:11:01", Vendor: "AVM", Since: baseline.UnixMilli()},
 	})

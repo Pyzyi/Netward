@@ -148,6 +148,7 @@ func Run(ctx context.Context, o Options) error {
 		sec.SetDHCPProber(sc)
 	}
 	sec.SetDHCPCheck(settings.DHCPCheck)
+	sec.SetDNSCheck(settings.DNSCheck && !env.Demo)
 	people, err := persons.New(ctx, st, mon, h)
 	if err != nil {
 		return err
@@ -229,6 +230,7 @@ func Run(ctx context.Context, o Options) error {
 		bridge.Configure(s.MQTT, s.Language)
 		upd.Configure(s.UpdateCheck && !env.Demo)
 		sec.SetDHCPCheck(s.DHCPCheck)
+		sec.SetDNSCheck(s.DNSCheck && !env.Demo)
 		if !env.Demo {
 			fritz.Configure(ctx, s.FritzBox)
 		}

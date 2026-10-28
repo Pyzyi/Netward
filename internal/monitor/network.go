@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Pyzyi/netzwart/internal/dnscheck"
 	"github.com/Pyzyi/netzwart/internal/l2"
 	"github.com/Pyzyi/netzwart/internal/oui"
 	"github.com/Pyzyi/netzwart/internal/textutil"
@@ -28,6 +29,7 @@ const (
 	keyGatewayRefs = "net_gateway_refs"
 	keyProbeMAC    = "net_dhcp_probe_mac"
 	keyDHCPProbe   = "net_dhcp_probe"
+	keyDNSCheck    = "net_dns_check"
 	maxDHCPServers = 16
 	// dhcpWindow: servers not seen for this long no longer count.
 	dhcpWindow = 7 * 24 * time.Hour
@@ -80,11 +82,18 @@ type DHCPProbe struct {
 	Answers int   `json:"answers"`
 }
 
+// DNSCheck is the outcome of the last check of the DNS servers (docs/10, F2).
+type DNSCheck struct {
+	At      int64             `json:"at"`
+	Results []dnscheck.Result `json:"results"`
+}
+
 // NetworkState is what the security evaluation and the UI read.
 type NetworkState struct {
 	Gateways    []GatewayRef `json:"gateways"`
 	DHCPServers []DHCPServer `json:"dhcpServers"`
 	Probe       *DHCPProbe   `json:"probe,omitempty"`
+	DNS         *DNSCheck    `json:"dns,omitempty"`
 }
 
 func vendorOf(mac string) string {
@@ -109,6 +118,10 @@ func (m *Monitor) loadNetwork(ctx context.Context) {
 	var probe DHCPProbe
 	if err := m.st.GetSetting(ctx, keyDHCPProbe, &probe); err == nil && probe.At > 0 {
 		m.dhcpProbe = &probe
+	}
+	var dns DNSCheck
+	if err := m.st.GetSetting(ctx, keyDNSCheck, &dns); err == nil && dns.At > 0 {
+		m.dnsCheck = &dns
 	}
 	// One fixed, locally administered client MAC per installation for the
 	// active DHCP check, so routers do not collect a new entry every time.
@@ -316,6 +329,53 @@ func (m *Monitor) ObserveDHCPProbe(ctx context.Context, answers []l2.DHCPAnswer)
 	m.softwareChanged()
 }
 
+// SetDNSCheck stores the outcome of a DNS check.
+func (m *Monitor) SetDNSCheck(ctx context.Context, results []dnscheck.Result) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if results == nil {
+		results = []dnscheck.Result{}
+	}
+	m.dnsCheck = &DNSCheck{At: m.nowMS(), Results: results}
+	_ = m.st.SetSetting(ctx, keyDNSCheck, m.dnsCheck)
+}
+
+// DNSServers are the resolvers the home network uses: what the DHCP servers
+// hand out, and the router itself. IPv4 only, at most four.
+func (m *Monitor) DNSServers() []netip.Addr {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	seen := map[netip.Addr]bool{}
+	var out []netip.Addr
+	add := func(s string) {
+		ip, err := netip.ParseAddr(s)
+		if err != nil || !ip.Is4() || ip.IsLoopback() || ip.IsUnspecified() || ip.IsMulticast() || seen[ip] || len(out) >= 4 {
+			return
+		}
+		seen[ip] = true
+		out = append(out, ip)
+	}
+	ids := make([]string, 0, len(m.dhcpServers))
+	for id := range m.dhcpServers {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		for _, d := range m.dhcpServers[id].DNS {
+			add(d)
+		}
+	}
+	gws := make([]string, 0, len(m.gateways))
+	for ip := range m.gateways {
+		gws = append(gws, ip.String())
+	}
+	sort.Strings(gws)
+	for _, g := range gws {
+		add(g)
+	}
+	return out
+}
+
 // macActiveElsewhere reports whether mac was seen recently at another address.
 func (m *Monitor) macActiveElsewhere(mac string, ip netip.Addr) bool {
 	e := m.byIdent[mac]
@@ -330,6 +390,10 @@ func (m *Monitor) Network() NetworkState {
 	if m.dhcpProbe != nil {
 		p := *m.dhcpProbe
 		st.Probe = &p
+	}
+	if m.dnsCheck != nil {
+		d := *m.dnsCheck
+		st.DNS = &d
 	}
 	for _, r := range m.gatewayRefs {
 		st.Gateways = append(st.Gateways, *r)

@@ -122,6 +122,7 @@ type Monitor struct {
 	gatewayRefs map[string]*GatewayRef // router address -> reference MAC
 	netChanged  bool
 	dhcpProbe   *DHCPProbe          // last active DHCP check
+	dnsCheck    *DNSCheck           // last check of the DNS servers
 	probeMAC    net.HardwareAddr    // client MAC of the active DHCP check, never a device
 	baseline    map[int64]*dhcpBase // DHCP operating system family per device (F2)
 }
