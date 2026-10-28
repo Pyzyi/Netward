@@ -10,7 +10,7 @@ import (
 	"github.com/Pyzyi/Netward/internal/tripwire"
 )
 
-// CheckTripwire marks a device that connected to one of Netzwart's decoy
+// CheckTripwire marks a device that connected to one of Netward's decoy
 // services (docs/10, F3). One finding per device, whatever ports it tried,
 // so a port scan raises one alarm and not twenty.
 const CheckTripwire = "tripwire"

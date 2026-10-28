@@ -221,8 +221,8 @@ func (s *Server) noteProxy(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if forwarded(r) && !s.trustedProxy(remoteIP(r)) {
 			s.proxyWarn.Do(func() {
-				s.d.Log.Warn("requests arrive through a reverse proxy that is not in NETZWART_TRUSTED_PROXIES",
-					"proxy", remoteIP(r).String(), "hint", "add the proxy address so Netzwart sees the real client addresses")
+				s.d.Log.Warn("requests arrive through a reverse proxy that is not in NETWARD_TRUSTED_PROXIES",
+					"proxy", remoteIP(r).String(), "hint", "add the proxy address so Netward sees the real client addresses")
 			})
 		}
 		next.ServeHTTP(w, r)
@@ -309,7 +309,7 @@ func (s *Server) checkHost(next http.Handler) http.Handler {
 		if !HostAllowed(r.Host, s.d.Env.AllowedHosts) {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.WriteHeader(http.StatusMisdirectedRequest)
-			_, _ = io.WriteString(w, "This host name is not allowed. If you use a reverse proxy, add it to NETZWART_ALLOWED_HOSTS.\n")
+			_, _ = io.WriteString(w, "This host name is not allowed. If you use a reverse proxy, add it to NETWARD_ALLOWED_HOSTS.\n")
 			return
 		}
 		next.ServeHTTP(w, r)

@@ -113,7 +113,7 @@ func smb2Negotiate() []byte {
 	binary.LittleEndian.PutUint16(body[0:], 36)
 	binary.LittleEndian.PutUint16(body[2:], uint16(len(dialects)))
 	binary.LittleEndian.PutUint16(body[4:], 1) // signing enabled
-	copy(body[12:28], "Netzwart-probe-1")      // client GUID
+	copy(body[12:28], "Netward-probe-1")       // client GUID
 	for _, d := range dialects {
 		body = binary.LittleEndian.AppendUint16(body, d)
 	}

@@ -1,14 +1,14 @@
-# Netzwart for the CasaOS / ZimaOS app store (IceWhaleTech/CasaOS-AppStore, Apps/Netzwart).
+# Netward for the CasaOS / ZimaOS app store (IceWhaleTech/CasaOS-AppStore, Apps/Netward).
 # Also works as a custom app: App Store → "+" → "Install a customized app" → "Import".
-name: netzwart
+name: netward
 services:
-  netzwart:
+  netward:
     image: ghcr.io/pyzyi/netward:0.3.3
-    container_name: netzwart
+    container_name: netward
     restart: unless-stopped
     # Layer-2 discovery (ARP, DHCP, mDNS) only works on the host network.
     network_mode: host
-    # Netzwart opens its sockets with these, hands /data to UID 10001 and then
+    # Netward opens its sockets with these, hands /data to UID 10001 and then
     # drops every capability; at runtime it has none.
     cap_drop:
       - ALL
@@ -22,7 +22,7 @@ services:
     read_only: true
     environment:
       TZ: $TZ
-      NETZWART_PORT: "8840"
+      NETWARD_PORT: "8840"
     volumes:
       - type: bind
         source: /DATA/AppData/$AppID
@@ -37,7 +37,7 @@ services:
           description:
             en_US: Time zone
             de_DE: Zeitzone
-        - container: NETZWART_PORT
+        - container: NETWARD_PORT
           description:
             en_US: Port of the web interface
             de_DE: Port der Weboberfläche
@@ -51,23 +51,23 @@ x-casaos:
   architectures:
     - amd64
     - arm64
-  main: netzwart
+  main: netward
   author: Pyzyi
-  developer: Netzwart
+  developer: Netward
   category: Networking
-  icon: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/icon.svg
-  thumbnail: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/thumbnail.png
+  icon: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/icon.svg
+  thumbnail: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/thumbnail.png
   screenshot_link:
-    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-1.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-2.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-3.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-4.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/screenshot-1.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/screenshot-2.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/screenshot-3.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netward/screenshot-4.png
   tagline:
     en_US: See every device on your home network
     de_DE: Jedes Gerät in deinem Heimnetz im Blick
   description:
     en_US: |
-      Netzwart finds every device on your home network and gives it a readable name and icon. It shows who is online and tells you when an unknown device appears or the internet goes down. The overview draws your network as a ring around the router.
+      Netward finds every device on your home network and gives it a readable name and icon. It shows who is online and tells you when an unknown device appears or the internet goes down. The overview draws your network as a ring around the router.
 
       It also checks your network for the usual weak spots: open Telnet or RDP, devices that no longer get security updates, a second DHCP server, ARP spoofing of the router address and known exploited vulnerabilities in Apple devices. Every finding comes with plain advice on what to do.
 
@@ -75,7 +75,7 @@ x-casaos:
 
       No cloud, no subscription, no telemetry. The container is read-only and runs without any Linux capabilities after start-up.
     de_DE: |
-      Netzwart findet alle Geräte in deinem Heimnetz und gibt ihnen verständliche Namen und Symbole. Es zeigt, wer gerade online ist, und meldet sich, wenn ein unbekanntes Gerät auftaucht oder das Internet ausfällt. Die Übersicht zeigt dein Netz als Ring um den Router.
+      Netward findet alle Geräte in deinem Heimnetz und gibt ihnen verständliche Namen und Symbole. Es zeigt, wer gerade online ist, und meldet sich, wenn ein unbekanntes Gerät auftaucht oder das Internet ausfällt. Die Übersicht zeigt dein Netz als Ring um den Router.
 
       Dazu prüft es das Netz auf typische Schwachstellen: offenes Telnet oder RDP, Geräte ohne Sicherheitsupdates, einen zweiten DHCP-Server, ARP-Spoofing der Router-Adresse und bekannte, ausgenutzte Lücken in Apple-Geräten. Jeder Befund kommt mit einem konkreten Rat.
 
@@ -83,13 +83,13 @@ x-casaos:
 
       Ohne Cloud, ohne Abo, ohne Telemetrie. Der Container ist schreibgeschützt und läuft nach dem Start ohne Linux-Capabilities.
   title:
-    en_US: Netzwart
+    en_US: Netward
   tips:
     before_install:
       en_US: |
-        There is no default password. After installing, open Netzwart **within 30 minutes** and create your account (only possible from your local network). If you miss that window, restart the app.
+        There is no default password. After installing, open Netward **within 30 minutes** and create your account (only possible from your local network). If you miss that window, restart the app.
       de_DE: |
-        Es gibt kein Standardpasswort. Öffne Netzwart nach der Installation **innerhalb von 30 Minuten** und lege dein Konto an (nur aus dem lokalen Netz möglich). Wer das verpasst, startet die App einfach neu.
+        Es gibt kein Standardpasswort. Öffne Netward nach der Installation **innerhalb von 30 Minuten** und lege dein Konto an (nur aus dem lokalen Netz möglich). Wer das verpasst, startet die App einfach neu.
   index: /
   port_map: "8840"
   scheme: http

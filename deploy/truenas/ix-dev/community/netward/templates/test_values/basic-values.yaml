@@ -1,9 +1,9 @@
 TZ: Europe/Berlin
 
-netzwart:
+netward:
   interfaces: ""
   additional_envs:
-    - name: NETZWART_LOG_LEVEL
+    - name: NETWARD_LOG_LEVEL
       value: debug
 
 run_as:

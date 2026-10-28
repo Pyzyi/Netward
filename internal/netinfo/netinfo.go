@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-// Interface is a network interface Netzwart can scan.
+// Interface is a network interface Netward can scan.
 type Interface struct {
 	Name   string           `json:"name"`
 	Index  int              `json:"-"`

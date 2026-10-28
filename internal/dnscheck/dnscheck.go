@@ -77,7 +77,7 @@ type Result struct {
 	Missing Answer `json:"missing"`
 }
 
-// Dialer opens the connection to the server (the egress policy in Netzwart).
+// Dialer opens the connection to the server (the egress policy in Netward).
 type Dialer func(ctx context.Context, network, address string) (net.Conn, error)
 
 // Check asks server the probe questions. port is 53 except in tests.
@@ -198,5 +198,5 @@ func toStrings(ips []netip.Addr) []string {
 func randomLabel() string {
 	b := make([]byte, 8)
 	_, _ = rand.Read(b)
-	return "netzwart-" + hex.EncodeToString(b)
+	return "netward-" + hex.EncodeToString(b)
 }

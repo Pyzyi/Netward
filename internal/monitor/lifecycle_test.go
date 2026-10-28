@@ -39,7 +39,7 @@ func TestHistoryRecordsOutageOfAlwaysOnDevice(t *testing.T) {
 	}
 }
 
-func TestHistorySkipsOutageWhileNetzwartWasDown(t *testing.T) {
+func TestHistorySkipsOutageWhileNetwardWasDown(t *testing.T) {
 	e := newEnv(t)
 	e.sweep(map[byte][]byte{10: {10}})
 	nas := e.m.Devices()[0]
@@ -48,7 +48,7 @@ func TestHistorySkipsOutageWhileNetzwartWasDown(t *testing.T) {
 	start := e.clk.Now()
 	e.clk.Add(2 * time.Hour)
 	e.m.SweepOffline(e.ctx)
-	// Netzwart itself was not running for part of that time.
+	// Netward itself was not running for part of that time.
 	if err := e.st.AddGap(e.ctx, start.Add(30*time.Minute).UnixMilli(), start.Add(90*time.Minute).UnixMilli()); err != nil {
 		t.Fatal(err)
 	}

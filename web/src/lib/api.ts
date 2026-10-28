@@ -35,7 +35,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 async function download(path: string, body: unknown): Promise<{ blob: Blob; name: string }> {
   const res = await send('POST', path, body);
   const m = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '');
-  return { blob: await res.blob(), name: m?.[1] ?? 'netzwart' };
+  return { blob: await res.blob(), name: m?.[1] ?? 'netward' };
 }
 
 /** Headers for a request that changes something (CSRF protection). */

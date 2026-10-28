@@ -45,7 +45,28 @@ import (
 )
 
 // DBPath returns the database file inside the data directory.
-func DBPath(env config.Env) string { return filepath.Join(env.DataDir, "netzwart.db") }
+func DBPath(env config.Env) string { return filepath.Join(env.DataDir, "netward.db") }
+
+// AdoptOldDB takes over the database of an installation from before the
+// rename (netzwart.db, 0.3.x), including its WAL files, if there is no
+// netward.db yet.
+func AdoptOldDB(env config.Env, log *slog.Logger) {
+	newPath := DBPath(env)
+	oldPath := filepath.Join(env.DataDir, "netzwart.db")
+	if _, err := os.Stat(newPath); err == nil {
+		return
+	}
+	if _, err := os.Stat(oldPath); err != nil {
+		return
+	}
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		if err := os.Rename(oldPath+suffix, newPath+suffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Error("cannot take over the old database", "file", oldPath+suffix, "err", err)
+			return
+		}
+	}
+	log.Info("database of the earlier version taken over", "from", oldPath, "to", newPath)
+}
 
 // LoadSettings reads settings from the store on top of the defaults, so new
 // fields added in later versions get their default values.
@@ -84,13 +105,14 @@ type Options struct {
 	Log     *slog.Logger
 }
 
-// Run starts Netzwart and blocks until ctx ends or a fatal error occurs.
+// Run starts Netward and blocks until ctx ends or a fatal error occurs.
 func Run(ctx context.Context, o Options) error {
 	log := o.Log
 	env := o.Env
 	if err := privdrop.CheckDataDir(env.DataDir); err != nil {
 		return err
 	}
+	AdoptOldDB(env, log)
 	st, err := store.Open(ctx, DBPath(env))
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
@@ -352,7 +374,7 @@ func Run(ctx context.Context, o Options) error {
 	if env.Demo {
 		mode = "demo"
 	}
-	log.Info("Netzwart is running", "version", o.Version, "url", fmt.Sprintf("%s://<server-ip>:%d", scheme, env.Port),
+	log.Info("Netward is running", "version", o.Version, "url", fmt.Sprintf("%s://<server-ip>:%d", scheme, env.Port),
 		"mode", mode, "uid", os.Getuid(), "capabilities", o.Priv.CapEff)
 
 	var runErr error
@@ -437,7 +459,7 @@ func backup(ctx context.Context, env config.Env, st *store.Store) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	name := filepath.Join(dir, "netzwart-"+time.Now().Format("2006-01-02")+".db")
+	name := filepath.Join(dir, "netward-"+time.Now().Format("2006-01-02")+".db")
 	_ = os.Remove(name)
 	if err := st.Backup(ctx, name); err != nil {
 		return err
@@ -445,7 +467,7 @@ func backup(ctx context.Context, env config.Env, st *store.Store) error {
 	entries, _ := os.ReadDir(dir)
 	var files []string
 	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "netzwart-") && strings.HasSuffix(e.Name(), ".db") {
+		if strings.HasPrefix(e.Name(), "netward-") && strings.HasSuffix(e.Name(), ".db") {
 			files = append(files, e.Name())
 		}
 	}

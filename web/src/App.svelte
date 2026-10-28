@@ -35,7 +35,7 @@
     overview: 'nav.overview', devices: 'nav.devices', activity: 'nav.activity', security: 'nav.security', settings: 'nav.settings', wlan: 'wlan.title', wifimap: 'wifimap.title', persons: 'persons.page',
   };
   $effect(() => {
-    document.title = auth.state?.authenticated ? `${t(titles[router.route.name])} · Netzwart` : 'Netzwart';
+    document.title = auth.state?.authenticated ? `${t(titles[router.route.name])} · Netward` : 'Netward';
   });
 </script>
 

@@ -1,7 +1,7 @@
 // Package discovery asks devices what they are called and what they offer:
 // reverse DNS, NetBIOS node status, mDNS/DNS-SD and SSDP/UPnP.
 //
-// All queries are sent from ephemeral ports so Netzwart never has to bind
+// All queries are sent from ephemeral ports so Netward never has to bind
 // 137, 1900 or 5353 and cannot conflict with Avahi or Samba on the host.
 package discovery
 
@@ -292,7 +292,7 @@ func FetchDescription(ctx context.Context, client *http.Client, u *url.URL) (pro
 	if err != nil {
 		return proto.UPnPDevice{}, err
 	}
-	req.Header.Set("User-Agent", "Netzwart/1 UPnP/1.1")
+	req.Header.Set("User-Agent", "Netward/1 UPnP/1.1")
 	resp, err := client.Do(req)
 	if err != nil {
 		return proto.UPnPDevice{}, err

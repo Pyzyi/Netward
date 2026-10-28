@@ -251,7 +251,7 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request, _ *session
 	stamp := s.now().Format("2006-01-02")
 	switch r.URL.Query().Get("format") {
 	case "json":
-		w.Header().Set("Content-Disposition", `attachment; filename="netzwart-`+stamp+`.json"`)
+		w.Header().Set("Content-Disposition", `attachment; filename="netward-`+stamp+`.json"`)
 		writeJSON(w, http.StatusOK, map[string]any{"exportedAt": s.now().UTC().Format(time.RFC3339), "version": s.d.Version, "devices": devs})
 	default:
 		var buf bytes.Buffer
@@ -274,7 +274,7 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request, _ *session
 		}
 		cw.Flush()
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-		w.Header().Set("Content-Disposition", `attachment; filename="netzwart-`+stamp+`.csv"`)
+		w.Header().Set("Content-Disposition", `attachment; filename="netward-`+stamp+`.csv"`)
 		_, _ = w.Write(buf.Bytes())
 	}
 }

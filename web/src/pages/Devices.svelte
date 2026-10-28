@@ -16,7 +16,7 @@
 
   function pref<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
     try {
-      const v = localStorage.getItem(`netzwart.${key}`) as T | null;
+      const v = localStorage.getItem(`netward.${key}`) as T | null;
       if (v && allowed.includes(v)) return v;
     } catch {
       /* ignore */
@@ -25,7 +25,7 @@
   }
   function savePref(key: string, v: string) {
     try {
-      localStorage.setItem(`netzwart.${key}`, v);
+      localStorage.setItem(`netward.${key}`, v);
     } catch {
       /* ignore */
     }

@@ -1,7 +1,7 @@
 // Package pdf writes simple, valid PDF 1.4 documents: A4 pages with text in
 // the standard fonts Helvetica and Helvetica-Bold, lines, rectangles and
 // colours. That is all the provider report needs (docs/09, F5), and it
-// keeps Netzwart free of a PDF dependency.
+// keeps Netward free of a PDF dependency.
 //
 // Text is encoded in WinAnsi (Windows-1252), which covers German; other
 // characters become "?". Strings are written as hex, so no character of
@@ -200,7 +200,7 @@ func (d *Document) Write(w io.Writer) error {
 	if created.IsZero() {
 		created = time.Now()
 	}
-	obj(fmt.Sprintf("<< /Title <%s> /Author <%s> /Producer (Netzwart) /CreationDate (D:%s) >>",
+	obj(fmt.Sprintf("<< /Title <%s> /Author <%s> /Producer (Netward) /CreationDate (D:%s) >>",
 		utf16Hex(d.Title), utf16Hex(d.Author), created.UTC().Format("20060102150405")+"Z"))
 	for i, p := range d.pages {
 		obj(fmt.Sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %s %s] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents %d 0 R >>",

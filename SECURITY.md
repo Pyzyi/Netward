@@ -15,7 +15,7 @@ in dem du genannt wirst, wenn du möchtest.
 
 Sicherheitsupdates gibt es für die jeweils neueste Version (`latest` und das neueste `vX.Y`-Tag).
 
-## Was Netzwart schützt
+## Was Netward schützt
 
 Die vollständige Analyse steht im [Bedrohungsmodell](docs/03-bedrohungsmodell.md) (STRIDE, 29 Bedrohungen mit
 Gegenmaßnahme und Nachweis). Kurzfassung:
@@ -28,7 +28,7 @@ Gegenmaßnahme und Nachweis). Kurzfassung:
 - **Daten aus dem Netz** (Hostnamen, mDNS, UPnP, DHCP) gelten als feindlich: Parser sind gefuzzt, Texte werden
   bereinigt und je Ausgabekanal passend kodiert (HTML, Telegram, Discord, Slack, E-Mail-Header, CSV, MQTT).
 - **Ausgehende Verbindungen** (Webhooks, MQTT, UPnP-Beschreibungen, FRITZ!Box) laufen über eine zentrale Richtlinie,
-  die Loopback, Link-Local und Multicast verbietet. So kann niemand über Netzwart Dienste auf dem Host selbst erreichen.
+  die Loopback, Link-Local und Multicast verbietet. So kann niemand über Netward Dienste auf dem Host selbst erreichen.
 - **Container:** Läuft als UID 10001 ohne Linux-Capabilities, schreibgeschütztes Dateisystem, Image ohne Shell.
   Images sind für amd64/arm64 gebaut, mit SBOM und Provenance versehen und mit Sigstore cosign signiert.
 
@@ -43,5 +43,5 @@ cosign verify ghcr.io/pyzyi/netward:latest \
 ## Bekannte Grenzen
 
 Siehe „Restrisiken“ im [Bedrohungsmodell](docs/03-bedrohungsmodell.md#4-restrisiken-akzeptiert), insbesondere:
-HTTP im LAN ist Standard (HTTPS über `NETZWART_TLS_CERT`/`_KEY` oder Reverse-Proxy), und das Host-Netzwerk ist für
+HTTP im LAN ist Standard (HTTPS über `NETWARD_TLS_CERT`/`_KEY` oder Reverse-Proxy), und das Host-Netzwerk ist für
 Layer-2-Erkennung technisch nötig.

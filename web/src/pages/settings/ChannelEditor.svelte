@@ -76,7 +76,7 @@
       { key: 'port', label: 'channel.field.port', type: 'number', placeholder: '587' },
       { key: 'username', label: 'channel.field.username' },
       { key: 'password', label: 'channel.field.password', secret: true },
-      { key: 'from', label: 'channel.field.from', placeholder: 'netzwart@example.org' },
+      { key: 'from', label: 'channel.field.from', placeholder: 'netward@example.org' },
       { key: 'to', label: 'channel.field.to' },
     ],
   };

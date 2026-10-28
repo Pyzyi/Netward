@@ -56,7 +56,7 @@ func takeProbeSlot(w http.ResponseWriter) bool {
 }
 
 // handleWifiPing answers the latency test. With ?check=1 it says whether
-// the browser runs on the Netzwart host itself (or behind an untrusted proxy
+// the browser runs on the Netward host itself (or behind an untrusted proxy
 // there), where measuring the Wi-Fi makes no sense; asked before measuring.
 func (s *Server) handleWifiPing(w http.ResponseWriter, r *http.Request, _ *sessionInfo) {
 	if r.URL.Query().Has("check") {
@@ -293,7 +293,7 @@ func (s *Server) handleAddWifiPoint(w http.ResponseWriter, r *http.Request, _ *s
 		writeError(w, http.StatusBadRequest, "invalid_input", "")
 		return
 	}
-	// Measured on the Netzwart host itself, the Wi-Fi is not involved at all.
+	// Measured on the Netward host itself, the Wi-Fi is not involved at all.
 	if s.measuredLocally(r) {
 		writeError(w, http.StatusBadRequest, "measure_local", "")
 		return

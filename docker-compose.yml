@@ -1,16 +1,16 @@
-# Netzwart – Netzwerk-Wächter für dein Heimnetz.
+# Netward – Netzwerk-Wächter für dein Heimnetz.
 # ZimaOS: App Store → „+“ → „Benutzerdefinierte App installieren“ → „Importieren“ → diese Datei einfügen.
 # Andere Systeme: `docker compose up -d`, danach http://<server-ip>:8840 öffnen.
-name: netzwart
+name: netward
 
 services:
-  netzwart:
+  netward:
     image: ghcr.io/pyzyi/netward:latest
-    container_name: netzwart
+    container_name: netward
     restart: unless-stopped
     # Layer-2-Scans (ARP, DHCP, mDNS) funktionieren nur im Netzwerk des Hosts.
     network_mode: host
-    # Minimale Rechte: Netzwart öffnet damit seine Sockets und gibt danach
+    # Minimale Rechte: Netward öffnet damit seine Sockets und gibt danach
     # alle Rechte ab (läuft als UID 10001 ohne Capabilities).
     cap_drop:
       - ALL
@@ -19,27 +19,27 @@ services:
       - SETUID
       - SETGID
       - NET_RAW
-      # Optional, nur für Stolperdraht-Köder auf Ports unter 1024 (NETZWART_TRIPWIRE_PORTS):
+      # Optional, nur für Stolperdraht-Köder auf Ports unter 1024 (NETWARD_TRIPWIRE_PORTS):
       # - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
     read_only: true
     environment:
       TZ: Europe/Berlin
-      NETZWART_PORT: "8840"
+      NETWARD_PORT: "8840"
       # Optional: zusätzliche Hostnamen hinter einem Reverse-Proxy
-      # NETZWART_ALLOWED_HOSTS: netzwart.example.com
+      # NETWARD_ALLOWED_HOSTS: netward.example.com
       # Optional: Stolperdraht-Köder auf Ports unter 1024 (braucht NET_BIND_SERVICE oben)
-      # NETZWART_TRIPWIRE_PORTS: "23,445"
+      # NETWARD_TRIPWIRE_PORTS: "23,445"
     volumes:
-      - /DATA/AppData/netzwart:/data
+      - /DATA/AppData/netward:/data
     x-casaos:
       envs:
         - container: TZ
           description:
             de_de: Zeitzone
             en_us: Time zone
-        - container: NETZWART_PORT
+        - container: NETWARD_PORT
           description:
             de_de: Port der Weboberfläche
             en_us: Web UI port
@@ -53,20 +53,20 @@ x-casaos:
   architectures:
     - amd64
     - arm64
-  main: netzwart
+  main: netward
   author: Pyzyi
-  developer: Netzwart
+  developer: Netward
   category: Network
   icon: https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png
   tagline:
     de_de: Jedes Gerät in deinem Netz im Blick
     en_us: Every device on your network at a glance
   description:
-    de_de: Netzwart erkennt alle Geräte im Heimnetz, zeigt wer online ist, meldet neue Geräte und prüft das Netz auf typische Schwachstellen. Ohne Cloud, ohne Abo.
-    en_us: Netzwart discovers every device on your home network, shows who is online, alerts you about new devices and checks the network for common weaknesses. No cloud, no subscription.
+    de_de: Netward erkennt alle Geräte im Heimnetz, zeigt wer online ist, meldet neue Geräte und prüft das Netz auf typische Schwachstellen. Ohne Cloud, ohne Abo.
+    en_us: Netward discovers every device on your home network, shows who is online, alerts you about new devices and checks the network for common weaknesses. No cloud, no subscription.
   title:
-    de_de: Netzwart
-    en_us: Netzwart
+    de_de: Netward
+    en_us: Netward
   index: /
   port_map: "8840"
   scheme: http

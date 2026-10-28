@@ -1,12 +1,12 @@
 # Änderungen
 
-Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
+Alle nennenswerten Änderungen an Netward. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
 ## 0.3.3 – 2026-10-28
 
 ### Sicherheit
-- Ersteinrichtung über einen Reverse-Proxy nur von vertrauten Proxys (`NETZWART_TRUSTED_PROXIES`).
+- Ersteinrichtung über einen Reverse-Proxy nur von vertrauten Proxys (`NETWARD_TRUSTED_PROXIES`).
 - Login-Bremse gegen Fluten mit vielen Adressen/Namen gehärtet (IPv6 je /64, feste Grenze).
 - Benachrichtigungen ohne Weiterleitungen; FRITZ!Box-Sitzungs-ID nicht mehr im Log; Ping nur mit Antworten vom
   Ziel; Live-Strom mit absoluter Sitzungsdauer; Cloud-Metadaten-Dienste gesperrt; Warnung bei nicht vertrautem Proxy.
@@ -22,13 +22,13 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 ## 0.3.2 – 2026-10-28
 
 ### Neu
-- **WLAN-Karte:** Grundriss hochladen, mit dem Handy durch die Wohnung gehen und antippen, wo man steht. Netzwart
-  misst Reaktionszeit, Download und Upload zwischen Handy und Netzwart (ohne Router-Zugang) und zeichnet eine Karte
+- **WLAN-Karte:** Grundriss hochladen, mit dem Handy durch die Wohnung gehen und antippen, wo man steht. Netward
+  misst Reaktionszeit, Download und Upload zwischen Handy und Netward (ohne Router-Zugang) und zeichnet eine Karte
   mit Hinweisen wie „Im Kinderzimmer nur 38 Mbit/s, ein Verstärker im Flur würde helfen“. Mit FRITZ!Box kommen Band
   und Signal dazu. Fotos werden im Browser verkleinert und neu kodiert (ohne Standortdaten).
 - **Stolperdraht** (standardmäßig aus): Köder-Ports, die wie Telnet, Remotedesktop, ADB, VNC oder ein Kamera-Login
   aussehen. Jede Verbindung aus dem Heimnetz ist ein kritischer Befund mit Benachrichtigung. Ports unter 1024 über
-  `NETZWART_TRIPWIRE_PORTS` (braucht `cap_add: NET_BIND_SERVICE`). Ausnahmen für eigene Scanner.
+  `NETWARD_TRIPWIRE_PORTS` (braucht `cap_add: NET_BIND_SERVICE`). Ausnahmen für eigene Scanner.
 - **Angriffserkennung im LAN:** neue Übersicht auf der Sicherheitsseite (Router-Adresse, Adressvergabe, DNS,
   Stolperdraht). Neu ist die DNS-Prüfung im Sicherheitscheck: Liefert ein DNS-Server im Netz falsche Adressen für
   bekannte Namen, gibt es einen kritischen Befund; leitet er nicht existierende Namen um, eine Warnung. Sperren durch
@@ -37,7 +37,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
   Sie bleibt auch nach Ablauf der Aufbewahrungsfrist erhalten.
 - **Inventar:** Kaufdatum, Garantie und Seriennummer je Gerät, auch im CSV-Export.
 - README auf Englisch als Startseite, Deutsch in `README.de.md`; englische Screenshots.
-- `NETZWART_DEMO=en` startet die Demo mit englischen Geräte- und Personennamen.
+- `NETWARD_DEMO=en` startet die Demo mit englischen Geräte- und Personennamen.
 - Vorbereitete Einträge für die App-Stores von CasaOS/ZimaOS, Unraid und TrueNAS in `deploy/`.
 - Beitragsleitfaden (`CONTRIBUTING.md`) und Issue-Vorlagen.
 
@@ -66,7 +66,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 - Home Assistant (MQTT): Nach dem Start brach die erste Verbindung sofort wieder ab und kam erst nach 5 Sekunden zurück.
 
 ### Neu
-- Zweiter DHCP-Server: Netzwart merkt sich passiv, welche Geräte Adressen verteilen, und meldet einen weiteren Verteiler – kritisch, wenn er einen anderen Router oder DNS-Server vorgibt. „Diesen Server kenne ich“ bestätigt bewusst betriebene Server (z. B. Pi-hole).
+- Zweiter DHCP-Server: Netward merkt sich passiv, welche Geräte Adressen verteilen, und meldet einen weiteren Verteiler – kritisch, wenn er einen anderen Router oder DNS-Server vorgibt. „Diesen Server kenne ich“ bestätigt bewusst betriebene Server (z. B. Pi-hole).
 - Router-Adresse: Antworten zwei Geräte auf die Router-Adresse oder gehört sie plötzlich einer anderen Hardware, gibt es einen Sicherheitshinweis (ARP-Spoofing-Erkennung). „Das ist mein neuer Router“ übernimmt einen echten Router-Tausch.
 - Aktive DHCP-Prüfung im Sicherheitscheck: ein einzelner DHCPDISCOVER (Broadcast, feste lokale Kennung je Installation, kein REQUEST, nur IPv4) findet auch DHCP-Server, die passiv nicht auffallen. Antworten zählen nur mit passender Transaktions-ID. Abschaltbar unter Einstellungen → Scannen.
 - Sicherheitsseite: Übersicht „Router und Adressvergabe“ mit Router-Kennung, bekannten DHCP-Servern und letzter aktiver Prüfung.
@@ -74,7 +74,7 @@ vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub s
 - Internet-Verlauf für den Provider-Nachweis: Latenz wird in 5-Minuten-Abschnitten (Median, Höchstwert, Verluste) so lange wie der übrige Verlauf aufbewahrt, Ausfälle bekommen ihre Art (Router antwortete nicht / Internet / DNS). Fiel der Router selbst aus, zählt das nicht gegen den Provider; DNS-Störungen werden nur notiert, nicht gemeldet.
 - Leitungsdaten aus der FRITZ!Box (jede Minute gelesen, bei Änderung und stündlich gespeichert): Zugangsart, Sync-Raten, bei DSL die möglichen Raten, Neueinwahlen. Anzeige unter Einstellungen → Internet.
 - Nachweis-Bericht für den Provider (Einstellungen → Internet): PDF mit Verfügbarkeit, allen Störungen nach Art, Latenz je Tag, Sync-Raten gegen die Vertragswerte (maximal/normalerweise/minimal) mit Diagrammen; dazu die Rohdaten als CSV, deren SHA-256 im PDF steht. Name, Kundennummer und Anschrift landen nur im PDF und werden nicht gespeichert. Der Bericht weist darauf hin, dass für eine Minderung nach § 57 TKG die Breitbandmessung der Bundesnetzagentur maßgeblich ist. Eigener kleiner PDF-Schreiber, im CI mit `qpdf --check` geprüft.
-- Bekannte, aktiv ausgenutzte Lücken offline abgleichen: Netzwart bringt einen Schnappschuss des CISA-KEV-Katalogs mit den betroffenen Versionen aus den CVE-Datensätzen mit (iOS, iPadOS, macOS, tvOS; Stand im Gerätedetail, Warnung ab 90 Tagen). Bei genauer Version (z. B. tvOS 26.4 per AirPlay oder eine genaue eigene Angabe wie 18.6.2) gibt es einen kritischen Hinweis mit den CVEs und der Version, die sie behebt; bei eigenen Angaben stattdessen die Frage, ob die Version noch stimmt. Netzwart sagt nie „keine Lücken“.
+- Bekannte, aktiv ausgenutzte Lücken offline abgleichen: Netward bringt einen Schnappschuss des CISA-KEV-Katalogs mit den betroffenen Versionen aus den CVE-Datensätzen mit (iOS, iPadOS, macOS, tvOS; Stand im Gerätedetail, Warnung ab 90 Tagen). Bei genauer Version (z. B. tvOS 26.4 per AirPlay oder eine genaue eigene Angabe wie 18.6.2) gibt es einen kritischen Hinweis mit den CVEs und der Version, die sie behebt; bei eigenen Angaben stattdessen die Frage, ob die Version noch stimmt. Netward sagt nie „keine Lücken“.
 - Eigene Systemangabe: optional die genaue Version.
 - Personen statt Geräte: Personen anlegen, Geräte zuordnen, „Wer ist zu Hause“ auf der Übersicht („zu Hause seit …“ / „unterwegs seit …“). Die Zeit im Heimnetz je Tag ist pro Person einschaltbar und verlangt die Bestätigung, dass die Person Bescheid weiß. Home Assistant bekommt je Person auf Wunsch einen device_tracker (standardmäßig aus, mit derselben Bestätigung; IDs aus der Personennummer, nie aus dem Namen). Keine Kommen/Gehen-Benachrichtigungen.
 - Verhaltens-Baseline (bewusst klein): Fragt ein bekanntes Gerät, das seit mindestens einer Woche da ist und zweimal mit seinem System gesehen wurde, zweimal wie eine andere Systemfamilie nach einer Adresse (z. B. Windows statt Apple), gibt es einen Hinweis mit „Neu eingerichtet“ und „Kenne ich nicht“. Neu offene Ports erscheinen im Aktivitätsprotokoll, wenn zwei Port-Scans desselben Umfangs übereinstimmen.

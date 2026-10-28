@@ -3,7 +3,7 @@
 Stand: 28.10.2026 · Status: umgesetzt (Review 10 im [Review-Protokoll](07-review-protokoll.md))
 
 Vier Funktionen, **einzeln** umgesetzt, jede mit eigenen Tests, Demo-Daten, deutschen und englischen Texten und
-eigenem Commit. Alles bleibt defensiv: Netzwart beobachtet, fragt und stellt Köder auf, greift aber nie an und
+eigenem Commit. Alles bleibt defensiv: Netward beobachtet, fragt und stellt Köder auf, greift aber nie an und
 liest keinen fremden Datenverkehr mit.
 
 ## F1 · Geräte-Lebenslauf und Inventar
@@ -15,17 +15,17 @@ Für kleine Büros dazu Kaufdatum, Garantie und Seriennummer, also eine einfache
   Versionswechsel (Software-Erkennung), Ausfälle. Sie überdauert die Aufbewahrungsfrist der Ereignisse, ist aber je
   Gerät auf 500 Einträge begrenzt. Beim Zusammenführen zweier Geräte wandert die Chronik mit.
 - **Ausfälle** nur für Geräte, die durchlaufen sollten (Router, Zugangspunkt, Switch, Server, NAS, Kamera,
-  Smart Home, Steckdose), ab 30 Minuten und nicht, wenn Netzwart selbst in dieser Zeit nicht lief.
+  Smart Home, Steckdose), ab 30 Minuten und nicht, wenn Netward selbst in dieser Zeit nicht lief.
 - **Inventar:** Kaufdatum, Garantie bis (1980–2100) und Seriennummer (max. 64 Zeichen) im Gerätedetail; der
   CSV-Export enthält die Spalten. „Garantie endet in 24 Tagen“ bzw. „abgelaufen“ steht im Gerätedetail.
 - API: `GET /api/v1/devices/{id}/history`, Felder in `PATCH /api/v1/devices/{id}`.
 
 ## F2 · Angriffserkennung im LAN
 
-Netzwart erkannte schon ARP-Spoofing der Router-Adresse und zweite DHCP-Server (0.2). Neu ist die
+Netward erkannte schon ARP-Spoofing der Router-Adresse und zweite DHCP-Server (0.2). Neu ist die
 **DNS-Prüfung** und eine gemeinsame Übersicht „Angriffserkennung im LAN“ auf der Sicherheitsseite.
 
-- Im Sicherheitscheck fragt Netzwart jeden DNS-Server im Netz (vom DHCP-Server verteilt, sonst das Gateway,
+- Im Sicherheitscheck fragt Netward jeden DNS-Server im Netz (vom DHCP-Server verteilt, sonst das Gateway,
   höchstens vier) nach drei Namen mit fester, öffentlich bekannter Adresse (`one.one.one.one`, `dns.google`,
   `dns.quad9.net`) und nach einem zufälligen Namen unter `example.com`, den es nicht gibt.
 - **Bewertung:** falsche Adresse für einen bekannten Namen → Befund `dns_manipulated` (kritisch). Adresse für den
@@ -43,9 +43,9 @@ jemanden, der sich umsieht. Falsche Alarme sind fast ausgeschlossen.
 
 - Standardmäßig **aus**. Ports 2323 (Telnet), 3389 (RDP), 5555 (ADB), 5900 (VNC), in den Einstellungen
   1024–65535 frei wählbar (z. B. 8888 als Kamera-Login), höchstens 16, nie der Port der Weboberfläche. Nur Ports,
-  die auf dem Rechner kein anderes Programm braucht: Startet ein echter Dienst nach Netzwart, findet er seinen Port
+  die auf dem Rechner kein anderes Programm braucht: Startet ein echter Dienst nach Netward, findet er seinen Port
   belegt (darum ist 8081, der Port der ioBroker-Verwaltung, kein Standard).
-- **Ports unter 1024** (z. B. 23, 445) öffnet nur der Start über `NETZWART_TRIPWIRE_PORTS`, bevor die Rechte
+- **Ports unter 1024** (z. B. 23, 445) öffnet nur der Start über `NETWARD_TRIPWIRE_PORTS`, bevor die Rechte
   abgegeben werden; das braucht `cap_add: NET_BIND_SERVICE`. Danach hat der Prozess wie bisher keine
   Capabilities. Ausschalten schließt auch diese Ports; wieder öffnen geht erst nach einem Neustart.
 - **Verhalten des Köders:** eine Begrüßung wie der echte Dienst (z. B. `login:` oder eine HTTP-401-Seite mit
@@ -72,14 +72,14 @@ dem Handy und einem Grundriss.
   (PNG bleibt PNG, sonst JPEG). Das macht HEIC vom iPhone lesbar und entfernt Standortdaten aus Fotos. Der Server
   nimmt nur PNG/JPEG bis 8 MB und 6000 px je Seite an (Kopf wird gelesen, Format muss zum Content-Type passen),
   höchstens 10 Grundrisse mit je 200 Messpunkten (Migration 8).
-- **Messung im Browser** zwischen Handy und Netzwart: Reaktionszeit (zehn kleine Anfragen nach einer zum
+- **Messung im Browser** zwischen Handy und Netward: Reaktionszeit (zehn kleine Anfragen nach einer zum
   Aufwärmen, Median und Schwankung), Download (Datenstrom zufälliger Bytes, etwa drei Sekunden, die erste halbe
   Sekunde zählt nicht), Upload (wachsende Blöcke bis etwa drei Sekunden). Höchstens zwei Messungen gleichzeitig.
   Gemessen wird bewusst nicht das Internet (siehe [01](01-anforderungen.md), kein Speedtest).
-- **Gerät und Funk:** Netzwart erkennt das messende Gerät an der Adresse; mit FRITZ!Box kommen Band, Signal und
-  Zugangspunkt dazu. Messungen vom Netzwart-Rechner selbst werden abgelehnt (außer im Demo-Modus); der Browser fragt
+- **Gerät und Funk:** Netward erkennt das messende Gerät an der Adresse; mit FRITZ!Box kommen Band, Signal und
+  Zugangspunkt dazu. Messungen vom Netward-Rechner selbst werden abgelehnt (außer im Demo-Modus); der Browser fragt
   das vor der Messung ab. Hinter einem Reverse-Proxy auf demselben Rechner muss dieser in
-  `NETZWART_TRUSTED_PROXIES` stehen.
+  `NETWARD_TRUSTED_PROXIES` stehen.
 - **Bedienung:** Position per Tippen oder mit der Tastatur (Eingabe setzt einen Punkt, Pfeiltasten verschieben).
 - **Karte:** inverse Distanzgewichtung der Werte im Vergleich zur besten Stelle, zum Rand der Messpunkte hin
   ausgeblendet. Ist die schnellste Stelle mehr als doppelt so schnell wie die zweitbeste (z. B. am Kabel

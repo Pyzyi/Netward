@@ -276,7 +276,7 @@ func post(ctx context.Context, client *http.Client, method, u string, body io.Re
 		return &SendError{Reason: "invalid URL"}
 	}
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("User-Agent", "Netzwart")
+	req.Header.Set("User-Agent", "Netward")
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
@@ -370,7 +370,7 @@ func Send(ctx context.Context, client *http.Client, dialer *egress.Policy, kind 
 			"application/json", nil)
 	case ChanDiscord:
 		return post(ctx, client, http.MethodPost, c.URL, jsonBody(map[string]any{
-			"username": "Netzwart", "content": "**" + discordEscape(msg.Title) + "**\n" + discordEscape(msg.Body),
+			"username": "Netward", "content": "**" + discordEscape(msg.Title) + "**\n" + discordEscape(msg.Body),
 			"allowed_mentions": map[string]any{"parse": []string{}},
 		}), "application/json", nil)
 	case ChanSlack:
@@ -466,7 +466,7 @@ func sendMail(ctx context.Context, dialer contextDialer, c Config, msg Message) 
 		return &SendError{Reason: "SMTP DATA failed"}
 	}
 	var b strings.Builder
-	b.WriteString("From: Netzwart <" + headerSafe(c.From) + ">\r\n")
+	b.WriteString("From: Netward <" + headerSafe(c.From) + ">\r\n")
 	b.WriteString("To: " + headerSafe(strings.Join(to, ", ")) + "\r\n")
 	b.WriteString("Subject: " + mime.QEncoding.Encode("utf-8", headerSafe(msg.Title)) + "\r\n")
 	b.WriteString("Date: " + time.Now().Format(time.RFC1123Z) + "\r\n")

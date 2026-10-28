@@ -1,20 +1,20 @@
 groups:
-  - name: Netzwart Configuration
-    description: Configure Netzwart
+  - name: Netward Configuration
+    description: Configure Netward
   - name: User and Group Configuration
-    description: Configure User and Group for Netzwart
+    description: Configure User and Group for Netward
   - name: Network Configuration
-    description: Configure Network for Netzwart
+    description: Configure Network for Netward
   - name: Storage Configuration
-    description: Configure Storage for Netzwart
+    description: Configure Storage for Netward
   - name: Labels Configuration
-    description: Configure Labels for Netzwart
+    description: Configure Labels for Netward
   - name: Resources Configuration
-    description: Configure Resources for Netzwart
+    description: Configure Resources for Netward
 
 questions:
   - variable: TZ
-    group: Netzwart Configuration
+    group: Netward Configuration
     label: Timezone
     schema:
       type: string
@@ -23,9 +23,9 @@ questions:
       $ref:
         - definitions/timezone
 
-  - variable: netzwart
+  - variable: netward
     label: ""
-    group: Netzwart Configuration
+    group: Netward Configuration
     schema:
       type: dict
       attrs:
@@ -67,7 +67,7 @@ questions:
         - variable: user
           label: User ID
           description: |
-            Netzwart starts as root to open its network sockets,</br>
+            Netward starts as root to open its network sockets,</br>
             then switches to this user and drops all capabilities.
           schema:
             type: int
@@ -76,7 +76,7 @@ questions:
             required: true
         - variable: group
           label: Group ID
-          description: The group Netzwart switches to after start-up.
+          description: The group Netward switches to after start-up.
           schema:
             type: int
             min: 568
@@ -92,8 +92,8 @@ questions:
         - variable: web_port
           label: WebUI Port
           description: |
-            The port for the Netzwart WebUI.</br>
-            Netzwart always uses the host network (layer-2 discovery), so this port is opened on the host.
+            The port for the Netward WebUI.</br>
+            Netward always uses the host network (layer-2 discovery), so this port is opened on the host.
           schema:
             type: dict
             attrs:
@@ -122,8 +122,8 @@ questions:
       type: dict
       attrs:
         - variable: data
-          label: Netzwart Data Storage
-          description: The path to store the Netzwart database and backups.
+          label: Netward Data Storage
+          description: The path to store the Netward database and backups.
           schema:
             type: dict
             attrs:
@@ -231,8 +231,8 @@ questions:
                         type: string
                         required: true
                         enum:
-                          - value: netzwart
-                            description: netzwart
+                          - value: netward
+                            description: netward
 
   - variable: resources
     label: ""
@@ -247,14 +247,14 @@ questions:
             attrs:
               - variable: cpus
                 label: CPUs
-                description: CPUs limit for Netzwart.
+                description: CPUs limit for Netward.
                 schema:
                   type: int
                   default: 2
                   required: true
               - variable: memory
                 label: Memory (in MB)
-                description: Memory limit for Netzwart.
+                description: Memory limit for Netward.
                 schema:
                   type: int
                   default: 512

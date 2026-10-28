@@ -4,12 +4,12 @@ Stand: 26.10.2026 · Status: umgesetzt in Version 0.1.0 (Plan-Review eingearbeit
 
 ## 1. Ziel
 
-Bisher zeigt Netzwart, **wer** im Netz ist und **wann**. Nutzerrückmeldung: „So wirklich einen Nutzen habe ich daraus nicht.“
+Bisher zeigt Netward, **wer** im Netz ist und **wann**. Nutzerrückmeldung: „So wirklich einen Nutzen habe ich daraus nicht.“
 Version 0.1 beantwortet die Frage, die im Heimnetz tatsächlich zählt:
 
 > **Welche Geräte bekommen keine Sicherheitsupdates mehr – und was mache ich jetzt?**
 
-Dazu zeigt Netzwart je Gerät, **welche Software** läuft (soweit das Gerät es verrät), **ob sie noch unterstützt** wird, woher diese Information stammt und was zu tun ist.
+Dazu zeigt Netward je Gerät, **welche Software** läuft (soweit das Gerät es verrät), **ob sie noch unterstützt** wird, woher diese Information stammt und was zu tun ist.
 Ein Gerät ohne Updates wird zum Sicherheitsbefund mit Benachrichtigung, genau wie ein offener Telnet-Port.
 
 ## 2. Was technisch möglich ist – und was nicht
@@ -115,9 +115,9 @@ Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit n
 
 - Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netward:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`. Ausgelöst wird ein Release durch die Datei `VERSION` auf `main`: Nennt sie eine Version ohne Tag, veröffentlicht die CI das Image als diese Version und `latest`, legt das Tag an und erstellt das Release (ein von Hand gepushtes `v*`-Tag funktioniert ebenfalls).
 - **Update ohne Neuinstallation**: Die Daten liegen im Volume, Datenbank-Migrationen laufen beim Start automatisch. Update = neues Image ziehen und Container neu erstellen (ZimaOS-Oberfläche oder `docker compose pull && docker compose up -d`). Konten, Geräte, Namen, Verlauf und Einstellungen bleiben erhalten.
-- Zurück auf eine ältere Version verweigert Netzwart bewusst (Schema-Schutz). Der Rückweg ist dokumentiert: Backup des Volumes vor dem Update.
+- Zurück auf eine ältere Version verweigert Netward bewusst (Schema-Schutz). Der Rückweg ist dokumentiert: Backup des Volumes vor dem Update.
 - **Release-Notizen** auf GitHub (Deutsch) und `CHANGELOG.md`.
-- **Optional: Hinweis auf neue Versionen.** Einstellung „Nach neuen Versionen suchen“, **standardmäßig aus** (N-04). Ist sie an, fragt Netzwart einmal täglich `https://api.github.com/repos/Pyzyi/Netward/releases/latest` über den Egress-Client ab (ohne Kennung, ohne Cookies) und zeigt „Version x.y verfügbar“ mit Link zu den Release-Notizen. Netzwart **installiert nichts selbst**: Ein Container, der sich selbst aktualisiert, bräuchte Zugriff auf den Docker-Socket. Das wäre ein erheblich größeres Risiko als der Nutzen.
+- **Optional: Hinweis auf neue Versionen.** Einstellung „Nach neuen Versionen suchen“, **standardmäßig aus** (N-04). Ist sie an, fragt Netward einmal täglich `https://api.github.com/repos/Pyzyi/Netward/releases/latest` über den Egress-Client ab (ohne Kennung, ohne Cookies) und zeigt „Version x.y verfügbar“ mit Link zu den Release-Notizen. Netward **installiert nichts selbst**: Ein Container, der sich selbst aktualisiert, bräuchte Zugriff auf den Docker-Socket. Das wäre ein erheblich größeres Risiko als der Nutzen.
 
 ## 7. Sicherheit (Ergänzungen zum Bedrohungsmodell)
 
@@ -150,7 +150,7 @@ CREATE TABLE software (
 
 Die Zeilen `manual` (vom Nutzer angegebenes System und Hauptversion) und `edition` (Windows-Ausgabe) setzt der Nutzer; alle anderen sind Beobachtungen. Beim Zusammenführen von Geräten (F-17) gewinnt je Quelle die jüngere Zeile; beim Löschen eines Geräts verschwinden sie mit. `devices.os` (Familie aus DHCP) bleibt unabhängig davon bestehen.
 
-Vor jeder Migration einer bestehenden Datenbank legt Netzwart `backup/pre-update-schema-N.db` an (wird nicht rotiert). Damit kann man auf die Vorversion zurück, die eine neuere Datenbank bewusst nicht öffnet.
+Vor jeder Migration einer bestehenden Datenbank legt Netward `backup/pre-update-schema-N.db` an (wird nicht rotiert). Damit kann man auf die Vorversion zurück, die eine neuere Datenbank bewusst nicht öffnet.
 
 ## 9. Tests und Abnahme
 

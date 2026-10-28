@@ -190,7 +190,7 @@ func TestBridgePublishesWatchedDevices(t *testing.T) {
 	}}
 	// Loopback brokers are only reachable with a permissive dialer in tests.
 	br := NewBridge(src, hub.New(), nil, nil, "test", slog.New(slog.NewTextHandler(io.Discard, nil)))
-	cfg := config.MQTT{Enabled: true, Host: host, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+	cfg := config.MQTT{Enabled: true, Host: host, DiscoveryPrefix: "homeassistant", BaseTopic: "netward"}
 	cfg.Port = mustAtoi(port)
 	br.Configure(cfg, "de")
 	br.dial = (&net.Dialer{}).DialContext
@@ -205,23 +205,23 @@ func TestBridgePublishesWatchedDevices(t *testing.T) {
 		t.Fatalf("bridge not connected: %+v", br.Status())
 	}
 	id := ObjectID("3c:22:fb:00:00:01")
-	if id != "netzwart_3c22fb000001" {
+	if id != "netward_3c22fb000001" {
 		t.Fatalf("unexpected object id %q", id)
 	}
 	cfgMsg, ok := b.get("homeassistant/device_tracker/" + id + "/config")
 	if !ok || !strings.Contains(cfgMsg, `"payload_home":"home"`) || !strings.Contains(cfgMsg, "Annas-iPhone") {
 		t.Fatalf("discovery config wrong: %q", cfgMsg)
 	}
-	if st, _ := b.get("netzwart/device/" + id + "/state"); st != "home" {
+	if st, _ := b.get("netward/device/" + id + "/state"); st != "home" {
 		t.Fatalf("state = %q", st)
 	}
 	if _, ok := b.get("homeassistant/device_tracker/" + ObjectID("3c:22:fb:00:00:02") + "/config"); ok {
 		t.Fatal("unwatched device published")
 	}
-	if v, _ := b.get("netzwart/status"); v != "online" {
+	if v, _ := b.get("netward/status"); v != "online" {
 		t.Fatal("availability not online")
 	}
-	if v, _ := b.get("netzwart/stats/total"); v != "2" {
+	if v, _ := b.get("netward/stats/total"); v != "2" {
 		t.Fatalf("stats total = %q", v)
 	}
 }
@@ -230,16 +230,20 @@ func TestBridgePublishesWatchedDevices(t *testing.T) {
 // devices that are no longer watched are cleared from the broker.
 func TestBridgeResyncsAfterBrokerChange(t *testing.T) {
 	b1, b2 := newBroker(t), newBroker(t)
-	stale := "homeassistant/device_tracker/netzwart_aaaaaaaaaaaa/config"
+	stale := "homeassistant/device_tracker/netward_aaaaaaaaaaaa/config"
+	legacy := "homeassistant/device_tracker/netzwart_3c22fb000001/config" // from before the rename
+	legacyHub := "homeassistant/sensor/netzwart_devices_online/config"
 	b2.mu.Lock()
 	b2.retained[stale] = `{"name":null}`
+	b2.retained[legacy] = `{"name":null}`
+	b2.retained[legacyHub] = `{"name":"Geräte online"}`
 	b2.mu.Unlock()
 	src := fakeSource{devs: []store.Device{{ID: 1, Ident: "3c:22:fb:00:00:01", MAC: "3c:22:fb:00:00:01", Watch: true, Online: true}}}
 	br := NewBridge(src, hub.New(), nil, nil, "test", slog.New(slog.NewTextHandler(io.Discard, nil)))
 	br.dial = (&net.Dialer{}).DialContext
 	cfgFor := func(b *fakeBroker) config.MQTT {
 		host, port, _ := net.SplitHostPort(b.ln.Addr().String())
-		return config.MQTT{Enabled: true, Host: host, Port: mustAtoi(port), DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+		return config.MQTT{Enabled: true, Host: host, Port: mustAtoi(port), DiscoveryPrefix: "homeassistant", BaseTopic: "netward"}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -259,6 +263,8 @@ func TestBridgeResyncsAfterBrokerChange(t *testing.T) {
 	br.Configure(cfgFor(b2), "de")
 	waitFor("config not resent to the new broker", func() bool { _, ok := b2.get(topic); return ok })
 	waitFor("stale entity not cleared", func() bool { v, _ := b2.get(stale); return v == "" })
+	waitFor("entity from before the rename not cleared", func() bool { v, _ := b2.get(legacy); return v == "" })
+	waitFor("hub sensor from before the rename not cleared", func() bool { v, _ := b2.get(legacyHub); return v == "" })
 }
 
 func mustAtoi(s string) int {
@@ -287,7 +293,7 @@ func TestBridgePublishesPersons(t *testing.T) {
 	br := NewBridge(fakeSource{}, h, nil, nil, "test", slog.New(slog.NewTextHandler(io.Discard, nil)))
 	people := &fakePeople{st: []persons.State{{ID: 1, Name: "Anna", Home: true, HA: true}, {ID: 2, Name: "Max", HA: false}}}
 	br.SetPersons(people)
-	cfg := config.MQTT{Enabled: true, Host: host, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+	cfg := config.MQTT{Enabled: true, Host: host, DiscoveryPrefix: "homeassistant", BaseTopic: "netward"}
 	cfg.Port = mustAtoi(port)
 	br.Configure(cfg, "de")
 	br.dial = (&net.Dialer{}).DialContext
@@ -302,14 +308,14 @@ func TestBridgePublishesPersons(t *testing.T) {
 		}
 		return false
 	}
-	if !wait(func() bool { v, _ := b.get("netzwart/person/1/state"); return v == "home" }) {
+	if !wait(func() bool { v, _ := b.get("netward/person/1/state"); return v == "home" }) {
 		t.Fatal("person state not published")
 	}
-	cfgMsg, _ := b.get("homeassistant/device_tracker/netzwart_person_1/config")
-	if !strings.Contains(cfgMsg, `"unique_id":"netzwart_person_1"`) || !strings.Contains(cfgMsg, `"name":"Anna"`) {
+	cfgMsg, _ := b.get("homeassistant/device_tracker/netward_person_1/config")
+	if !strings.Contains(cfgMsg, `"unique_id":"netward_person_1"`) || !strings.Contains(cfgMsg, `"name":"Anna"`) {
 		t.Fatalf("config %q", cfgMsg)
 	}
-	if _, ok := b.get("homeassistant/device_tracker/netzwart_person_2/config"); ok {
+	if _, ok := b.get("homeassistant/device_tracker/netward_person_2/config"); ok {
 		t.Fatal("person hidden from Home Assistant was published")
 	}
 	// Anna leaves, then is deleted: state follows, then the entity goes.
@@ -317,7 +323,7 @@ func TestBridgePublishesPersons(t *testing.T) {
 	people.st[0].Home = false
 	people.mu.Unlock()
 	h.Publish("persons", nil)
-	if !wait(func() bool { v, _ := b.get("netzwart/person/1/state"); return v == "not_home" }) {
+	if !wait(func() bool { v, _ := b.get("netward/person/1/state"); return v == "not_home" }) {
 		t.Fatal("state not updated")
 	}
 	people.mu.Lock()
@@ -325,7 +331,7 @@ func TestBridgePublishesPersons(t *testing.T) {
 	people.mu.Unlock()
 	h.Publish("persons", nil)
 	if !wait(func() bool {
-		v, ok := b.get("homeassistant/device_tracker/netzwart_person_1/config")
+		v, ok := b.get("homeassistant/device_tracker/netward_person_1/config")
 		return !ok || v == ""
 	}) {
 		t.Fatal("deleted person still has an entity")

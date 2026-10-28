@@ -1,8 +1,8 @@
 {% set tpl = ix_lib.base.render.Render(values) %}
 
-{% set c1 = tpl.add_container(values.consts.netzwart_container_name, "image") %}
+{% set c1 = tpl.add_container(values.consts.netward_container_name, "image") %}
 
-{# Netzwart starts as root, opens its raw sockets, hands the data folder to
+{# Netward starts as root, opens its raw sockets, hands the data folder to
    PUID:PGID and then drops every capability for good. #}
 {% do c1.set_user(0, 0) %}
 {% do c1.add_caps(["CHOWN", "SETUID", "SETGID", "NET_RAW"]) %}
@@ -12,15 +12,15 @@
 
 {% do c1.add_storage(values.consts.data_path, values.storage.data) %}
 
-{% do c1.environment.add_env("NETZWART_PORT", values.network.web_port.port_number) %}
+{% do c1.environment.add_env("NETWARD_PORT", values.network.web_port.port_number) %}
 {% do c1.environment.add_env("PUID", values.run_as.user) %}
 {% do c1.environment.add_env("PGID", values.run_as.group) %}
-{% if values.netzwart.interfaces %}
-  {% do c1.environment.add_env("NETZWART_INTERFACES", values.netzwart.interfaces) %}
+{% if values.netward.interfaces %}
+  {% do c1.environment.add_env("NETWARD_INTERFACES", values.netward.interfaces) %}
 {% endif %}
-{% do c1.environment.add_user_envs(values.netzwart.additional_envs) %}
+{% do c1.environment.add_user_envs(values.netward.additional_envs) %}
 
-{% do c1.healthcheck.set_custom_test(["CMD", "/netzwart", "healthcheck"]) %}
+{% do c1.healthcheck.set_custom_test(["CMD", "/netward", "healthcheck"]) %}
 
 {% do tpl.portals.add(values.network.web_port, {"port": values.network.web_port.port_number}) %}
 {% do tpl.notes.set_body(values.consts.notes_body) %}

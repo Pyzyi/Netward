@@ -312,7 +312,7 @@ func TestBackup(t *testing.T) {
 func TestSoftwareRowsAndPreUpdateBackup(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "netzwart.db")
+	path := filepath.Join(dir, "netward.db")
 	s, err := Open(ctx, path)
 	if err != nil {
 		t.Fatal(err)
@@ -374,7 +374,7 @@ func TestSoftwareRowsAndPreUpdateBackup(t *testing.T) {
 func TestPreUpdateBackupFailureDoesNotBlock(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "netzwart.db")
+	path := filepath.Join(dir, "netward.db")
 	s, err := Open(ctx, path)
 	if err != nil {
 		t.Fatal(err)

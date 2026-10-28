@@ -145,7 +145,7 @@ func PDF(r Report, in Info) ([]byte, error) {
 	if in.Lang == "en" {
 		texts = en
 	}
-	w := &writer{doc: &pdf.Document{Title: texts["title"], Author: "Netzwart", Created: in.Created}, in: in}
+	w := &writer{doc: &pdf.Document{Title: texts["title"], Author: "Netward", Created: in.Created}, in: in}
 	w.tr = func(k string, a ...any) string {
 		s, ok := texts[k]
 		if !ok {

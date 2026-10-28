@@ -60,7 +60,7 @@ type Settings struct {
 	DNSCheck           bool     `json:"dnsCheck"`         // the security check asks the DNS servers about fixed names
 	UpdateCheck        bool     `json:"updateCheck"`      // ask GitHub daily for a new release (off by default)
 	Tripwire           bool     `json:"tripwire"`         // decoy services that report every visitor (docs/10, off by default)
-	TripwirePorts      []int    `json:"tripwirePorts"`    // 1024-65535; lower ports only via NETZWART_TRIPWIRE_PORTS
+	TripwirePorts      []int    `json:"tripwirePorts"`    // 1024-65535; lower ports only via NETWARD_TRIPWIRE_PORTS
 	TripwireAllow      []string `json:"tripwireAllow"`    // addresses or networks that may touch the decoys (IP or CIDR)
 	MQTT               MQTT     `json:"mqtt"`
 	FritzBox           FritzBox `json:"fritzbox"`
@@ -86,7 +86,7 @@ func Defaults() Settings {
 		InternetTargets:    []string{"1.1.1.1:443", "9.9.9.9:443", "dns.google:443"},
 		TripwirePorts:      []int{2323, 3389, 5555, 5900},
 		TripwireAllow:      []string{},
-		MQTT:               MQTT{Port: 1883, DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"},
+		MQTT:               MQTT{Port: 1883, DiscoveryPrefix: "homeassistant", BaseTopic: "netward"},
 		FritzBox:           FritzBox{Host: "fritz.box"},
 	}
 }

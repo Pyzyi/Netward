@@ -42,7 +42,7 @@ func (m *Monitor) logDevice(ctx context.Context, id, ts int64, kind string, data
 }
 
 // noteOutage records the absence of an always-on device that just came back.
-// Absences overlapping a time when Netzwart itself was not running are left
+// Absences overlapping a time when Netward itself was not running are left
 // out: nobody knows whether the device was really gone.
 func (m *Monitor) noteOutage(ctx context.Context, e *entry, from, to int64) {
 	if from <= 0 || e.d.ID == 0 || !outageTypes[e.d.Type] || time.Duration(to-from)*time.Millisecond < minOutage {

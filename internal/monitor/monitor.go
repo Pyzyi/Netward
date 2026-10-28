@@ -565,7 +565,7 @@ func (m *Monitor) setOnline(ctx context.Context, e *entry, now, prevSeen int64) 
 	e.d.Online = true
 	_ = m.st.OpenPresence(ctx, e.d.ID, now)
 	if m.wasOnline[e.d.ID] {
-		delete(m.wasOnline, e.d.ID) // it was there before Netzwart restarted
+		delete(m.wasOnline, e.d.ID) // it was there before Netward restarted
 		return
 	}
 	m.noteOutage(ctx, e, prevSeen, now)

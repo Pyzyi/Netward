@@ -39,7 +39,7 @@
   let theme = $state(readTheme());
   function readTheme() {
     try {
-      return localStorage.getItem('netzwart.theme') ?? 'system';
+      return localStorage.getItem('netward.theme') ?? 'system';
     } catch {
       return 'system';
     }
@@ -47,8 +47,8 @@
   function applyTheme(v: string) {
     theme = v;
     try {
-      if (v === 'system') localStorage.removeItem('netzwart.theme');
-      else localStorage.setItem('netzwart.theme', v);
+      if (v === 'system') localStorage.removeItem('netward.theme');
+      else localStorage.setItem('netward.theme', v);
     } catch {
       /* ignore */
     }

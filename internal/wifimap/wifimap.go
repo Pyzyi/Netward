@@ -1,7 +1,7 @@
 // Package wifimap turns speed measurements on a floor plan into plain
 // advice (docs/10, F4): which room is weak and where a repeater would help.
 // The measurements come from the phone's browser: throughput and latency
-// between the phone and Netzwart, so no router access is needed.
+// between the phone and Netward, so no router access is needed.
 package wifimap
 
 import (

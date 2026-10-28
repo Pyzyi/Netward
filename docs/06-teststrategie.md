@@ -10,7 +10,7 @@
 | Unit-Tests | `go test -race` | Parser, Klassifizierer, Presence-Automat, Auth, Limiter, Export, Store | jeder Push |
 | Fuzz-Tests | `go test -fuzz` | ARP, DHCP, NetBIOS, SSDP/UPnP-XML, mDNS-Auswertung | jeder Push (30 s je Ziel), nightly länger |
 | API-Tests | `httptest` | Auth-Pflicht, CSRF, Setup-Schutz, Security-Header, write-only Geheimnisse, Validierung | jeder Push |
-| Integrations-Test | Docker-Netz | Netzwart-Container scannt Testcontainer per ARP und findet alle | jeder Push |
+| Integrations-Test | Docker-Netz | Netward-Container scannt Testcontainer per ARP und findet alle | jeder Push |
 | Container-Härtungstest | Docker | Prozess-UID ≠ 0, `CapEff` = 0, read-only FS, Healthcheck grün; Matrix: vorhandenes Verzeichnis mit UID 1000, kein Volume, `user:` gesetzt, ohne `NET_RAW`; `reset-password` per `docker exec` im laufenden Betrieb | jeder Push |
 | MQTT-Integration | Mosquitto-Container | Discovery, retained State, LWT, Reconnect | jeder Push |
 | E2E-UI | Playwright | Setup → Login → Übersicht → Gerät umbenennen → Logout; keine CSP-Verletzungen, keine Konsolenfehler | jeder Push |

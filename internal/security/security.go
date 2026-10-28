@@ -440,12 +440,12 @@ func Describe(check string, data map[string]any, lang string) (string, string) {
 	case CheckSoftwareOutdated:
 		if n, ok := data["count"].(int); ok {
 			return fmt.Sprintf(tr("%d Geräte bekommen keine Sicherheitsupdates mehr", "%d devices no longer get security updates"), n),
-				tr("Details in Netzwart unter Sicherheit.", "See Security in Netzwart for details.")
+				tr("Details in Netward unter Sicherheit.", "See Security in Netward for details.")
 		}
 		sw, _ := data["software"].(string)
 		return tr("Keine Sicherheitsupdates mehr", "No more security updates") + suffix(sw),
-			tr("Das System dieses Geräts wird vom Hersteller nicht mehr gepflegt. Netzwart zeigt, was du tun kannst.",
-				"The maker no longer maintains this device's system. Netzwart shows what you can do.")
+			tr("Das System dieses Geräts wird vom Hersteller nicht mehr gepflegt. Netward zeigt, was du tun kannst.",
+				"The maker no longer maintains this device's system. Netward shows what you can do.")
 	}
 	return check, ""
 }

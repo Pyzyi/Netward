@@ -3,7 +3,7 @@
   import { number, t, time } from '../i18n.svelte';
 
   // The last 24 hours of a device in 48 half-hour slots, drawn as runs:
-  // a solid bar while it was online, a thin baseline while Netzwart saw it
+  // a solid bar while it was online, a thin baseline while Netward saw it
   // offline, nothing where it was not observed. Each run has a tooltip.
   let { strip = '', width = 192, height = 12 }: { strip?: string; width?: number; height?: number } = $props();
 

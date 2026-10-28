@@ -13,7 +13,7 @@ body:
   - type: input
     id: shown
     attributes:
-      label: Shown by Netzwart as
+      label: Shown by Netward as
       placeholder: "Unknown device (Espressif)"
     validations:
       required: true

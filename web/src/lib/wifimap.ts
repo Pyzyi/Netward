@@ -108,7 +108,7 @@ async function upload(signal: AbortSignal, progress: (f: number) => void): Promi
   return ms > 0 ? (bytes * 8) / (ms / 1000) / 1e6 : 0;
 }
 
-/** Runs the whole measurement between this browser and Netzwart. */
+/** Runs the whole measurement between this browser and Netward. */
 export async function measure(signal: AbortSignal, onPhase: (p: Phase, f: number) => void): Promise<Measurement> {
   onPhase('latency', 0);
   const l = await latency(signal);

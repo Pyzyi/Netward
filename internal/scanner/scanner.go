@@ -27,7 +27,7 @@ import (
 	"github.com/Pyzyi/Netward/internal/store"
 )
 
-// MaxHosts is the largest subnet Netzwart will sweep at all (/16).
+// MaxHosts is the largest subnet Netward will sweep at all (/16).
 const MaxHosts = 1 << 16
 
 // DefaultMaxHosts is the largest subnet swept without explicit opt-in (/22).
@@ -74,7 +74,7 @@ type Scanner struct {
 	links  map[string]*l2.Link // opened before the privilege drop; empty in fallback mode
 	arps   map[string]*l2.ARP
 	pinger *l2.Pinger
-	extra  []string // NETZWART_INTERFACES
+	extra  []string // NETWARD_INTERFACES
 
 	sightings chan l2.Sighting
 	trigger   chan struct{}

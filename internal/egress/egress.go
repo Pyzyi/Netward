@@ -1,4 +1,4 @@
-// Package egress is the only way Netzwart opens outbound connections to
+// Package egress is the only way Netward opens outbound connections to
 // user-configured or device-supplied addresses (webhooks, notification
 // services, MQTT, SMTP, UPnP descriptions, FRITZ!Box).
 //

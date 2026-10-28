@@ -183,7 +183,7 @@ test('provider report downloads as PDF and CSV', async ({ page }) => {
   await expect(page.getByText('DSL · synchronisiert mit')).toBeVisible();
   await page.getByLabel('Download Minimal').fill('70');
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Bericht als PDF' }).click()]);
-  expect(pdf.suggestedFilename()).toMatch(/^netzwart-nachweis-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/);
+  expect(pdf.suggestedFilename()).toMatch(/^netward-nachweis-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/);
   const head = (await import('node:fs')).readFileSync(await pdf.path()).subarray(0, 8).toString();
   expect(head).toBe('%PDF-1.4');
   const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Rohdaten (CSV)' }).click()]);

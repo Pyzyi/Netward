@@ -19,7 +19,7 @@ var SSDPSearch = []byte("M-SEARCH * HTTP/1.1\r\n" +
 	"MAN: \"ssdp:discover\"\r\n" +
 	"MX: 2\r\n" +
 	"ST: ssdp:all\r\n" +
-	"USER-AGENT: Linux/1 UPnP/1.1 Netzwart/1\r\n\r\n")
+	"USER-AGENT: Linux/1 UPnP/1.1 Netward/1\r\n\r\n")
 
 // SSDPResponse is a decoded M-SEARCH response.
 type SSDPResponse struct {
@@ -53,9 +53,9 @@ func DecodeSSDPResponse(p []byte) (SSDPResponse, error) {
 	}, nil
 }
 
-// SafeLocation validates an SSDP LOCATION URL before Netzwart fetches it.
+// SafeLocation validates an SSDP LOCATION URL before Netward fetches it.
 // The URL must be plain HTTP and point at the very address that sent the
-// response; anything else could be abused to make Netzwart request
+// response; anything else could be abused to make Netward request
 // arbitrary URLs (SSRF).
 func SafeLocation(location string, from netip.Addr) (*url.URL, bool) {
 	u, err := url.Parse(location)
@@ -70,7 +70,7 @@ func SafeLocation(location string, from netip.Addr) (*url.URL, bool) {
 	return u, true
 }
 
-// UPnPDevice is the subset of a UPnP device description Netzwart uses.
+// UPnPDevice is the subset of a UPnP device description Netward uses.
 type UPnPDevice struct {
 	DeviceType       string       `xml:"deviceType"`
 	FriendlyName     string       `xml:"friendlyName"`

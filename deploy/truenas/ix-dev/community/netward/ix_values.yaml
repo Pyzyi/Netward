@@ -4,7 +4,7 @@ images:
     tag: 0.3.3
 
 consts:
-  netzwart_container_name: netzwart
+  netward_container_name: netward
   data_path: /data
   notes_body: |
     There is no default password. Open the Web UI within 30 minutes of the first start

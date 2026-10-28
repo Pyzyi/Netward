@@ -123,7 +123,7 @@ func (m *Monitor) detectConflicts(ctx context.Context, iface string, res l2.Swee
 	}
 }
 
-// ObserveSelf records the host Netzwart runs on.
+// ObserveSelf records the host Netward runs on.
 func (m *Monitor) ObserveSelf(ctx context.Context, iface string, ip netip.Addr, mac net.HardwareAddr) {
 	m.Observe(ctx, l2.Sighting{MAC: mac, IP: ip, Iface: iface, Source: "self", ARP: true, At: m.now()})
 }

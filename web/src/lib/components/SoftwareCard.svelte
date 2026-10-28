@@ -6,7 +6,7 @@
   import { dateLong, dateTime, has, t } from '../i18n.svelte';
   import type { Device, SoftwareAssessment } from '../types';
 
-  // What Netzwart knows about the software of one device, what it means, and
+  // What Netward knows about the software of one device, what it means, and
   // what to do. Also where the user fills in what the network cannot see.
   let { device, software, demo = false, onchange }: {
     device: Device;

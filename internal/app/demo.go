@@ -77,7 +77,7 @@ var demoDevices = []demoDevice{
 	{mac: "5a:8e:13:c0:77:e2", ip: "192.168.178.93", host: "", vendor: "", typ: "phone", known: false, online: true, newDev: true, phone: true, macKind: "random"},
 }
 
-// demoEnglish renames the German sample household for NETZWART_DEMO=en,
+// demoEnglish renames the German sample household for NETWARD_DEMO=en,
 // so screenshots for the English README show an English home.
 var demoEnglish = map[string]string{
 	"Annas iPhone": "Anna's iPhone", "Max' iPhone": "Max's iPhone", "Apple TV Schlafzimmer": "Bedroom Apple TV", "Drucker": "Printer",
@@ -104,7 +104,7 @@ func SeedDemo(ctx context.Context, st *store.Store) error {
 }
 
 // SeedDemoLang fills an empty database with a realistic sample network. It is
-// only used with NETZWART_DEMO (development and screenshots); lang is "de" or "en".
+// only used with NETWARD_DEMO (development and screenshots); lang is "de" or "en".
 func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 	existing, err := st.ListDevices(ctx)
 	if err != nil || len(existing) > 0 {
@@ -247,10 +247,10 @@ func SeedDemoLang(ctx context.Context, st *store.Store, lang string) error {
 	_ = st.SetSetting(ctx, "net_dns_check", monitor.DNSCheck{At: now.Add(-3 * time.Hour).UnixMilli(), Results: []dnscheck.Result{
 		{Server: "192.168.178.80", Verdict: dnscheck.VerdictOK, Answers: []dnscheck.Answer{ok("one.one.one.one", "1.1.1.1", "1.0.0.1"),
 			{Name: "dns.google", Status: dnscheck.StatusBlocked, Got: []string{"0.0.0.0"}}, ok("dns.quad9.net", "9.9.9.9")},
-			Missing: dnscheck.Answer{Name: "netzwart-5f1c9a2e7b3d4c60.example.com", Status: dnscheck.StatusOK}},
+			Missing: dnscheck.Answer{Name: "netward-5f1c9a2e7b3d4c60.example.com", Status: dnscheck.StatusOK}},
 		{Server: "192.168.178.1", Verdict: dnscheck.VerdictOK, Answers: []dnscheck.Answer{ok("one.one.one.one", "1.1.1.1", "1.0.0.1"),
 			ok("dns.google", "8.8.8.8", "8.8.4.4"), ok("dns.quad9.net", "9.9.9.9", "149.112.112.112")},
-			Missing: dnscheck.Answer{Name: "netzwart-0b7d2c94e15a8f36.example.com", Status: dnscheck.StatusOK}},
+			Missing: dnscheck.Answer{Name: "netward-0b7d2c94e15a8f36.example.com", Status: dnscheck.StatusOK}},
 	}})
 	_ = st.SetSetting(ctx, "net_gateway_refs", []monitor.GatewayRef{
 		{IP: "192.168.178.1", MAC: "3c:a6:2f:5e:11:01", Vendor: "AVM", Since: baseline.UnixMilli()},

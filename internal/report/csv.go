@@ -41,7 +41,7 @@ func RawCSV(ctx context.Context, st *store.Store, from, to time.Time) ([]byte, e
 		return nil, err
 	}
 	for _, g := range gaps {
-		_ = w.Write([]string{"not_measured", ts(g.Start), ts(g.End), "netzwart_not_running", "", "", "", "", "", "", "", "", ""})
+		_ = w.Write([]string{"not_measured", ts(g.Start), ts(g.End), "netward_not_running", "", "", "", "", "", "", "", "", ""})
 	}
 	lat, err := st.LatencyBetween(ctx, f-bucketMS+1, t)
 	if err != nil {
@@ -78,5 +78,5 @@ func Checksum(b []byte) string {
 
 // FileName is the base name for the report files of a period.
 func FileName(from, to time.Time, loc *time.Location) string {
-	return "netzwart-nachweis-" + from.In(loc).Format("2006-01-02") + "-" + to.Add(-time.Millisecond).In(loc).Format("2006-01-02")
+	return "netward-nachweis-" + from.In(loc).Format("2006-01-02") + "-" + to.Add(-time.Millisecond).In(loc).Format("2006-01-02")
 }

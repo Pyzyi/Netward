@@ -52,27 +52,41 @@ func TestSecretsMaskedAndMerged(t *testing.T) {
 }
 
 func TestLoadEnv(t *testing.T) {
-	t.Setenv("NETZWART_PORT", "9000")
-	t.Setenv("NETZWART_ALLOWED_HOSTS", "Netzwart.Example.com, *.lan.example")
-	t.Setenv("NETZWART_TRUSTED_PROXIES", "10.0.0.0/8,192.168.1.2")
+	t.Setenv("NETWARD_PORT", "9000")
+	t.Setenv("NETWARD_ALLOWED_HOSTS", "Netward.Example.com, *.lan.example")
+	t.Setenv("NETWARD_TRUSTED_PROXIES", "10.0.0.0/8,192.168.1.2")
 	t.Setenv("PUID", "1000")
 	e, err := LoadEnv()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e.Port != 9000 || e.PUID != 1000 || len(e.AllowedHosts) != 2 || e.AllowedHosts[0] != "netzwart.example.com" || len(e.TrustedProxies) != 2 {
+	if e.Port != 9000 || e.PUID != 1000 || len(e.AllowedHosts) != 2 || e.AllowedHosts[0] != "netward.example.com" || len(e.TrustedProxies) != 2 {
 		t.Fatalf("unexpected env %+v", e)
 	}
-	for k, v := range map[string]string{"NETZWART_PORT": "70000", "NETZWART_LISTEN": "not-an-ip", "NETZWART_TRUSTED_PROXIES": "foo", "NETZWART_LOG_LEVEL": "loud"} {
+	for k, v := range map[string]string{"NETWARD_PORT": "70000", "NETWARD_LISTEN": "not-an-ip", "NETWARD_TRUSTED_PROXIES": "foo", "NETWARD_LOG_LEVEL": "loud"} {
 		t.Run(k, func(t *testing.T) {
 			t.Setenv(k, v)
-			if _, err := LoadEnv(); err == nil || !strings.Contains(err.Error(), "NETZWART") {
+			if _, err := LoadEnv(); err == nil || !strings.Contains(err.Error(), "NETWARD") {
 				t.Fatalf("%s=%s accepted (%v)", k, v, err)
 			}
 		})
 	}
-	t.Setenv("NETZWART_TLS_CERT", "/x.pem")
+	t.Setenv("NETWARD_TLS_CERT", "/x.pem")
 	if _, err := LoadEnv(); err == nil {
 		t.Fatal("certificate without key accepted")
+	}
+}
+
+func TestLoadEnvOldNames(t *testing.T) {
+	t.Setenv("NETZWART_PORT", "9000") // installation from before the rename
+	t.Setenv("NETZWART_DEMO", "en")
+	t.Setenv("NETWARD_LOG_LEVEL", "debug")
+	t.Setenv("NETZWART_LOG_LEVEL", "error") // the new name wins
+	e, err := LoadEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Port != 9000 || !e.Demo || e.DemoLang != "en" || e.LogLevel != "debug" {
+		t.Fatalf("env = %+v", e)
 	}
 }

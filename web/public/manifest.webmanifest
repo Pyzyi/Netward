@@ -1,6 +1,6 @@
 {
-  "name": "Netzwart",
-  "short_name": "Netzwart",
+  "name": "Netward",
+  "short_name": "Netward",
   "description": "Dein Heimnetz im Blick",
   "start_url": "/",
   "display": "standalone",

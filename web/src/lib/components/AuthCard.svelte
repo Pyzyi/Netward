@@ -32,7 +32,7 @@
 
 <div class="auth">
   <aside class="side">
-    <span class="brand"><Logo size={30} tile={false} /> Netzwart</span>
+    <span class="brand"><Logo size={30} tile={false} /> Netward</span>
     <div class="ring-wrap" aria-hidden="true">
     <svg class="ring" viewBox="0 0 320 320">
       <circle cx="160" cy="160" r="118" class="orbit" />

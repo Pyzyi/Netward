@@ -35,7 +35,7 @@
 </script>
 
 <SettingsCard>
-  <div class="brand"><Logo size={40} /><div><strong>Netzwart</strong><p class="muted">{info?.version ?? ''}</p></div></div>
+  <div class="brand"><Logo size={40} /><div><strong>Netward</strong><p class="muted">{info?.version ?? ''}</p></div></div>
   {#if info}
     <dl class="dl">
       <dt>{t('settings.about.version')}</dt><dd>{info.version} <span class="faint">({info.goVersion})</span></dd>

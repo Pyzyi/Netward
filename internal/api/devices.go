@@ -301,7 +301,7 @@ func (s *Server) handlePresence(w http.ResponseWriter, r *http.Request, _ *sessi
 		s.fail(w, r, err)
 		return
 	}
-	// Online share over the time Netzwart actually observed.
+	// Online share over the time Netward actually observed.
 	observedFrom := max(from, d.FirstSeen)
 	clip := func(a, b int64) int64 { return max(0, min(b, to)-max(a, observedFrom)) }
 	var online, gapTotal int64

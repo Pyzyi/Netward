@@ -32,7 +32,7 @@ func TestWidthAndEncode(t *testing.T) {
 }
 
 func TestDocumentIsValid(t *testing.T) {
-	d := &Document{Title: "Nachweis Internetanschluss", Author: "Netzwart", Created: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
+	d := &Document{Title: "Nachweis Internetanschluss", Author: "Netward", Created: time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)}
 	p := d.AddPage()
 	p.Text(50, 60, Bold, 18, Color{}, "Nachweis für Größe & Prüfung (§ 57 TKG)")
 	p.TextRight(545, 80, Regular, 9, Color{0.4, 0.4, 0.4}, "Seite 1 von 2")

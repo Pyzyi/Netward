@@ -1,5 +1,5 @@
 // Package proto contains small, allocation-light encoders and decoders for
-// the link-local protocols Netzwart speaks. Every decoder treats its input as
+// the link-local protocols Netward speaks. Every decoder treats its input as
 // hostile: lengths are checked before every read and nothing panics.
 package proto
 

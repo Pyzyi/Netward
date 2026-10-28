@@ -7,6 +7,6 @@
 web/node_modules/
 web/.env*
 web/dist/
-cmd/netzwart/web/
+cmd/netward/web/
 **/*_test.go
 **/testdata/

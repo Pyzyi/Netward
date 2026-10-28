@@ -2,7 +2,7 @@
 //
 // The container starts as root with exactly CHOWN, SETUID, SETGID and
 // NET_RAW. Prepare hands the data directory to the runtime user, opens every
-// raw socket Netzwart will need and then switches to PUID:PGID. Because the
+// raw socket Netward will need and then switches to PUID:PGID. Because the
 // switch happens without PR_SET_KEEPCAPS, the kernel clears all capability
 // sets: the long-running process has no capabilities at all. Raw sockets
 // keep working because CAP_NET_RAW is only checked when a socket is created.
@@ -35,7 +35,7 @@ type Result struct {
 	UID     int
 	GID     int
 	CapEff  string // effective capabilities after the switch (hex)
-	// Decoy listeners from NETZWART_TRIPWIRE_PORTS (docs/10, F3). Ports
+	// Decoy listeners from NETWARD_TRIPWIRE_PORTS (docs/10, F3). Ports
 	// below 1024 can only be opened here, before the switch, and only with
 	// cap_add NET_BIND_SERVICE.
 	Tripwire map[int]net.Listener

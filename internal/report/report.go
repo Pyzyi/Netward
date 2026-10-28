@@ -2,7 +2,7 @@
 // (docs/09, F5): availability, outages by kind, latency per day and the
 // line's sync rates against the contract, as PDF with the raw data as CSV.
 //
-// Honesty rules: time Netzwart was not running counts neither for nor
+// Honesty rules: time Netward was not running counts neither for nor
 // against the provider; outages where the router itself did not answer are
 // listed but not counted against the provider; sync rates are not
 // throughput. The report says so, and that the Bundesnetzagentur expects
@@ -211,7 +211,7 @@ func Build(ctx context.Context, st *store.Store, p Params) (Report, error) {
 		}
 	}
 
-	// Outages, clipped to the period, without the time Netzwart was down.
+	// Outages, clipped to the period, without the time Netward was down.
 	outs, err := st.OutagesBetween(ctx, from, to)
 	if err != nil {
 		return Report{}, err

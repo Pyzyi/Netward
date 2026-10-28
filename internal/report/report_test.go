@@ -29,7 +29,7 @@ func TestBuildCountsOnlyTheProvidersOutages(t *testing.T) {
 	st := open(t)
 	day := time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)
 	ms := func(d time.Duration) int64 { return day.Add(d).UnixMilli() }
-	// Measured all day except 22:00-24:00 (Netzwart not running).
+	// Measured all day except 22:00-24:00 (Netward not running).
 	var ls []store.Latency
 	for d := time.Duration(0); d < 22*time.Hour; d += 5 * time.Minute {
 		ls = append(ls, store.Latency{TS: ms(d), Median: 12, Max: 20, Samples: 10})
@@ -131,8 +131,8 @@ func TestDemoReportPDF(t *testing.T) {
 		if err := os.WriteFile(path, out, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if os.Getenv("NETZWART_KEEP_PDF") != "" {
-			_ = os.WriteFile(os.Getenv("NETZWART_KEEP_PDF")+"-"+lang+".pdf", out, 0o600)
+		if os.Getenv("NETWARD_KEEP_PDF") != "" {
+			_ = os.WriteFile(os.Getenv("NETWARD_KEEP_PDF")+"-"+lang+".pdf", out, 0o600)
 		}
 		if _, err := exec.LookPath("qpdf"); err == nil {
 			if res, err := exec.Command("qpdf", "--check", path).CombinedOutput(); err != nil {

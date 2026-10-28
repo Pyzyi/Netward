@@ -92,7 +92,7 @@ export function applyAuth(st: AuthState) {
 
 function localStorageLang(): string | null {
   try {
-    return localStorage.getItem('netzwart.lang');
+    return localStorage.getItem('netward.lang');
   } catch {
     return null;
   }

@@ -66,7 +66,7 @@ func (b *Bridge) SetPersons(p PersonSource) {
 	b.mu.Unlock()
 }
 
-func personObjectID(id int64) string { return "netzwart_person_" + strconv.FormatInt(id, 10) }
+func personObjectID(id int64) string { return "netward_person_" + strconv.FormatInt(id, 10) }
 
 func (b *Bridge) personStates() []persons.State {
 	b.mu.Lock()
@@ -139,7 +139,7 @@ func (b *Bridge) setStatus(state, errMsg string) {
 // ObjectID derives a stable, topic-safe ID from a device identity.
 func ObjectID(ident string) string {
 	var sb strings.Builder
-	sb.WriteString("netzwart_")
+	sb.WriteString("netward_")
 	for _, r := range strings.ToLower(ident) {
 		switch {
 		case r >= 'a' && r <= 'f', r >= '0' && r <= '9':
@@ -228,7 +228,7 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 	retained := map[string]bool{}
 	cl, err := Connect(ctx, Options{
 		Addr: net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)), TLS: cfg.TLS,
-		ClientID: "netzwart-" + hex.EncodeToString(rnd), Username: cfg.Username, Password: string(cfg.Password),
+		ClientID: "netward-" + hex.EncodeToString(rnd), Username: cfg.Username, Password: string(cfg.Password),
 		KeepAlive: 60 * time.Second, WillTopic: base + "/status", WillMsg: "offline",
 		Dial: b.dial,
 		OnMessage: func(topic string, payload []byte) {
@@ -239,7 +239,7 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 				}
 			}
 			if id, ok := strings.CutSuffix(strings.TrimPrefix(topic, trackerPrefix), "/config"); ok &&
-				strings.HasPrefix(topic, trackerPrefix) && strings.HasPrefix(id, "netzwart_") {
+				strings.HasPrefix(topic, trackerPrefix) && (strings.HasPrefix(id, "netward_") || strings.HasPrefix(id, legacyPrefix)) {
 				retainedMu.Lock()
 				if len(payload) > 0 && len(retained) < 10000 {
 					retained[id] = true
@@ -266,6 +266,9 @@ func (b *Bridge) session(ctx context.Context, cfg config.MQTT) error {
 		return err
 	}
 	if err := b.publishAll(ctx, cl, cfg); err != nil {
+		return err
+	}
+	if err := removeLegacyHub(ctx, cl, cfg); err != nil {
 		return err
 	}
 	cleanup := time.NewTimer(3 * time.Second) // time for the broker to deliver retained configs
@@ -358,7 +361,7 @@ func (b *Bridge) publishJSON(ctx context.Context, cl *Client, topic string, v an
 
 func (b *Bridge) publishAll(ctx context.Context, cl *Client, cfg config.MQTT) error {
 	base, prefix := cfg.BaseTopic, cfg.DiscoveryPrefix
-	hubDev := deviceInfo{Identifiers: []string{"netzwart"}, Name: "Netzwart", Manufacturer: "Netzwart", SWVersion: b.version}
+	hubDev := deviceInfo{Identifiers: []string{"netward"}, Name: "Netward", Manufacturer: "Netward", SWVersion: b.version}
 	lang := b.language()
 	t := func(de, en string) string {
 		if lang == "en" {
@@ -369,11 +372,11 @@ func (b *Bridge) publishAll(ctx context.Context, cl *Client, cfg config.MQTT) er
 	sensors := []struct {
 		comp, id, name, topic, unit, class string
 	}{
-		{"sensor", "netzwart_devices_online", t("Geräte online", "Devices online"), base + "/stats/online", "", ""},
-		{"sensor", "netzwart_devices_total", t("Geräte gesamt", "Devices total"), base + "/stats/total", "", ""},
-		{"sensor", "netzwart_devices_new", t("Neue Geräte", "New devices"), base + "/stats/new", "", ""},
-		{"sensor", "netzwart_internet_latency", t("Internet-Latenz", "Internet latency"), base + "/internet/latency", "ms", "duration"},
-		{"binary_sensor", "netzwart_internet", "Internet", base + "/internet/state", "", "connectivity"},
+		{"sensor", "netward_devices_online", t("Geräte online", "Devices online"), base + "/stats/online", "", ""},
+		{"sensor", "netward_devices_total", t("Geräte gesamt", "Devices total"), base + "/stats/total", "", ""},
+		{"sensor", "netward_devices_new", t("Neue Geräte", "New devices"), base + "/stats/new", "", ""},
+		{"sensor", "netward_internet_latency", t("Internet-Latenz", "Internet latency"), base + "/internet/latency", "ms", "duration"},
+		{"binary_sensor", "netward_internet", "Internet", base + "/internet/state", "", "connectivity"},
 	}
 	for _, s := range sensors {
 		cfgMsg := map[string]any{"name": s.name, "unique_id": s.id, "object_id": s.id, "state_topic": s.topic,
@@ -425,7 +428,7 @@ func (b *Bridge) publishPersons(ctx context.Context, cl *Client, cfg config.MQTT
 				"name": nil, "unique_id": id, "object_id": id, "state_topic": stateTopic,
 				"payload_home": "home", "payload_not_home": "not_home", "source_type": "router",
 				"availability_topic": cfg.BaseTopic + "/status",
-				"device":             deviceInfo{Identifiers: []string{id}, Name: p.Name, Manufacturer: "Netzwart", ViaDevice: "netzwart"},
+				"device":             deviceInfo{Identifiers: []string{id}, Name: p.Name, Manufacturer: "Netward", ViaDevice: "netward"},
 			}
 			if err := b.publishJSON(ctx, cl, cfg.DiscoveryPrefix+"/device_tracker/"+id+"/config", msg); err != nil {
 				return err
@@ -454,7 +457,7 @@ func (b *Bridge) publishPersons(ctx context.Context, cl *Client, cfg config.MQTT
 	b.mu.Lock()
 	var stale []string
 	for id := range b.published {
-		if strings.HasPrefix(id, "netzwart_person_") && !want[id] {
+		if strings.HasPrefix(id, "netward_person_") && !want[id] {
 			stale = append(stale, id)
 		}
 	}
@@ -524,7 +527,7 @@ func (b *Bridge) publishDevice(ctx context.Context, cl *Client, cfg config.MQTT,
 		"payload_home": "home", "payload_not_home": "not_home", "source_type": "router",
 		"availability_topic": cfg.BaseTopic + "/status",
 		"device": deviceInfo{Identifiers: []string{id}, Name: name, Manufacturer: d.Vendor, Model: d.Model,
-			Connections: [][]string{{"mac", d.MAC}}, ViaDevice: "netzwart"},
+			Connections: [][]string{{"mac", d.MAC}}, ViaDevice: "netward"},
 	}
 	if !known {
 		if err := b.publishJSON(ctx, cl, cfgTopic, msg); err != nil {
@@ -550,7 +553,7 @@ func (b *Bridge) remove(ctx context.Context, cl *Client, cfg config.MQTT, id str
 	if err := cl.Publish(ctx, cfg.DiscoveryPrefix+"/device_tracker/"+id+"/config", nil, true); err != nil {
 		return err
 	}
-	if pid, ok := strings.CutPrefix(id, "netzwart_person_"); ok {
+	if pid, ok := strings.CutPrefix(id, "netward_person_"); ok {
 		_ = cl.Publish(ctx, cfg.BaseTopic+"/person/"+pid+"/state", nil, true)
 	} else {
 		_ = cl.Publish(ctx, cfg.BaseTopic+"/device/"+id+"/state", nil, true)
@@ -561,6 +564,21 @@ func (b *Bridge) remove(ctx context.Context, cl *Client, cfg config.MQTT, id str
 	delete(b.pubNames, id)
 	delete(b.pubStates, id)
 	b.mu.Unlock()
+	return nil
+}
+
+// legacyPrefix is the object ID prefix from before the rename to Netward (0.3.x).
+// Retained trackers with it are never wanted, so the stale cleanup removes them.
+const legacyPrefix = "netzwart_"
+
+// removeLegacyHub clears the hub sensors published before the rename (0.3.x).
+func removeLegacyHub(ctx context.Context, cl *Client, cfg config.MQTT) error {
+	for _, id := range []string{"sensor/netzwart_devices_online", "sensor/netzwart_devices_total",
+		"sensor/netzwart_devices_new", "sensor/netzwart_internet_latency", "binary_sensor/netzwart_internet"} {
+		if err := cl.Publish(ctx, cfg.DiscoveryPrefix+"/"+id+"/config", nil, true); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

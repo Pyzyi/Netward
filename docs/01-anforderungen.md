@@ -5,7 +5,7 @@
 
 ## 1. Produktvision
 
-**Netzwart** ist ein selbst gehosteter Netzwerk-Wächter für Heim- und Kleinbüro-Netze.
+**Netward** ist ein selbst gehosteter Netzwerk-Wächter für Heim- und Kleinbüro-Netze.
 Er läuft als **ein einziger Docker-Container** auf einem Heimserver (Zielplattform: ZimaOS),
 erkennt jedes Gerät im lokalen Netz, benennt es verständlich, zeigt, wer gerade online ist,
 und meldet sich, wenn etwas Unerwartetes passiert.
@@ -14,7 +14,7 @@ Leitsatz: *So einfach wie Fing, so offen wie NetAlertX, sicherer als beide.*
 
 ## 2. Wettbewerbsanalyse
 
-| Kriterium | Fing (App / Agent) | NetAlertX | **Netzwart (Ziel)** |
+| Kriterium | Fing (App / Agent) | NetAlertX | **Netward (Ziel)** |
 |---|---|---|---|
 | Kosten | Basis gratis, Agent/Premium kostenpflichtig (Abo) | gratis, Open Source | gratis, Open Source (MIT) |
 | Betrieb | Cloud-Konto nötig, Daten bei Fing | self-hosted | self-hosted, **keine Cloud, keine Telemetrie** |
@@ -37,9 +37,9 @@ Leitsatz: *So einfach wie Fing, so offen wie NetAlertX, sicherer als beide.*
 - **Geräte sperren / Internet pausieren** (Fingbox). Das funktioniert nur per ARP-Spoofing.
   Das ist ein Angriff auf das eigene Netz: Es destabilisiert Verbindungen, wird von
   Sicherheitssoftware erkannt und erweitert die Angriffsfläche erheblich. Stattdessen verlinkt
-  Netzwart auf die Sperrfunktion des Routers (z. B. FRITZ!Box-Kindersicherung).
+  Netward auf die Sperrfunktion des Routers (z. B. FRITZ!Box-Kindersicherung).
 - **Cloud-Geräteerkennung**. Sie würde Daten aus dem Heimnetz an Dritte senden.
-- **Speedtest**. Er erzeugt Last und braucht externe Server; Internet-Monitoring misst stattdessen Latenz und Ausfälle. Die WLAN-Karte (F-42) misst nur im Heimnetz zwischen Handy und Netzwart, nie gegen externe Server.
+- **Speedtest**. Er erzeugt Last und braucht externe Server; Internet-Monitoring misst stattdessen Latenz und Ausfälle. Die WLAN-Karte (F-42) misst nur im Heimnetz zwischen Handy und Netward, nie gegen externe Server.
 
 ## 3. Personas
 
@@ -71,7 +71,7 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-11 | Benachrichtigungskanäle | ntfy, Gotify, Pushover, Telegram, Discord, Slack/Mattermost, generischer Webhook, E-Mail (SMTP); Testnachricht pro Kanal |
 | F-12 | Ersteinrichtung mit Admin-Konto | Kein Standardpasswort; ohne Einrichtung ist keine Funktion außer Setup erreichbar |
 | F-13 | Anmeldung, Abmeldung, Passwort ändern, Sitzungen verwalten | Sitzungen sind einzeln widerrufbar |
-| F-14 | Passwort-Reset ohne Datenverlust | `docker exec netzwart /netzwart reset-password` **oder** Datei `reset-password` im AppData-Ordner anlegen und neu starten: Das Einmalpasswort steht im Log. `factory-reset` entfernt Konten, Kanäle und Einstellungen |
+| F-14 | Passwort-Reset ohne Datenverlust | `docker exec netward /netward reset-password` **oder** Datei `reset-password` im AppData-Ordner anlegen und neu starten: Das Einmalpasswort steht im Log. `factory-reset` entfernt Konten, Kanäle und Einstellungen |
 | F-15 | Einstellungen in der Oberfläche | Interfaces/Subnetze, Scan-Intervall, Offline-Schwelle, Sprache, Theme, Aufbewahrungsdauer |
 | F-16 | Live-Aktualisierung der Oberfläche | Änderungen erscheinen ohne Neuladen (Server-Sent Events) |
 | F-17 | Geräte zusammenführen | Zwei Einträge (z. B. nach Wechsel der privaten MAC) lassen sich zu einem vereinen; Name, Notizen und Verlauf bleiben erhalten |
@@ -93,7 +93,7 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-29 | FRITZ!Box-Anbindung (optional) | Mit FRITZ!Box-Benutzer liefert TR-064 Gerätenamen und WLAN-Anmeldestatus; verbessert Namen und Anwesenheit schlafender Handys |
 | F-30 | Software und Support je Gerät (0.1) | Gerätedetail zeigt System, Version, Quelle und ob es noch Sicherheitsupdates bekommt (`unterstützt`, `Ende absehbar`, `Update verfügbar`, `keine Updates mehr`, `unbekannt`) mit Handlungsempfehlung; Wissensstand mit Datum; Version oder Windows-Ausgabe manuell angebbar ([08](08-software-und-support.md)) |
 | F-31 | Befund „Keine Sicherheitsupdates mehr“ (0.1) | Wird beim Start, täglich und nach jeder Änderung neu bewertet, unabhängig vom Sicherheitscheck; Benachrichtigung bei neuem Befund, mehr als drei auf einmal gebündelt; eine neue Version mit gleichem Urteil löst keine erneute Meldung aus |
-| F-32 | Hinweis auf neue Netzwart-Versionen (0.1, opt-in) | Standardmäßig aus; wenn an, einmal täglich ein GET auf die Release-Liste von GitHub; zeigt Version und Link zu den Release-Notizen; installiert nichts selbst |
+| F-32 | Hinweis auf neue Netward-Versionen (0.1, opt-in) | Standardmäßig aus; wenn an, einmal täglich ein GET auf die Release-Liste von GitHub; zeigt Version und Link zu den Release-Notizen; installiert nichts selbst |
 | F-33 | Zweiter DHCP-Server und Router-Adresse (0.2) | Passiv und per einzelner DHCP-Anfrage im Sicherheitscheck (abschaltbar) erkannte DHCP-Server werden angezeigt; ein weiterer Server ist ein Befund (kritisch, wenn er andere Router/DNS vorgibt), ebenso zwei Antwortende auf die Router-Adresse oder eine neue Hardware dafür; „Diesen Server kenne ich“/„Das ist mein neuer Router“ bestätigen ([09](09-version-0.2.md)) |
 | F-34 | WLAN-Diagnose (0.2, FRITZ!Box) | Je WLAN-Gerät Zugangspunkt, Band, Kanal, Signal (dBm) und Datenrate, Anbindung der Repeater; Hinweise auf schwaches Signal, 2,4 GHz trotz 5-GHz-Fähigkeit und schwach angebundene Repeater erst nach drei Abfragen in Folge; ohne Benachrichtigung |
 | F-35 | Nachweis-Bericht für den Provider (0.2) | PDF über einen gewählten Zeitraum (abgeschlossene Tage, max. ein Jahr): Verfügbarkeit über die gemessene Zeit, Störungen nach Art (Router zählt nicht), Latenz je Tag, Sync-Raten gegen Vertragswerte; Rohdaten als CSV mit SHA-256 im PDF; persönliche Angaben nur im PDF; Hinweis auf die Breitbandmessung der Bundesnetzagentur |
@@ -102,8 +102,8 @@ IDs werden in Code, Tests und Review-Protokoll referenziert.
 | F-38 | Verhaltens-Baseline (0.2, klein) | Wechsel der Systemfamilie eines etablierten, bekannten Geräts (zweimal bestätigt) wird Befund mit „Neu eingerichtet“/„Kenne ich nicht“; neue Ports bei zwei übereinstimmenden Scans gleichen Umfangs als Ereignis |
 | F-39 | Geräte-Lebenslauf und Inventar (0.3.2) | Chronik je Gerät (erstes Auftauchen, Systemwechsel, neue Ports, Versionswechsel, Ausfälle ab 30 min bei durchlaufenden Geräten), überdauert die Aufbewahrungsfrist, max. 500 Einträge je Gerät; Kaufdatum, Garantie und Seriennummer im Gerätedetail und im CSV-Export ([10](10-version-0.3.md)) |
 | F-40 | DNS-Prüfung (0.3.2) | Im Sicherheitscheck (abschaltbar) werden die DNS-Server im Netz nach drei Namen mit fester Adresse und einem nicht existierenden Namen gefragt; falsche Adresse = kritischer Befund, Umleitung nicht existierender Namen = Warnung, Sperren (0.0.0.0) sind kein Befund; Übersicht „Angriffserkennung im LAN“ mit ARP, DHCP und DNS |
-| F-41 | Stolperdraht (0.3.2, opt-in) | Köder-Ports (Standard 2323, 3389, 5555, 5900; Ports < 1024 nur per `NETZWART_TRIPWIRE_PORTS` und `NET_BIND_SERVICE`) melden jede Verbindung aus dem Heimnetz als kritischen Befund je Gerät; Ausnahmen per IP/Netz; Inhalt wird nie gespeichert; Status je Port sichtbar |
-| F-42 | WLAN-Karte (0.3.2) | Grundriss hochladen, am Handy Position antippen und messen (Reaktionszeit, Download, Upload zwischen Browser und Netzwart, ohne Router-Zugang); Karte mit Farbverlauf und Hinweisen je Raum inkl. Ort für einen Verstärker; Messungen vom Netzwart-Rechner selbst werden abgelehnt |
+| F-41 | Stolperdraht (0.3.2, opt-in) | Köder-Ports (Standard 2323, 3389, 5555, 5900; Ports < 1024 nur per `NETWARD_TRIPWIRE_PORTS` und `NET_BIND_SERVICE`) melden jede Verbindung aus dem Heimnetz als kritischen Befund je Gerät; Ausnahmen per IP/Netz; Inhalt wird nie gespeichert; Status je Port sichtbar |
+| F-42 | WLAN-Karte (0.3.2) | Grundriss hochladen, am Handy Position antippen und messen (Reaktionszeit, Download, Upload zwischen Browser und Netward, ohne Router-Zugang); Karte mit Farbverlauf und Hinweisen je Raum inkl. Ort für einen Verstärker; Messungen vom Netward-Rechner selbst werden abgelehnt |
 
 ### Could (Roadmap)
 

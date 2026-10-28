@@ -13,7 +13,7 @@
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo), the data directories are private to UID 10001" >&2; exit 2; }
 
-IMAGE="${1:-netzwart:local}"
+IMAGE="${1:-netward:local}"
 PREV_IMAGE="${2:-ghcr.io/pyzyi/netward:latest}"
 NET="nwtest-$$"
 OCTET=$((RANDOM % 200 + 20))
@@ -83,7 +83,7 @@ grep -qE '^CapEff:\s+0+$' <<<"$ST" && ok "no effective capabilities" || fail "Ca
 grep -qE '^CapPrm:\s+0+$' <<<"$ST" && ok "no permitted capabilities" || fail "CapPrm: $(grep ^CapPrm <<<"$ST")"
 grep -qE '^NoNewPrivs:\s+1' <<<"$ST" && ok "no_new_privs set" || fail "NoNewPrivs not set"
 [ "$(stat -c '%u %a' "$WORK/data1")" = "10001 700" ] && ok "data dir 10001/0700" || fail "data dir: $(stat -c '%u %a' "$WORK/data1")"
-[ "$(stat -c '%u %a' "$WORK/data1/netzwart.db")" = "10001 600" ] && ok "database 10001/0600" || fail "db: $(stat -c '%u %a' "$WORK/data1/netzwart.db")"
+[ "$(stat -c '%u %a' "$WORK/data1/netward.db")" = "10001 600" ] && ok "database 10001/0600" || fail "db: $(stat -c '%u %a' "$WORK/data1/netward.db")"
 docker logs nw1-$$ 2>&1 | grep -q 'mode=raw' && ok "raw socket mode" || fail "not in raw mode"
 code="$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' "http://$IP:8840/api/v1/auth/state")"
 [ "$code" = 421 ] && ok "DNS rebinding host rejected (421)" || fail "foreign Host answered $code"
@@ -112,7 +112,7 @@ done
 [ "$cls" = ok ] && ok "gateway and self recognised" || fail "gateway/self classification (expected gateway $GW): $cls"
 
 echo "== 2. docker exec reset-password while running"
-out="$(docker exec nw1-$$ /netzwart reset-password)"
+out="$(docker exec nw1-$$ /netward reset-password)"
 NEWPW="$(sed -n 's/^New password for "admin": //p' <<<"$out")"
 [ -n "$NEWPW" ] && ok "reset-password printed a new password" || fail "reset-password: $out"
 bad="$(find "$WORK/data1" ! -uid 10001 | wc -l)"
@@ -161,7 +161,7 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
   done
   docker stop -t 10 nw8old-$$ >/dev/null
   schema() { python3 -c "import sqlite3,sys; print(sqlite3.connect('file:'+sys.argv[1]+'?mode=ro', uri=True).execute('SELECT MAX(version) FROM schema_migrations').fetchone()[0])" "$1"; }
-  OLD_SCHEMA="$(schema "$WORK/data8/netzwart.db")"
+  OLD_SCHEMA="$(schema "$WORK/data8/netward.db")"
   IP8="$(start nw8new-$$ "${HARDEN[@]}" -v "$WORK/data8:/data")" && ok "this build starts on the old data" || fail "this build did not start on the old data"
   rm -f "$WORK/jar" "$WORK/csrf"
   api "$IP8" POST /auth/login "{\"username\":\"admin\",\"password\":\"$PASS\"}" \
@@ -170,7 +170,7 @@ if docker pull -q "$PREV_IMAGE" >/dev/null 2>&1; then
   [ "$after" -ge "$before" ] && ok "devices kept ($before → $after)" || fail "devices lost: $before → $after"
   name="$(api "$IP8" GET /overview | python3 -c 'import json,sys; print(json.load(sys.stdin)["networkName"])')"
   [ "$name" = Updatetest ] && ok "settings kept" || fail "network name after update: $name"
-  NEW_SCHEMA="$(schema "$WORK/data8/netzwart.db")"
+  NEW_SCHEMA="$(schema "$WORK/data8/netward.db")"
   if [ "$NEW_SCHEMA" -gt "$OLD_SCHEMA" ]; then
     [ -f "$WORK/data8/backup/pre-update-schema-$OLD_SCHEMA.db" ] \
       && ok "schema $OLD_SCHEMA → $NEW_SCHEMA, backup pre-update-schema-$OLD_SCHEMA.db kept" \

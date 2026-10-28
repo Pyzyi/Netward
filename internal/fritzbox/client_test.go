@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	user, pass = "netzwart", "geheim-123"
+	user, pass = "netward", "geheim-123"
 	realm      = "F!Box SOAP-Auth"
 	nonce      = "4F2D1A8B9C"
 )

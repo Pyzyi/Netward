@@ -162,7 +162,7 @@ func (m *Monitor) History() []Sample {
 func (m *Monitor) Run(ctx context.Context) {
 	// Resume an outage that was open when the process stopped.
 	// A DNS outage cannot be resumed reliably; the report leaves out the
-	// time Netzwart was not running anyway.
+	// time Netward was not running anyway.
 	_ = m.st.CloseDNSOutages(ctx, time.Now().UnixMilli())
 	if outs, err := m.st.ListOutages(ctx, 0); err == nil {
 		for _, o := range outs {

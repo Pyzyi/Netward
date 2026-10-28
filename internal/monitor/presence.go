@@ -16,7 +16,7 @@ const (
 	gateTimeout = 3 * time.Minute
 )
 
-// recoverGap closes presence spans that were open while Netzwart was not
+// recoverGap closes presence spans that were open while Netward was not
 // running and records the gap, so timelines never claim "online" for time
 // nobody was watching.
 func (m *Monitor) recoverGap(ctx context.Context) error {

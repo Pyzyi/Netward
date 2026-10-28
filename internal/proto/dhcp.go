@@ -18,7 +18,7 @@ const (
 	DHCPInform   = 8
 )
 
-// DHCP holds the fields Netzwart extracts from a BOOTP/DHCP packet.
+// DHCP holds the fields Netward extracts from a BOOTP/DHCP packet.
 type DHCP struct {
 	Op          uint8 // 1 = client request, 2 = server reply
 	MsgType     uint8

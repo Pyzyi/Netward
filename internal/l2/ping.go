@@ -115,7 +115,7 @@ func (p *Pinger) Ping(ctx context.Context, ip netip.Addr, timeout time.Duration)
 		p.mu.Lock()
 		p.waiting[seq] = waiter{ip: ip, ch: ch}
 		p.mu.Unlock()
-		msg := icmp.Message{Type: ipv4.ICMPTypeEcho, Body: &icmp.Echo{ID: p.id, Seq: int(seq), Data: []byte("netzwart")}}
+		msg := icmp.Message{Type: ipv4.ICMPTypeEcho, Body: &icmp.Echo{ID: p.id, Seq: int(seq), Data: []byte("netward")}}
 		b, _ := msg.Marshal(nil)
 		var dst net.Addr = &net.IPAddr{IP: ip.AsSlice()}
 		if !p.raw {

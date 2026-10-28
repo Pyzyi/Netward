@@ -150,7 +150,7 @@ var (
 var common = map[string]bool{
 	"1234567890": true, "0123456789": true, "passwort123": true, "password123": true, "qwertzuiop": true,
 	"qwertyuiop": true, "1q2w3e4r5t": true, "passwort12": true, "password12": true, "administrator": true,
-	"netzwart123": true, "1111111111": true, "abcdefghij": true, "iloveyou12": true, "hallo12345": true,
+	"netward123": true, "1111111111": true, "abcdefghij": true, "iloveyou12": true, "hallo12345": true,
 	"letmein123": true, "12345678910": true, "asdfghjkl1": true, "zimaos1234": true, "changeme123": true,
 }
 

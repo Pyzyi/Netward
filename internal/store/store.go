@@ -1,4 +1,4 @@
-// Package store persists everything Netzwart knows in a single SQLite file.
+// Package store persists everything Netward knows in a single SQLite file.
 package store
 
 import (
@@ -88,7 +88,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		return fmt.Errorf("database schema version %d is newer than this build supports (%d); refusing to downgrade", current, len(migrations))
 	}
 	if current > 0 && current < len(migrations) {
-		// Keep the last copy an older Netzwart can open, so an update can be
+		// Keep the last copy an older Netward can open, so an update can be
 		// rolled back. Daily backups would be overwritten with the new schema.
 		// Written under a temporary name, so a failed copy is never mistaken
 		// for a good one. A failure is reported but does not block the start:

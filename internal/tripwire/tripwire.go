@@ -24,7 +24,7 @@ import (
 const (
 	StateOpen    = "open"
 	StateInUse   = "in_use"  // another program on the host uses the port
-	StateRestart = "restart" // a port below 1024: only opened at start (NETZWART_TRIPWIRE_PORTS)
+	StateRestart = "restart" // a port below 1024: only opened at start (NETWARD_TRIPWIRE_PORTS)
 	StateError   = "error"
 )
 

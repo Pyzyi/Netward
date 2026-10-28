@@ -1,14 +1,14 @@
-# Netzwart as a TrueNAS SCALE custom app (24.10 "Electric Eel" and newer).
-# Apps → Discover Apps → ⋮ → Install via YAML → name "netzwart" → paste this file.
+# Netward as a TrueNAS SCALE custom app (24.10 "Electric Eel" and newer).
+# Apps → Discover Apps → ⋮ → Install via YAML → name "netward" → paste this file.
 # Create the data folder first and adjust the path below to your pool.
 services:
-  netzwart:
+  netward:
     image: ghcr.io/pyzyi/netward:latest
-    container_name: netzwart
+    container_name: netward
     restart: unless-stopped
     # Layer-2 discovery (ARP, DHCP, mDNS) only works on the host network.
     network_mode: host
-    # Used only during start-up; Netzwart then switches to PUID:PGID and
+    # Used only during start-up; Netward then switches to PUID:PGID and
     # drops every capability.
     cap_drop:
       - ALL
@@ -22,9 +22,9 @@ services:
     read_only: true
     environment:
       TZ: Etc/UTC
-      NETZWART_PORT: "8840"
+      NETWARD_PORT: "8840"
       # 568 is the "apps" user of TrueNAS, so the dataset stays readable for other apps.
       PUID: "568"
       PGID: "568"
     volumes:
-      - /mnt/tank/apps/netzwart:/data
+      - /mnt/tank/apps/netward:/data

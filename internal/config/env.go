@@ -46,7 +46,14 @@ func LoadEnv() (Env, error) {
 		PGID:     10001,
 		LogLevel: "info",
 	}
-	get := func(k string) string { return strings.TrimSpace(os.Getenv(k)) }
+	get := func(k string) string {
+		v := strings.TrimSpace(os.Getenv(k))
+		if v == "" && strings.HasPrefix(k, "NETWARD_") {
+			// Installations from before the rename use NETZWART_* (0.3.x).
+			v = strings.TrimSpace(os.Getenv("NETZWART_" + strings.TrimPrefix(k, "NETWARD_")))
+		}
+		return v
+	}
 	num := func(k string, dst *int, lo, hi int) error {
 		v := get(k)
 		if v == "" {
@@ -59,7 +66,7 @@ func LoadEnv() (Env, error) {
 		*dst = n
 		return nil
 	}
-	if err := num("NETZWART_PORT", &e.Port, 1, 65535); err != nil {
+	if err := num("NETWARD_PORT", &e.Port, 1, 65535); err != nil {
 		return e, err
 	}
 	if err := num("PUID", &e.PUID, 1, 2147483646); err != nil {
@@ -68,47 +75,47 @@ func LoadEnv() (Env, error) {
 	if err := num("PGID", &e.PGID, 1, 2147483646); err != nil {
 		return e, err
 	}
-	if v := get("NETZWART_LISTEN"); v != "" {
+	if v := get("NETWARD_LISTEN"); v != "" {
 		if _, err := netip.ParseAddr(v); err != nil {
-			return e, fmt.Errorf("NETZWART_LISTEN must be an IP address")
+			return e, fmt.Errorf("NETWARD_LISTEN must be an IP address")
 		}
 		e.Listen = v
 	}
-	if v := get("NETZWART_DATA"); v != "" {
+	if v := get("NETWARD_DATA"); v != "" {
 		e.DataDir = v
 	}
-	e.Interfaces = list(get("NETZWART_INTERFACES"))
-	e.SetupToken = get("NETZWART_SETUP_TOKEN")
-	for _, h := range list(get("NETZWART_ALLOWED_HOSTS")) {
+	e.Interfaces = list(get("NETWARD_INTERFACES"))
+	e.SetupToken = get("NETWARD_SETUP_TOKEN")
+	for _, h := range list(get("NETWARD_ALLOWED_HOSTS")) {
 		e.AllowedHosts = append(e.AllowedHosts, strings.ToLower(h))
 	}
-	for _, c := range list(get("NETZWART_TRUSTED_PROXIES")) {
+	for _, c := range list(get("NETWARD_TRUSTED_PROXIES")) {
 		p, err := ParsePrefix(c)
 		if err != nil {
-			return e, fmt.Errorf("NETZWART_TRUSTED_PROXIES: %q is not an IP or CIDR", c)
+			return e, fmt.Errorf("NETWARD_TRUSTED_PROXIES: %q is not an IP or CIDR", c)
 		}
 		e.TrustedProxies = append(e.TrustedProxies, p)
 	}
-	for _, v := range list(get("NETZWART_TRIPWIRE_PORTS")) {
+	for _, v := range list(get("NETWARD_TRIPWIRE_PORTS")) {
 		p, err := strconv.Atoi(v)
 		if err != nil || p < 1 || p > 65535 || p == e.Port {
-			return e, fmt.Errorf("NETZWART_TRIPWIRE_PORTS: %q is not a usable port", v)
+			return e, fmt.Errorf("NETWARD_TRIPWIRE_PORTS: %q is not a usable port", v)
 		}
 		e.TripwirePorts = append(e.TripwirePorts, p)
 	}
-	e.TLSCert, e.TLSKey = get("NETZWART_TLS_CERT"), get("NETZWART_TLS_KEY")
+	e.TLSCert, e.TLSKey = get("NETWARD_TLS_CERT"), get("NETWARD_TLS_KEY")
 	if (e.TLSCert == "") != (e.TLSKey == "") {
-		return e, fmt.Errorf("NETZWART_TLS_CERT and NETZWART_TLS_KEY must be set together")
+		return e, fmt.Errorf("NETWARD_TLS_CERT and NETWARD_TLS_KEY must be set together")
 	}
-	if v := strings.ToLower(get("NETZWART_LOG_LEVEL")); v != "" {
+	if v := strings.ToLower(get("NETWARD_LOG_LEVEL")); v != "" {
 		switch v {
 		case "debug", "info", "warn", "error":
 			e.LogLevel = v
 		default:
-			return e, fmt.Errorf("NETZWART_LOG_LEVEL must be debug, info, warn or error")
+			return e, fmt.Errorf("NETWARD_LOG_LEVEL must be debug, info, warn or error")
 		}
 	}
-	switch demo := strings.ToLower(get("NETZWART_DEMO")); demo {
+	switch demo := strings.ToLower(get("NETWARD_DEMO")); demo {
 	case "1", "true", "de":
 		e.Demo, e.DemoLang = true, "de"
 	case "en":

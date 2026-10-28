@@ -78,7 +78,7 @@ func newHarness(t *testing.T) *harness {
 		Persons: people,
 		Store:   st, Monitor: mon, Internet: inet, Security: security.New(st, mon, h, disp, log), Notify: disp, Hub: h,
 		Log: log, Version: "test", StartedAt: time.Now(),
-		Static:   fstest.MapFS{"index.html": {Data: []byte("<!doctype html><title>Netzwart</title>")}},
+		Static:   fstest.MapFS{"index.html": {Data: []byte("<!doctype html><title>Netward</title>")}},
 		Settings: func() config.Settings { hs.mu.Lock(); defer hs.mu.Unlock(); return hs.settings },
 		ApplySettings: func(_ context.Context, s config.Settings) error {
 			hs.mu.Lock()
@@ -156,7 +156,7 @@ func (h *harness) setup() session {
 	_ = json.Unmarshal(rec.Body.Bytes(), &st)
 	var c *http.Cookie
 	for _, ck := range rec.Result().Cookies() {
-		if ck.Name == "netzwart_session" {
+		if ck.Name == "netward_session" {
 			c = ck
 		}
 	}
@@ -182,7 +182,7 @@ func TestSecurityHeaders(t *testing.T) {
 	if !strings.Contains(rec.Header().Get("Content-Security-Policy"), "frame-ancestors 'none'") {
 		t.Error("frame-ancestors missing")
 	}
-	if !strings.Contains(rec.Body.String(), "Netzwart") {
+	if !strings.Contains(rec.Body.String(), "Netward") {
 		t.Error("index not served")
 	}
 	// SPA fallback for client routes, 404 for missing assets.
@@ -212,7 +212,7 @@ func TestDNSRebindingBlocked(t *testing.T) {
 			t.Errorf("%q should be allowed", host)
 		}
 	}
-	if !HostAllowed("netzwart.example.com", []string{"netzwart.example.com"}) || !HostAllowed("a.example.com", []string{"*.example.com"}) {
+	if !HostAllowed("netward.example.com", []string{"netward.example.com"}) || !HostAllowed("a.example.com", []string{"*.example.com"}) {
 		t.Error("configured hosts not allowed")
 	}
 }
@@ -345,7 +345,7 @@ func TestChannelSecretsAreWriteOnly(t *testing.T) {
 	// Settings secrets likewise.
 	st := h.settings
 	st.MQTT = config.MQTT{Enabled: true, Host: "192.168.1.10", Port: 1883, Username: "ha", Password: "mqtt-secret",
-		DiscoveryPrefix: "homeassistant", BaseTopic: "netzwart"}
+		DiscoveryPrefix: "homeassistant", BaseTopic: "netward"}
 	if rec := h.do(req{method: "PUT", path: "/api/v1/settings", cookie: s.cookie, csrf: s.csrf, body: st}); rec.Code != 200 || strings.Contains(rec.Body.String(), "mqtt-secret") {
 		t.Fatalf("settings update: %d %s", rec.Code, rec.Body)
 	}
@@ -453,7 +453,7 @@ func TestRevokeOtherSessions(t *testing.T) {
 			t.Fatalf("login: %d %s", rec.Code, rec.Body)
 		}
 		for _, ck := range rec.Result().Cookies() {
-			if ck.Name == "netzwart_session" {
+			if ck.Name == "netward_session" {
 				others = append(others, ck)
 			}
 		}

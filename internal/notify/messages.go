@@ -153,10 +153,10 @@ func Render(ev Event, lang string, loc *time.Location) Message {
 		msg.Body = strings.TrimSpace(name + "\n" + str(ev.Data, "detail"))
 	case KindDeviceFlood:
 		msg.Title = tr(lang, "Ungewöhnlich viele neue Geräte", "Unusually many new devices")
-		msg.Body = tr(lang, "Netzwart nimmt vorübergehend keine weiteren neuen Geräte auf. Das kann auf ein fehlerhaftes Gerät oder einen Angriff im Netz hindeuten.",
-			"Netzwart temporarily stopped adding new devices. This can indicate a faulty device or an attack on the network.")
+		msg.Body = tr(lang, "Netward nimmt vorübergehend keine weiteren neuen Geräte auf. Das kann auf ein fehlerhaftes Gerät oder einen Angriff im Netz hindeuten.",
+			"Netward temporarily stopped adding new devices. This can indicate a faulty device or an attack on the network.")
 	case KindTest:
-		msg.Title = tr(lang, "Testnachricht von Netzwart", "Test message from Netzwart")
+		msg.Title = tr(lang, "Testnachricht von Netward", "Test message from Netward")
 		msg.Body = tr(lang, "Wenn du das liest, ist der Kanal richtig eingerichtet.", "If you can read this, the channel works.")
 	default:
 		msg.Title = ev.Kind

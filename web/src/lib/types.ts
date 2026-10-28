@@ -55,7 +55,7 @@ export interface SoftwareObservation {
   updateAvailable?: boolean;
 }
 
-/** What Netzwart knows about the software of a device (internal/software). */
+/** What Netward knows about the software of a device (internal/software). */
 export interface SoftwareAssessment {
   status: SoftwareStatus;
   product: string;

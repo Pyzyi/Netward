@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Netzwart version
+      label: Netward version
       description: Settings → About
       placeholder: "0.3.3"
     validations:
@@ -40,5 +40,5 @@ body:
     id: logs
     attributes:
       label: Log output
-      description: "`docker logs netzwart` – remove anything private first: passwords (a password reset prints the new one) and MAC addresses"
+      description: "`docker logs netward` – remove anything private first: passwords (a password reset prints the new one) and MAC addresses"
       render: text

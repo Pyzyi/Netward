@@ -8,10 +8,10 @@ all: build
 
 web:
 	cd web && npm ci && npm run check && npm run build
-	rm -rf cmd/netzwart/web && mkdir -p cmd/netzwart/web && cp -r web/dist/. cmd/netzwart/web/ && touch cmd/netzwart/web/.gitkeep
+	rm -rf cmd/netward/web && mkdir -p cmd/netward/web && cp -r web/dist/. cmd/netward/web/ && touch cmd/netward/web/.gitkeep
 
 build: web
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/netzwart ./cmd/netzwart
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/netward ./cmd/netward
 
 test:
 	go vet ./...
@@ -33,8 +33,8 @@ kev:
 	  -out internal/vuln/kev.json
 
 demo: build
-	mkdir -p data && NETZWART_DEMO=1 NETZWART_DATA=$(CURDIR)/data ./bin/netzwart
+	mkdir -p data && NETWARD_DEMO=1 NETWARD_DATA=$(CURDIR)/data ./bin/netward
 
 clean:
 	rm -rf bin data web/dist
-	find cmd/netzwart/web -mindepth 1 ! -name .gitkeep -delete
+	find cmd/netward/web -mindepth 1 ! -name .gitkeep -delete

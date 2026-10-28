@@ -266,7 +266,7 @@ func (s *Store) LatencyBetween(ctx context.Context, from, to int64) ([]Latency, 
 	return out, rows.Err()
 }
 
-// Gap is a period during which Netzwart was not running.
+// Gap is a period during which Netward was not running.
 type Gap struct {
 	Start int64 `json:"start"`
 	End   int64 `json:"end"`

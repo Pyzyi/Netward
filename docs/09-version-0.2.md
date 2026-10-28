@@ -38,7 +38,7 @@ Anzeige im Gerätedetail (Abschnitt „WLAN“) und eine Übersicht „WLAN“ m
 
 - Personen anlegen (Name), Geräte zuordnen (ein Gerät gehört höchstens einer Person). Pro Gerät wählbar, ob es für die Anwesenheit zählt (Standard: Handy und Uhr).
 - **Zu Hause**, wenn mindestens ein Anwesenheitsgerät online ist; „seit …“.
-- **Zeit im Heimnetz** je Tag (letzte 7 Tage): Vereinigung der Online-Zeiten der Anwesenheitsgeräte. Netzwart sieht nur, *dass* ein Gerät verbunden ist – nicht, was darauf passiert; die Oberfläche sagt das so.
+- **Zeit im Heimnetz** je Tag (letzte 7 Tage): Vereinigung der Online-Zeiten der Anwesenheitsgeräte. Netward sieht nur, *dass* ein Gerät verbunden ist – nicht, was darauf passiert; die Oberfläche sagt das so.
 - Home Assistant: pro Person ein `device_tracker` (home/not_home) per MQTT Discovery, abschaltbar.
 - Hinweis in der Oberfläche: Alle Personen im Haushalt sollten wissen, dass ihre Anwesenheit erfasst wird.
 
@@ -51,7 +51,7 @@ Anzeige im Gerätedetail (Abschnitt „WLAN“) und eine Übersicht „WLAN“ m
 
 ## F6 · Offline-Abgleich bekannter, aktiv ausgenutzter Lücken
 
-- **Daten:** CISA „Known Exploited Vulnerabilities“ (KEV) plus die betroffenen Versionen aus den CVE-Datensätzen (CVE List v5). Ein Generator (`tools/kevgen`) erzeugt pro Release einen kleinen Schnappschuss `internal/vuln/kev.json` nur für Produkte, die Netzwart erkennen kann (zunächst Apple: iOS, iPadOS, macOS, tvOS, audioOS, watchOS). Eingebettet, mit Datum; keine Online-Abfrage.
+- **Daten:** CISA „Known Exploited Vulnerabilities“ (KEV) plus die betroffenen Versionen aus den CVE-Datensätzen (CVE List v5). Ein Generator (`tools/kevgen`) erzeugt pro Release einen kleinen Schnappschuss `internal/vuln/kev.json` nur für Produkte, die Netward erkennen kann (zunächst Apple: iOS, iPadOS, macOS, tvOS, audioOS, watchOS). Eingebettet, mit Datum; keine Online-Abfrage.
 - **Abgleich nur bei genauer Version** (mindestens Haupt- und Nebenversion, z. B. tvOS 26.4 aus AirPlay oder eine genaue manuelle Angabe). Nur die Hauptversion („iOS 18“) reicht nicht – dann kein Urteil.
 - **Befund** `known_exploited` (kritisch): „Für tvOS 26.4 sind aktiv ausgenutzte Lücken bekannt (CVE-…), behoben in 26.5.“ Mit Link zum Hersteller-Hinweis aus dem Datensatz (nur `https`-Links von bekannten Herstellerdomains).
 - Manuelle Angabe erlaubt künftig auch „18.6.2“.
@@ -89,7 +89,7 @@ Die Abschnitte oben bleiben als ursprünglicher Plan stehen; wo sie abweichen, g
 - Router-MAC über die vorhandene Konfliktlogik (`detectConflicts`): Repeater mit Proxy-ARP/MAC-NAT bleiben ausgenommen, zwei Sweeps in Folge sind nötig. Zwei MACs gleichzeitig auf der Router-Adresse werden als *ein* verschärfter Befund gemeldet, nicht zusätzlich zum IP-Konflikt.
 - MAC-Adressen sind nie Teil der Befund-Identität (keine Meldungsflut bei wechselnden Fälschungen).
 - Hersteller zählt: AVM → AVM und alte MAC verschwunden = „Neuer Router?“ (Hinweis); anderer Hersteller oder alte MAC weiterhin aktiv = Warnung bzw. kritisch.
-- Gibt es keinen eindeutigen Referenz-Server (z. B. nur ein Pi-hole), fragt Netzwart „Welcher Server ist deiner?“ statt zu alarmieren.
+- Gibt es keinen eindeutigen Referenz-Server (z. B. nur ein Pi-hole), fragt Netward „Welcher Server ist deiner?“ statt zu alarmieren.
 - Passive Erkennung sieht wenig (DHCP-Antworten gehen meist gezielt an den Client); die aktive Anfrage (F1b) ist der verlässliche Weg. Sie fragt Router, DNS und Server-ID ab (Option 55), prüft die Transaktions-ID, nutzt **eine feste MAC pro Installation** (nicht jedes Mal eine neue) und erzeugt nie ein Gerät. Abschaltbar. Nur IPv4.
 
 **F3**
@@ -99,7 +99,7 @@ Die Abschnitte oben bleiben als ursprünglicher Plan stehen; wo sie abweichen, g
 - Fehlende Rechte für die Mesh-Liste betreffen nur diese Funktion, nicht die ganze FRITZ!Box-Anbindung. Ersatzweise die WLAN-Geräteliste ohne Repeater-Zuordnung.
 
 **F5**
-- Neue Tabellen für Latenz (je 5 Minuten: Median, Maximum, Verlust) und Art des Ausfalls (Router, Internet, DNS). Router-Ausfälle und Messlücken von Netzwart zählen im Bericht nicht gegen den Provider.
+- Neue Tabellen für Latenz (je 5 Minuten: Median, Maximum, Verlust) und Art des Ausfalls (Router, Internet, DNS). Router-Ausfälle und Messlücken von Netward zählen im Bericht nicht gegen den Provider.
 - Leitungsdaten jede Minute lesen, nur bei Änderung speichern; Resyncs über die Verbindungsdauer erkennen. Sync-Raten-Diagramm nur bei DSL; der Bericht funktioniert auch ohne FRITZ!Box.
 - Vertragswerte: maximal, normalerweise verfügbar, minimal („Was steht in deinem Vertrag?“). Hinweis: Sync-Rate ist nicht Durchsatz.
 - PDF: Texte als Hex-Strings, Prüfung mit `qpdf --check` im CI, Rohdaten als CSV mit SHA-256 im Anhang. Optional Name/Kundennummer/Anschrift nur für den Bericht, nicht gespeichert. Kein WLAN-Name.

@@ -2,7 +2,7 @@
   import type { Presence } from '../types';
   import { dateTime, time, t } from '../i18n.svelte';
 
-  // since: when Netzwart first saw the device; before that nothing is known.
+  // since: when Netward first saw the device; before that nothing is known.
   let { data, since = 0 }: { data: Presence; since?: number } = $props();
   const unknownUntil = $derived(Math.min(data.to, Math.max(data.from, since)));
 

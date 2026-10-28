@@ -30,9 +30,9 @@ type sessionInfo struct {
 
 func (s *Server) cookieName(r *http.Request) string {
 	if s.isHTTPS(r) {
-		return "__Host-netzwart_session"
+		return "__Host-netward_session"
 	}
-	return "netzwart_session"
+	return "netward_session"
 }
 
 func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string, remember bool) {

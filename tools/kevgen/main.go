@@ -1,6 +1,6 @@
 // Command kevgen builds the offline snapshot of known exploited
 // vulnerabilities embedded by internal/vuln (docs/09, F6): the CISA KEV
-// catalogue plus, for each entry of a product Netzwart can recognise, the
+// catalogue plus, for each entry of a product Netward can recognise, the
 // affected version ranges from the CVE List v5 record.
 //
 // Both sources are read at fixed commits, so the same command always
@@ -33,7 +33,7 @@ const (
 	cveURL = "https://raw.githubusercontent.com/CVEProject/cvelistV5/%s/cves/%s/%sxxx/%s.json"
 )
 
-// products maps CVE product names to Netzwart's product ids.
+// products maps CVE product names to Netward's product ids.
 var products = map[string][]string{
 	"ios and ipados": {"ios", "ipados"},
 	"ios":            {"ios"},
@@ -174,7 +174,7 @@ func build(kevCommit, cveCommit string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// entry extracts the affected ranges of the products Netzwart knows.
+// entry extracts the affected ranges of the products Netward knows.
 func entry(rec []byte) (Entry, bool) {
 	var r struct {
 		Containers struct {

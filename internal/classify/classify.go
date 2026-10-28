@@ -324,7 +324,7 @@ func Classify(in Input) Result {
 }
 
 // GuessOS derives the operating system family from DHCP options 60 and 55.
-// The rules are Netzwart's own, derived from public RFCs and observation.
+// The rules are Netward's own, derived from public RFCs and observation.
 func GuessOS(vendorClass, params string) string {
 	vc := strings.ToLower(vendorClass)
 	switch {

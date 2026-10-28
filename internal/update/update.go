@@ -1,4 +1,4 @@
-// Package update looks up the latest Netzwart release on GitHub when the
+// Package update looks up the latest Netward release on GitHub when the
 // user enabled it (off by default, N-04 / T-34). It never installs anything:
 // a container that updates itself would need the Docker socket.
 package update
@@ -128,7 +128,7 @@ func (c *Checker) fetch(ctx context.Context) (string, string, error) {
 		return "", "", err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "Netzwart")
+	req.Header.Set("User-Agent", "Netward")
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return "", "", errors.New("unreachable")

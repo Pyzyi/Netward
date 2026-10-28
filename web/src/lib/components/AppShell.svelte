@@ -36,9 +36,9 @@
 <div class="shell">
   <header class="band">
     <div class="band-inner">
-      <a class="brand" href="/" use:link aria-label="Netzwart">
+      <a class="brand" href="/" use:link aria-label="Netward">
         <Logo size={26} tile={false} />
-        <span class="brand-name">Netzwart</span>
+        <span class="brand-name">Netward</span>
       </a>
       {#if store.overview}
         <span class="net" title={iface ? `${iface.name} · ${iface.prefix}` : undefined}>

@@ -134,3 +134,27 @@ func TestSeedDemoEnglish(t *testing.T) {
 		t.Fatal("German demo changed")
 	}
 }
+
+func TestAdoptOldDB(t *testing.T) {
+	dir := t.TempDir()
+	env := config.Env{DataDir: dir}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	for _, f := range []string{"netzwart.db", "netzwart.db-wal"} {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte(f), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	AdoptOldDB(env, log)
+	if b, err := os.ReadFile(DBPath(env)); err != nil || string(b) != "netzwart.db" {
+		t.Fatalf("database not taken over: %v %q", err, b)
+	}
+	if _, err := os.Stat(DBPath(env) + "-wal"); err != nil {
+		t.Fatal("WAL file not taken over")
+	}
+	// An existing netward.db is never replaced.
+	_ = os.WriteFile(filepath.Join(dir, "netzwart.db"), []byte("old"), 0o600)
+	AdoptOldDB(env, log)
+	if b, _ := os.ReadFile(DBPath(env)); string(b) != "netzwart.db" {
+		t.Fatal("existing database replaced")
+	}
+}

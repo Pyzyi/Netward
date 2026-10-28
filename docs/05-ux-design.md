@@ -17,7 +17,7 @@ Die Ursache waren Stilmittel, die heute fast jede generierte Oberfläche trägt:
 - warmes „Papier“ mit Tinte
 
 ### Leitidee
-Netzwart soll wie ein gut gemachtes Werkzeug wirken, nicht wie eine Inszenierung. Ruhige weiße Flächen
+Netward soll wie ein gut gemachtes Werkzeug wirken, nicht wie eine Inszenierung. Ruhige weiße Flächen
 auf neutralem Grund, normale Schreibweise, klare Hierarchie über Größe und Gewicht. Gestaltung nur dort,
 wo sie Information trägt: der Netzring, der Herzschlag-Streifen, Statusfarben.
 
@@ -91,7 +91,7 @@ Radien 5/6/10 px). Typografie-Skala: 12, 13, 14 (Basis), 15, 16, 20/22, 24, 30 p
 ## 4. Screens
 
 ### Ersteinrichtung (2 Schritte)
-1. „Willkommen bei Netzwart“: Benutzername + Passwort (≥ 10 Zeichen, Stärkeanzeige über Länge/Zeichenklassen/Sperrliste, ohne große Bibliothek).
+1. „Willkommen bei Netward“: Benutzername + Passwort (≥ 10 Zeichen, Stärkeanzeige über Länge/Zeichenklassen/Sperrliste, ohne große Bibliothek).
 2. „Dein Netzwerk“: erkannte Interfaces/Subnetze vorausgewählt, Sprache. **Scan starten**.
 Danach füllt sich die Übersicht live, ohne leeren Zwischenzustand.
 

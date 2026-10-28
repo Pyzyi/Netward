@@ -7,7 +7,7 @@
 ```
 ┌──────────────────────────── Docker-Container (network_mode: host) ───────────────────────────┐
 │                                                                                               │
-│  /netzwart  (ein statisches Go-Binary, CGO_ENABLED=0, Frontend per go:embed eingebettet)      │
+│  /netward  (ein statisches Go-Binary, CGO_ENABLED=0, Frontend per go:embed eingebettet)      │
 │                                                                                               │
 │   ┌───────────────┐   Sichtungen   ┌──────────────┐  Ereignisse  ┌────────────────────────┐   │
 │   │ scan/arp      │──────────────▶ │              │────────────▶ │ notify (Dispatcher)    │──▶ ntfy, Gotify, Telegram, …
@@ -22,7 +22,7 @@
 │   │ SSDP DNS DHCP │                └──────┬───────┘                                           │
 │   └───────────────┘                       │                                                   │
 │   ┌───────────────┐ ┌───────────────┐     ▼                                                   │
-│   │ oui · classify│ │ internet      │  store (SQLite, WAL)  ──▶ /data/netzwart.db            │
+│   │ oui · classify│ │ internet      │  store (SQLite, WAL)  ──▶ /data/netward.db            │
 │   └───────────────┘ │ security      │                                                         │
 │                     └───────────────┘                                                         │
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -32,7 +32,7 @@
 
 | Paket | Verantwortung |
 |---|---|
-| `cmd/netzwart` | Einstieg, Subkommandos `serve` (Standard), `healthcheck`, `reset-password`, `factory-reset`, `version` |
+| `cmd/netward` | Einstieg, Subkommandos `serve` (Standard), `healthcheck`, `reset-password`, `factory-reset`, `version` |
 | `internal/privdrop` | Startet als root: `/data` übertragen, Raw-Sockets öffnen, auf UID 10001 wechseln und dabei alle Capabilities verlieren |
 | `internal/egress` | Zentraler Dialer/HTTP-Client mit Sperre für Loopback, Link-Local und Multicast |
 | `internal/config` | Umgebungsvariablen (Bootstrap) und persistierte Einstellungen |
@@ -69,7 +69,7 @@ device_ports       device_id, port, proto, service, first_seen, last_seen
 presence           id, device_id, started_at, ended_at (NULL = offen)
 events             id, ts, kind, severity, device_id, data (JSON)
 internet_outages   id, started_at, ended_at
-monitor_gaps       id, started_at, ended_at          (Zeiten, in denen Netzwart nicht lief)
+monitor_gaps       id, started_at, ended_at          (Zeiten, in denen Netward nicht lief)
 security_findings  id, check_id, device_id, severity, data, first_seen, last_seen, dismissed
 settings           key, value (JSON)
 users              id, username, password_hash, created_at, updated_at
@@ -113,11 +113,11 @@ und erst angewendet, wenn ARP das Gerät bestätigt. Neue Geräte unterliegen ei
   (belegen die MAC, nicht die IP), passive mDNS-Pakete und Antworten auf aktive Proben.
 - **Schwellen je Typ**: `offline_after` (Standard 5 min), für Telefone, Tablets und Uhren
   `offline_after_mobile` (Standard 15 min), weil diese im Energiesparmodus ARP minutenlang ignorieren.
-- **Weck-Proben**: Bevor ein Gerät als offline gilt, sendet Netzwart einen ARP-Unicast-Burst, ICMP-Echo,
+- **Weck-Proben**: Bevor ein Gerät als offline gilt, sendet Netward einen ARP-Unicast-Burst, ICMP-Echo,
   einen TCP-Connect auf Port 62078 (iOS) und eine mDNS-Unicast-Anfrage. Jede Antwort hält das Gerät online.
 - Übergang *online*: Presence-Sitzung öffnen; Ereignis `device_online` nur bei beobachteten Geräten.
 - Übergang *offline*: Sitzung mit `ended_at = last_seen` schließen.
-- **Überwachungslücken**: Netzwart schreibt minütlich einen Heartbeat. Ist er beim Start älter als 3 min,
+- **Überwachungslücken**: Netward schreibt minütlich einen Heartbeat. Ist er beim Start älter als 3 min,
   werden offene Sitzungen bei `min(last_seen, heartbeat)` geschlossen und die Lücke wird gespeichert.
   Die Zeitleiste zeigt sie schraffiert, der Online-Anteil zählt nur beobachtete Zeit.
 - **Startgate**: Der Offline-Sweeper wertet erst nach dem ersten vollständigen Scan aus,
@@ -164,7 +164,7 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 
 ### ADR-004 · Sockets als root öffnen, dann alle Rechte abgeben
 - **Kontext:** Layer-2-Scans brauchen `AF_PACKET`- und ICMP-Raw-Sockets (`CAP_NET_RAW`). Ein Bind-Mount
-  (`/DATA/AppData/netzwart`) wird von Docker als root angelegt. Root ohne `DAC_OVERRIDE` kann fremde
+  (`/DATA/AppData/netward`) wird von Docker als root angelegt. Root ohne `DAC_OVERRIDE` kann fremde
   Verzeichnisse aber weder ändern noch betreten.
 - **Entscheidung:** Der Container startet als root mit genau `CHOWN, SETUID, SETGID, NET_RAW`. `internal/privdrop`:
   1. setzt `umask 077` und `PR_SET_NO_NEW_PRIVS` selbst (unabhängig von der Compose-Datei),
@@ -176,7 +176,7 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 - **Ergebnis:** Laufzeitprozess mit UID 10001 und **CapEff = 0**. Die Raw-Sockets funktionieren weiter, weil der
   Kernel `CAP_NET_RAW` nur beim Anlegen des Sockets prüft. Kein Re-Exec, kein Ambient-Capability-Zustand pro Thread.
 - **Konsequenz:** Die Menge der Interfaces ist pro Prozessstart fest. Wird ein Interface entfernt oder neu
-  angelegt, beendet sich Netzwart kontrolliert und die Restart-Policy startet neu.
+  angelegt, beendet sich Netward kontrolliert und die Restart-Policy startet neu.
 - **Subkommandos** (`reset-password`, `factory-reset`, `healthcheck`) wechseln vor jedem Zugriff auf PUID:PGID.
   So entstehen nie root-eigene WAL-Dateien.
 - **Fallback:** Startet der Container bereits als Nicht-root (`user:` in Compose), bekommt der Prozess von Docker keine
@@ -209,8 +209,8 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
   verborgenem Tab und lädt beim Zurückkehren neu. So bleibt das 6-Verbindungen-Limit von HTTP/1.1 frei.
 
 ### ADR-008 · Cookie-Sitzungen + CSRF-Token
-- **Entscheidung:** Zufälliges 256-bit-Token im Cookie `netzwart_session` (`HttpOnly`, `SameSite=Strict`;
-  bei TLS `__Host-netzwart_session` mit `Secure`). In der DB liegt nur der SHA-256-Hash.
+- **Entscheidung:** Zufälliges 256-bit-Token im Cookie `netward_session` (`HttpOnly`, `SameSite=Strict`;
+  bei TLS `__Host-netward_session` mit `Secure`). In der DB liegt nur der SHA-256-Hash.
   Zustandsändernde Requests brauchen zusätzlich den Header `X-CSRF-Token` und eine Origin aus der
   Host-Allowlist (ADR-012). Leerlauf-Timeout 7 d (bzw. 30 d), absolute Lebensdauer 30 d.
 - **Begründung:** Gegen XSS-Diebstahl (HttpOnly) und CSRF (drei unabhängige Schichten).
@@ -230,7 +230,7 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
   3. die TCP-Quelladresse Loopback ist oder in einem direkt angeschlossenen Subnetz liegt. Weitergeleitete Anfragen
      (`X-Forwarded-For`, `Forwarded`) gelten nur von vertrauten Proxys, dann mit der Adresse des Clients,
   4. Host- und Origin-Prüfung bestanden sind (ADR-012),
-  5. optional `NETZWART_SETUP_TOKEN` stimmt.
+  5. optional `NETWARD_SETUP_TOKEN` stimmt.
 - **Wiederherstellung:** `reset-password` (neues Passwort, alle Sitzungen widerrufen), `factory-reset` (legt die Trigger-Datei an; ausgeführt beim nächsten Start, damit kein laufender Prozess alte Kanäle oder Einstellungen zurückschreibt)
   (löscht Konten, Sitzungen, Kanäle, MQTT und Einstellungen; Geräte bleiben) sowie ein Datei-Trigger:
   Eine Datei `reset-password` im AppData-Ordner erzeugt beim nächsten Start ein Einmalpasswort im Log.
@@ -251,7 +251,7 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 ### ADR-012 · Host-Allowlist gegen DNS-Rebinding
 - **Entscheidung:** Jeder Request wird nur bedient, wenn der `Host`-Header ein IP-Literal, `localhost`, ein
   einteiliger Name (`zimaos`), ein Name mit lokalem Suffix (`.local`, `.lan`, `.home`, `.home.arpa`,
-  `.internal`, `.fritz.box`, …) oder in `NETZWART_ALLOWED_HOSTS` eingetragen ist. Andernfalls antwortet Netzwart mit `421`.
+  `.internal`, `.fritz.box`, …) oder in `NETWARD_ALLOWED_HOSTS` eingetragen ist. Andernfalls antwortet Netward mit `421`.
   Unsichere Methoden verlangen zusätzlich einen `Origin`-Header, dessen Host in derselben Allowlist steht.
   Ergänzend läuft Go's `http.CrossOriginProtection`.
 - **Begründung:** Beim DNS-Rebinding kontrolliert der Angreifer Host *und* Origin (`evil.example`). Eine Prüfung
@@ -278,16 +278,16 @@ normalisiert, auf 128 Zeichen gekürzt und im Frontend nie als HTML gerendert.
 
 | Variable | Standard | Zweck |
 |---|---|---|
-| `NETZWART_PORT` | `8840` | HTTP-Port (host-Netzwerk) |
-| `NETZWART_LISTEN` | `0.0.0.0` | Bind-Adresse |
-| `NETZWART_DATA` | `/data` | Datenverzeichnis |
+| `NETWARD_PORT` | `8840` | HTTP-Port (host-Netzwerk) |
+| `NETWARD_LISTEN` | `0.0.0.0` | Bind-Adresse |
+| `NETWARD_DATA` | `/data` | Datenverzeichnis |
 | `PUID` / `PGID` | `10001` | Laufzeit-Benutzer |
-| `NETZWART_INTERFACES` | automatisch (Interface der Default-Route) | Kommagetrennte Interface-Namen, die zusätzlich bereitgestellt werden |
-| `NETZWART_SETUP_TOKEN` | – | Optionales Token für die Ersteinrichtung |
-| `NETZWART_ALLOWED_HOSTS` | – | Zusätzliche Hostnamen (z. B. `netzwart.example.com` hinter einem Reverse-Proxy) |
-| `NETZWART_TRUSTED_PROXIES` | – | CIDRs, deren `X-Forwarded-*`-Header vertraut wird |
-| `NETZWART_TLS_CERT` / `_KEY` | – | Optional direktes HTTPS |
-| `NETZWART_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+| `NETWARD_INTERFACES` | automatisch (Interface der Default-Route) | Kommagetrennte Interface-Namen, die zusätzlich bereitgestellt werden |
+| `NETWARD_SETUP_TOKEN` | – | Optionales Token für die Ersteinrichtung |
+| `NETWARD_ALLOWED_HOSTS` | – | Zusätzliche Hostnamen (z. B. `netward.example.com` hinter einem Reverse-Proxy) |
+| `NETWARD_TRUSTED_PROXIES` | – | CIDRs, deren `X-Forwarded-*`-Header vertraut wird |
+| `NETWARD_TLS_CERT` / `_KEY` | – | Optional direktes HTTPS |
+| `NETWARD_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `TZ` | `UTC` | Zeitzone für Logs und Benachrichtigungen |
 
 Alles Weitere wird in der Oberfläche eingestellt und in SQLite gespeichert.

@@ -1,4 +1,4 @@
-// Command netzwart is a self-hosted network monitor: it discovers every
+// Command netward is a self-hosted network monitor: it discovers every
 // device on the local network, tracks presence and reports what changes.
 package main
 
@@ -60,7 +60,7 @@ func main() {
 	case "factory-reset":
 		os.Exit(factoryReset(env, os.Args[2:]))
 	case "version", "--version", "-v":
-		fmt.Println("netzwart", version)
+		fmt.Println("netward", version)
 	case "help", "--help", "-h":
 		usage()
 	default:
@@ -71,10 +71,10 @@ func main() {
 }
 
 func usage() {
-	fmt.Print(`Usage: netzwart [command]
+	fmt.Print(`Usage: netward [command]
 
 Commands:
-  serve            run Netzwart (default)
+  serve            run Netward (default)
   healthcheck      exit 0 if the web server answers (used by Docker)
   reset-password   set a new random password for the admin account
   factory-reset    remove accounts, notification channels and settings (--yes)
@@ -100,10 +100,10 @@ func serve(env config.Env, log *slog.Logger) int {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	if err := app.Run(ctx, app.Options{Env: env, Priv: priv, Version: version, Static: static, Log: log}); err != nil {
-		log.Error("Netzwart stopped with an error", "err", err)
+		log.Error("Netward stopped with an error", "err", err)
 		return 1
 	}
-	log.Info("Netzwart stopped")
+	log.Info("Netward stopped")
 	return 0
 }
 
@@ -141,6 +141,7 @@ func openStoreAsUser(env config.Env) (*store.Store, error) {
 	if err := privdrop.DropForCommand(env); err != nil {
 		return nil, err
 	}
+	app.AdoptOldDB(env, slog.Default())
 	if _, err := os.Stat(app.DBPath(env)); err != nil {
 		return nil, fmt.Errorf("no database at %s: %w", app.DBPath(env), err)
 	}

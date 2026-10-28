@@ -2,7 +2,7 @@
 //
 // The router knows the names users gave their devices in its web UI and
 // which phones are associated with its Wi-Fi even while they sleep and do
-// not answer ARP. Netzwart uses both to name devices and to keep sleeping
+// not answer ARP. Netward uses both to name devices and to keep sleeping
 // phones online.
 //
 // Security: authenticated calls go over HTTPS only. The FRITZ!Box uses a
@@ -161,7 +161,7 @@ type Firmware struct {
 
 // Firmware reads the installed FRITZ!OS and whether an update is offered.
 // Only these fields are taken from the answers: GetInfo also carries the
-// serial number and the device log, which Netzwart neither stores nor logs.
+// serial number and the device log, which Netward neither stores nor logs.
 func (c *Client) Firmware(ctx context.Context) (Firmware, error) {
 	base, err := c.secureBase(ctx)
 	if err != nil {

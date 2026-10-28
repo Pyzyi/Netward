@@ -21,7 +21,7 @@
   const empty: ReportContract = { maxDown: 0, normalDown: 0, minDown: 0, maxUp: 0, normalUp: 0, minUp: 0 };
   function loadContract(): ReportContract {
     try {
-      return { ...empty, ...JSON.parse(localStorage.getItem('netzwart.contract') ?? '{}') };
+      return { ...empty, ...JSON.parse(localStorage.getItem('netward.contract') ?? '{}') };
     } catch {
       return { ...empty };
     }
@@ -36,7 +36,7 @@
     busy = format;
     const c = Object.fromEntries(Object.entries(contract).map(([k, v]) => [k, Number(v) || 0])) as unknown as ReportContract;
     try {
-      localStorage.setItem('netzwart.contract', JSON.stringify(c));
+      localStorage.setItem('netward.contract', JSON.stringify(c));
     } catch {
       /* private mode: just not remembered */
     }

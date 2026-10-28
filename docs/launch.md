@@ -1,4 +1,4 @@
-# Netzwart bekannt machen
+# Netward bekannt machen
 
 Ein Leitfaden in der Reihenfolge, in der sich die Schritte lohnen. Alles, was im Repository liegen kann, ist
 vorbereitet. Was nur der Kontoinhaber kann (Einstellungen auf GitHub, Beiträge in Foren, Anträge bei Stores), steht
@@ -59,9 +59,9 @@ oder in Sammelthreads.
 ### Entwurf r/selfhosted / r/homelab
 
 ```text
-Title: Netzwart – a self-hosted network monitor that tells you what's on your LAN (and what's risky)
+Title: Netward – a self-hosted network monitor that tells you what's on your LAN (and what's risky)
 
-I built Netzwart because I wanted Fing-like visibility of my home network without a cloud account.
+I built Netward because I wanted Fing-like visibility of my home network without a cloud account.
 
 - Finds every device (ARP, DHCP, mDNS, UPnP) and gives it a readable name and icon
 - "Who is at home", presence timeline per device, Home Assistant via MQTT
@@ -83,9 +83,9 @@ Happy to hear what's missing for your setup.
 ### Entwurf „Show HN“
 
 ```text
-Show HN: Netzwart – self-hosted home network monitor without root or capabilities at runtime
+Show HN: Netward – self-hosted home network monitor without root or capabilities at runtime
 
-Netzwart discovers devices on a home LAN (passive ARP/DHCP/mDNS plus periodic sweeps), names them
+Netward discovers devices on a home LAN (passive ARP/DHCP/mDNS plus periodic sweeps), names them
 from DHCP fingerprints, mDNS, UPnP and the IEEE registry, and runs a defensive security check
 (risky open services, end-of-life OS versions, rogue DHCP servers, ARP spoofing of the gateway).
 
@@ -99,7 +99,7 @@ https://github.com/Pyzyi/Netward
 ### Entwurf ComputerBase / IP-Phone-Forum
 
 ```text
-Titel: Netzwart – Heimnetz-Überblick und Sicherheitscheck, selbst gehostet (Open Source)
+Titel: Netward – Heimnetz-Überblick und Sicherheitscheck, selbst gehostet (Open Source)
 
 Ich habe ein kleines Werkzeug gebaut, das alle Geräte im Heimnetz findet, verständlich benennt und
 meldet, wenn etwas Neues auftaucht oder das Internet ausfällt. Dazu ein Sicherheitscheck mit

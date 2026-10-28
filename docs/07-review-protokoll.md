@@ -11,7 +11,7 @@ Befunde werden nicht gelöscht, sondern mit Entscheidung und Nachweis versehen.
 
 | # | Schwere | Befund (Kurzfassung) | Entscheidung | Umsetzung |
 |---|---|---|---|---|
-| B1 | hoch, blockierend | DNS-Rebinding: „Origin == Host“ schützt nicht, weil der Angreifer beide kontrolliert. Setup/Login ohne CSRF-Schutz | **Angenommen.** Host-Allowlist (IP-Literale, `localhost`, einteilige Namen, lokale Suffixe, `NETZWART_ALLOWED_HOSTS`) für *jeden* Request, Origin-Prüfung gegen die Allowlist, unsichere Requests ohne `Origin` werden abgelehnt, zusätzlich `http.CrossOriginProtection` | ADR-012, T-24 |
+| B1 | hoch, blockierend | DNS-Rebinding: „Origin == Host“ schützt nicht, weil der Angreifer beide kontrolliert. Setup/Login ohne CSRF-Schutz | **Angenommen.** Host-Allowlist (IP-Literale, `localhost`, einteilige Namen, lokale Suffixe, `NETWARD_ALLOWED_HOSTS`) für *jeden* Request, Origin-Prüfung gegen die Allowlist, unsichere Requests ohne `Origin` werden abgelehnt, zusätzlich `http.CrossOriginProtection` | ADR-012, T-24 |
 | B2 | hoch, blockierend | SSRF über Webhooks/Benachrichtigungen auf Dienste an `127.0.0.1` des Hosts (Host-Netzwerk!), Kette bis Root auf dem Host | **Angenommen.** Ein zentraler Egress-Dialer verbietet beim Verbindungsaufbau Loopback, Unspecified, Link-Local und Multicast. Gilt auch für Redirects und DNS. Kanaltests liefern nur den Statuscode | ADR-011, T-25 |
 | B3 | hoch, blockierend | Setup-Schutz „private IP“ zu grob, Reset entfernt keine Angreifer-Konfiguration | **Angenommen.** Setup nur ≤ 30 min nach Start (danach Neustart nötig), Quelle muss in einem direkt angeschlossenen Subnetz liegen. Dazu `factory-reset` und Reset per Datei-Trigger | ADR-010 |
 | B4 | hoch, blockierend | Privilegien-Abgabe nach ADR-004 scheitert an fehlendem `DAC_OVERRIDE`, an Per-Thread-Zustand und an `docker exec` als root | **Angenommen, Design ersetzt:** Raw-Sockets als root öffnen, dann `setresuid` **ohne** KEEPCAPS. Zur Laufzeit gilt CapEff = 0, ohne Re-Exec. Subkommandos wechseln vor jedem Datenzugriff auf PUID | ADR-004 (neu) |
@@ -58,7 +58,7 @@ Codepfad), dann behoben oder begründet abgelehnt. Jede Behebung hat einen Regre
 |---|---|---|---|---|
 | S1 | mittel | Gespeicherte Geheimnisse (ntfy/Gotify-Token, Webhook-Header, SMTP-, MQTT-, FRITZ!Box-Passwort) ließen sich an ein **geändertes Ziel** umleiten, indem man das Ziel ändert und das maskierte Geheimnis zurückschickt. Live demonstriert. | **Behoben.** Maskierte/leere Geheimnisse werden nur übernommen, wenn Server, Host, Port, TLS und URL unverändert sind; sonst `secret_required`. Kanalwechsel auf eine andere Art erbt nie Geheimnisse. UI erklärt, was neu einzugeben ist. | `TestSecretsDoNotFollowNewDestination`, `TestChannelSecretsAreWriteOnly` (MQTT-Host-Wechsel) |
 | S2 | mittel | Login-Bremse umgehbar: parallele Anfragen passierten alle die Prüfung, IP-Wechsel setzte das Limit zurück; Flut führte zu 503 für den echten Admin. | **Behoben.** Versuche werden vor der Passwortprüfung reserviert; zusätzliches Budget pro Benutzername (max. 60 s Sperre gegen Aussperren); Adressen mit früherem erfolgreichem Login haben Vorrang beim Hashing; `auth_failed` nur beim 1. und jedem 20. Fehlversuch protokolliert. Live nachgemessen: 320 parallele Fehlversuche aus 8 IPs → 10 geprüft, 310 abgewiesen; Admin-Login 200 in 29 ms. | `TestLimiterChargesInFlightAttempts`, `TestLimiterPerUser`, `TestPriorityGetsHashSlot` |
-| S3 | mittel | Ersteinrichtung ohne Token ist 30 min lang aus dem LAN möglich. | **Abgelehnt, dokumentiert** (Restrisiko 8). Ein automatisches Token zwingt jeden Nutzer ins Container-Protokoll und bricht das Ziel „Compose einfügen → Passwort setzen“. Schutz: 30-min-Fenster, nur direkt angeschlossene Netze, optional `NETZWART_SETUP_TOKEN`, Werksreset. | ADR-010, Bedrohungsmodell |
+| S3 | mittel | Ersteinrichtung ohne Token ist 30 min lang aus dem LAN möglich. | **Abgelehnt, dokumentiert** (Restrisiko 8). Ein automatisches Token zwingt jeden Nutzer ins Container-Protokoll und bricht das Ziel „Compose einfügen → Passwort setzen“. Schutz: 30-min-Fenster, nur direkt angeschlossene Netze, optional `NETWARD_SETUP_TOKEN`, Werksreset. | ADR-010, Bedrohungsmodell |
 | S4 | niedrig | SSDP-`LOCATION`-Prüfung beruht auf fälschbarer UDP-Absenderadresse. | **Akzeptiert, Doku korrigiert** (T-07, Restrisiko 7). Ergebnis ist nur ein GET ohne Zugangsdaten an ein LAN-Gerät, den der Angreifer auch selbst senden kann. | Bedrohungsmodell |
 | S5 | niedrig | Egress-Richtlinie sperrt die LAN-IP des eigenen Hosts nicht. | **Abgelehnt, dokumentiert** (Restrisiko 9). Mosquitto, ntfy und Gotify laufen häufig auf demselben ZimaOS; Loopback bleibt gesperrt. | Bedrohungsmodell |
 | S6 | niedrig | OUI-Workflow: Schreibrechte für den ganzen Workflow, Token in `.git/config`, Diff nicht prüfbar. | **Behoben.** Rechte nur im Job, `persist-credentials: false`, PR enthält Paketversion, Integritäts-Hash und lesbaren Diff. | `oui-update.yml`, actionlint |
@@ -121,7 +121,7 @@ Speedtest bleibt bewusst weg (siehe [01](01-anforderungen.md#bewusst-nicht-über
 
 ### 2.5 Nachweise zum Qualitätsmodell (ISO/IEC 25010)
 
-Gemessen am 25.10.2026 mit dem Release-Kandidaten (Image `netzwart:local`, amd64).
+Gemessen am 25.10.2026 mit dem Release-Kandidaten (Image `netward:local`, amd64).
 
 | Merkmal / Teilmerkmal | Ziel | Gemessen | Status |
 |---|---|---|---|
@@ -362,16 +362,16 @@ Unabhängige Prüfung der vier Funktionen (Lebenslauf, DNS-Prüfung, Stolperdrah
 | Befund | Schwere | Behebung |
 |---|---|---|
 | Stolperdraht: Wer im LAN ständig andere Absender nutzt (IPv6 link-local frei wählbar), erzeugt beliebig viele Befunde, Ereignisse und Benachrichtigungen; Merkliste ohne harte Grenze, Aufräumen unter Sperre wurde quadratisch teuer; Datenbankarbeit im Annahme-Pfad | hoch | IPv6 zählt je /64; höchstens 20 Meldungen je Minute insgesamt (Token-Bucket); Merkliste hart auf 4 096, Aufräumen höchstens einmal je Minute; Meldung über eine Warteschlange (64) an einen einzigen Bearbeiter; ab 16 unbekannten Quellen ein gemeinsamer Befund „viele Adressen“ |
-| Port der Weboberfläche als Köder eintragbar: nach dem nächsten Start belegt, Netzwart startet nicht mehr | mittel | Einstellungen lehnen ihn ab; beim Start wird er nie geöffnet |
-| Köder können echten Diensten den Port wegnehmen, die nach Netzwart starten (8081 = ioBroker) | mittel | 8081 kein Standard mehr; Hinweis in den Einstellungen und der Doku, nur freie Ports zu nehmen |
+| Port der Weboberfläche als Köder eintragbar: nach dem nächsten Start belegt, Netward startet nicht mehr | mittel | Einstellungen lehnen ihn ab; beim Start wird er nie geöffnet |
+| Köder können echten Diensten den Port wegnehmen, die nach Netward starten (8081 = ioBroker) | mittel | 8081 kein Standard mehr; Hinweis in den Einstellungen und der Doku, nur freie Ports zu nehmen |
 | Wiederholte Treffer verdrängten echte Meilensteine aus dem Geräte-Lebenslauf | mittel | Nur der erste Treffer kommt in den Lebenslauf, Wiederholungen nur in die Aktivität |
 | WLAN-Karte nur mit Maus/Touch bedienbar | mittel | Grundriss fokussierbar: Eingabe setzt einen Punkt, Pfeiltasten verschieben ihn; e2e-Test |
 | DNS-Prüfung: Pi-hole im IP-Modus antwortet mit der eigenen Adresse → kritischer Fehlalarm | mittel | Antworten mit der Adresse des DNS-Servers selbst gelten als Sperre; Unit-Test |
 | Globale IPv6-Adressen des Heimnetzes lösten den Stolperdraht nie aus | niedrig | Adressen aus den Netzen des Hosts zählen als Heimnetz |
 | Köder konnte bei Annahmefehlern (z. B. keine Dateideskriptoren) still verstummen | niedrig | Wiederholen mit Pause; danach Zustand „Fehler“ statt „offen“ |
 | Gleichzeitige Treffer eines Geräts konnten beim Speichern kollidieren | niedrig | Ein einziger Bearbeiter (siehe oben) |
-| Demo-Modus hielt Köder-Ports aus `NETZWART_TRIPWIRE_PORTS` offen, ohne sie zu bedienen | niedrig | Im Demo-Modus sofort geschlossen |
-| Messung hinter einem Reverse-Proxy auf demselben Rechner immer abgelehnt, erst nach der Messung, mit irreführendem Text | niedrig | Abfrage vor der Messung; Text nennt `NETZWART_TRUSTED_PROXIES` |
+| Demo-Modus hielt Köder-Ports aus `NETWARD_TRIPWIRE_PORTS` offen, ohne sie zu bedienen | niedrig | Im Demo-Modus sofort geschlossen |
+| Messung hinter einem Reverse-Proxy auf demselben Rechner immer abgelehnt, erst nach der Messung, mit irreführendem Text | niedrig | Abfrage vor der Messung; Text nennt `NETWARD_TRUSTED_PROXIES` |
 | WLAN-Karte: Messung lief nach Verlassen der Seite weiter; veraltete Antwort konnte nach Planwechsel gewinnen | niedrig | Abbruch beim Verlassen; Antworten nur für den aktuellen Plan; Zurücksetzen beim Planwechsel |
 | Farbverlauf bei extremen Seitenverhältnissen (16 × 6000 px) sehr rechenintensiv | niedrig | Höchstens 160 Zellen auf der langen Seite |
 | DNS-Befund verschwand, wenn der Server einmal nicht antwortete, und meldete sich danach neu | niedrig | Befunde bleiben, solange der Server nicht antwortet |
@@ -403,7 +403,7 @@ Nichts Kritisches oder Schweres. Dazu Aufräumen: toter Code, ungenutzte Texte, 
 | Ping-Antworten wurden nicht dem Ziel zugeordnet; Kennung vorhersagbar (PID 1) | niedrig | Nur Antworten vom Ziel zählen; zufällige Kennung |
 | Live-Ereignisstrom beachtete die absolute Sitzungsdauer (30 Tage) nicht | niedrig | Gleiche Grenze wie bei jeder Anfrage |
 | `factory-reset` über die Kommandozeile bei laufendem Server: alte Kanäle blieben aktiv, alte Zugangsdaten konnten zurückgeschrieben werden | niedrig | Der Befehl legt die Trigger-Datei an, der Reset läuft beim nächsten Start |
-| Reverse-Proxy ohne `NETZWART_TRUSTED_PROXIES` blieb unbemerkt | niedrig | Einmalige Warnung im Log |
+| Reverse-Proxy ohne `NETWARD_TRUSTED_PROXIES` blieb unbemerkt | niedrig | Einmalige Warnung im Log |
 | Grundriss blieb nach dem Abmelden im Browser-Cache | niedrig | `no-store` wie alle API-Antworten |
 | CI: Token im Checkout gespeichert, ungenutzte Berechtigung, Trivy-Version nicht fest, npm-Installationsskripte | niedrig | Behoben; wöchentlicher Scan des veröffentlichten Images (amd64/arm64) und govulncheck; Dependabot wartet 7 Tage; OUI-Update mit Zeitlimit und Abbruch bei großen Änderungen |
 | SECURITY.md: cosign-Prüfung akzeptierte jeden Ref | niedrig | Nur main und Release-Tags |

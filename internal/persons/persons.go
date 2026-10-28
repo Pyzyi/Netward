@@ -3,7 +3,7 @@
 //
 // Privacy by default: only "at home since" / "away since" is shown. The
 // time at home per day is computed only for persons where the user switched
-// it on and confirmed that the person knows. Netzwart sees that a device is
+// it on and confirmed that the person knows. Netward sees that a device is
 // connected, never what happens on it.
 package persons
 
