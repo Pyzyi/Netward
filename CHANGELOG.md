@@ -3,6 +3,14 @@
 Alle nennenswerten Änderungen an Netzwart. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## Unveröffentlicht
+
+### Neu
+- README auf Englisch als Startseite, Deutsch in `README.de.md`; englische Screenshots.
+- `NETZWART_DEMO=en` startet die Demo mit englischen Geräte- und Personennamen.
+- Vorbereitete Einträge für die App-Stores von CasaOS/ZimaOS, Unraid und TrueNAS in `deploy/`.
+- Beitragsleitfaden (`CONTRIBUTING.md`) und Issue-Vorlagen.
+
 ## 0.2.1 – 2026-10-27
 
 ### Geändert

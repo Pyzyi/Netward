@@ -1,0 +1,25 @@
+name: Device recognition
+description: A device has the wrong name, type or vendor / Ein Gerät wird falsch erkannt
+labels: [recognition]
+body:
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: What the device really is (vendor and model)
+      placeholder: "Shelly Plug S"
+    validations:
+      required: true
+  - type: input
+    id: shown
+    attributes:
+      label: Shown by Netzwart as
+      placeholder: "Unknown device (Espressif)"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Recognised as
+      description: From the device detail panel → "Identified as" (hostname, mDNS services, DHCP). Please leave out MAC addresses.
+      render: text

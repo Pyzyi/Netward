@@ -1,5 +1,9 @@
 # Sicherheitsrichtlinie
 
+> **English:** Please report vulnerabilities privately via
+> [Report a vulnerability](https://github.com/Pyzyi/netzwart/security/advisories/new), not as a public issue.
+> You will get an answer within 7 days. Security fixes are provided for the latest release.
+
 ## Sicherheitslücke melden
 
 Bitte **nicht** als öffentliches Issue. Nutze stattdessen
