@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"io"
 	"net"
 	"net/netip"
@@ -207,8 +206,6 @@ func parseResolvConf(r io.Reader) []netip.Addr {
 	}
 	return out
 }
-
-var errFormat = errors.New("unexpected /proc/net/arp format")
 
 // IsOwnAddr reports whether ip belongs to an interface of this host.
 func IsOwnAddr(ip netip.Addr) bool {
