@@ -17,7 +17,7 @@ It also checks your network for the usual weak spots: open Telnet or RDP, device
 Notifications via ntfy, Gotify, Pushover, Telegram, Discord, Slack, webhook and e-mail. Home Assistant via MQTT. Optional FRITZ!Box integration with Wi-Fi diagnosis. No cloud, no subscription, no telemetry.&#xD;
 &#xD;
 Needs the host network for layer-2 discovery. The container is read-only and drops every Linux capability right after start-up. Open the web UI within 30 minutes of the first start to create your account (there is no default password).</Overview>
-  <Changes>[b]0.4.0[/b] Renamed to Netward. Existing settings, data and NETZWART_* variables keep working.</Changes>
+  <Changes>[b]0.4.1[/b] The router sits exactly in the centre of the network ring.</Changes>
   <Category>Network:Management Security: Tools:System</Category>
   <WebUI>http://[IP]:[PORT:8840]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Pyzyi/Netward/main/deploy/unraid/netward.xml</TemplateURL>

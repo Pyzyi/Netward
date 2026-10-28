@@ -3,6 +3,11 @@
 Alle nennenswerten Änderungen an Netward. Versionen folgen [Semantic Versioning](https://semver.org/lang/de/);
 vor 1.0 können sich Einzelheiten noch ändern. Die Release-Notizen auf GitHub stehen in [`docs/releases`](docs/releases).
 
+## 0.4.1 – 2026-10-28
+
+### Behoben
+- Der Router sitzt genau in der Mitte des Netzrings (vorher lag das Symbol über der Mitte).
+
 ## 0.4.0 – 2026-10-28
 
 ### Geändert

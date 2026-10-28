@@ -220,12 +220,14 @@
   .cats span {
     color: var(--on-ink-2);
   }
+  /* The router icon sits exactly on the centre of the ring, where the spokes
+     meet; name and address hang below it. */
   .core {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 46%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -30px);
     display: grid;
     justify-items: center;
     gap: 6px;
@@ -242,8 +244,16 @@
     border: 1px solid var(--ink-line);
     color: var(--on-ink);
   }
+  /* On small rings the lower spokes pass behind the text. */
+  .core-name,
+  .core-ip {
+    padding: 0 6px;
+    border-radius: 4px;
+    background: var(--ink);
+  }
   .core-name {
     max-width: 100%;
+    box-sizing: border-box;
     font-weight: 600;
     color: var(--on-ink);
     overflow: hidden;
