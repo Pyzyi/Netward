@@ -18,7 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Pyzyi/netzwart/internal/egress"
+	"github.com/Pyzyi/Netward/internal/egress"
 )
 
 // Kinds of channels.

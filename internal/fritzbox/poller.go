@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 const (

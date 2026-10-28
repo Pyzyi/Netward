@@ -11,7 +11,7 @@ Die meisten Besucher entscheiden in wenigen Sekunden anhand von Beschreibung, Vo
 1. **Beschreibung und Themen:** Auf der Repo-Startseite rechts bei „About“ auf das Zahnrad tippen.
    - Beschreibung:
      `Self-hosted home network monitor: see every device, who is online, new devices, outages and security issues. No cloud. ZimaOS, CasaOS, Unraid, TrueNAS, Docker.`
-   - Website: `https://github.com/Pyzyi/netzwart#readme`
+   - Website: `https://github.com/Pyzyi/Netward#readme`
    - Topics: `self-hosted selfhosted homelab network-monitoring network-scanner device-discovery home-network
      presence-detection home-assistant docker zimaos casaos unraid truenas fritzbox security golang svelte`
    - Alternativ am Rechner: `sh scripts/github-repo-setup.sh` (setzt alles auf einmal, schaltet Discussions und private Sicherheitsmeldungen ein und schützt die Release-Tags vor Verschieben und Löschen).
@@ -75,7 +75,7 @@ Linux capability right after start-up and runs read-only as an unprivileged user
 amd64 + arm64, MIT licensed, no telemetry.
 
 Install: docker compose, ZimaOS/CasaOS import, Unraid template, TrueNAS "Install via YAML".
-GitHub: https://github.com/Pyzyi/netzwart
+GitHub: https://github.com/Pyzyi/Netward
 
 Happy to hear what's missing for your setup.
 ```
@@ -93,7 +93,7 @@ The part I found interesting: layer-2 discovery needs host networking and raw so
 process opens its two sockets as root, chowns the data directory and then drops to an unprivileged
 user with an empty capability set (CapEff = 0). The image is a single static Go binary with no shell.
 
-https://github.com/Pyzyi/netzwart
+https://github.com/Pyzyi/Netward
 ```
 
 ### Entwurf ComputerBase / IP-Phone-Forum
@@ -110,7 +110,7 @@ welchem Repeater, in welchem Band, wie gut), Sync-Raten und ein PDF-Nachweis üb
 Leitungswerte für den Provider.
 
 Läuft als Docker-Container (ZimaOS, CasaOS, Unraid, TrueNAS, Raspberry Pi), ohne Cloud und Abo.
-https://github.com/Pyzyi/netzwart
+https://github.com/Pyzyi/Netward
 ```
 
 ## 5. Danach

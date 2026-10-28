@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/netip"
 
-	"github.com/Pyzyi/netzwart/internal/monitor"
-	"github.com/Pyzyi/netzwart/internal/tripwire"
+	"github.com/Pyzyi/Netward/internal/monitor"
+	"github.com/Pyzyi/Netward/internal/tripwire"
 )
 
 // Router address and DHCP servers (docs/09, F1), DNS check and tripwire

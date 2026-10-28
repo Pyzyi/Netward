@@ -3,7 +3,7 @@
 name: netzwart
 services:
   netzwart:
-    image: ghcr.io/pyzyi/netzwart:0.3.3
+    image: ghcr.io/pyzyi/netward:0.3.3
     container_name: netzwart
     restart: unless-stopped
     # Layer-2 discovery (ARP, DHCP, mDNS) only works on the host network.
@@ -47,7 +47,7 @@ services:
             en_US: Database and backups
             de_DE: Datenbank und Sicherungen
 x-casaos:
-  id: io.github.pyzyi.netzwart
+  id: io.github.pyzyi.netward
   architectures:
     - amd64
     - arm64
@@ -55,13 +55,13 @@ x-casaos:
   author: Pyzyi
   developer: Netzwart
   category: Networking
-  icon: https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/icon.svg
-  thumbnail: https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/thumbnail.png
+  icon: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/icon.svg
+  thumbnail: https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/thumbnail.png
   screenshot_link:
-    - https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/screenshot-1.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/screenshot-2.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/screenshot-3.png
-    - https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/screenshot-4.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-1.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-2.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-3.png
+    - https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/screenshot-4.png
   tagline:
     en_US: See every device on your home network
     de_DE: Jedes Gerät in deinem Heimnetz im Blick
@@ -100,7 +100,7 @@ x-casaos:
       New look: calm panels, a larger network ring with legend (now also on phones), clearer status labels and controls.
     de_DE: |
       Neues Erscheinungsbild: ruhige Flächen, größerer Netzring mit Legende (jetzt auch auf dem Handy), klarere Statusangaben und Bedienelemente.
-  website: https://github.com/Pyzyi/netzwart
-  repo: https://github.com/Pyzyi/netzwart
-  support: https://github.com/Pyzyi/netzwart/issues
-  docs: https://github.com/Pyzyi/netzwart#readme
+  website: https://github.com/Pyzyi/Netward
+  repo: https://github.com/Pyzyi/Netward
+  support: https://github.com/Pyzyi/Netward/issues
+  docs: https://github.com/Pyzyi/Netward#readme

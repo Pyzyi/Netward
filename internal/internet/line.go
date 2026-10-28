@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/fritzbox"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/fritzbox"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // lineHeartbeat: an unchanged line is still stored this often, so the

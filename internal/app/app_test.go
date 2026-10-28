@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/Pyzyi/netzwart/internal/auth"
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/auth"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 func TestRandomPassword(t *testing.T) {

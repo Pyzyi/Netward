@@ -113,11 +113,11 @@ Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit n
 
 ## 6. Versionen und Updates
 
-- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netzwart:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`. Ausgelöst wird ein Release durch die Datei `VERSION` auf `main`: Nennt sie eine Version ohne Tag, veröffentlicht die CI das Image als diese Version und `latest`, legt das Tag an und erstellt das Release (ein von Hand gepushtes `v*`-Tag funktioniert ebenfalls).
+- Erste nummerierte Version: **0.1.0**. Git-Tag `v0.1.0` → CI baut und signiert `ghcr.io/pyzyi/netward:0.1.0`, `:0.1` und `:latest`. `latest` ist ab jetzt immer das neueste **Release**; Zwischenstände von `main` heißen `edge`. Die GitHub-Release-Seite entsteht im CI aus `docs/releases/<tag>.md`. Ausgelöst wird ein Release durch die Datei `VERSION` auf `main`: Nennt sie eine Version ohne Tag, veröffentlicht die CI das Image als diese Version und `latest`, legt das Tag an und erstellt das Release (ein von Hand gepushtes `v*`-Tag funktioniert ebenfalls).
 - **Update ohne Neuinstallation**: Die Daten liegen im Volume, Datenbank-Migrationen laufen beim Start automatisch. Update = neues Image ziehen und Container neu erstellen (ZimaOS-Oberfläche oder `docker compose pull && docker compose up -d`). Konten, Geräte, Namen, Verlauf und Einstellungen bleiben erhalten.
 - Zurück auf eine ältere Version verweigert Netzwart bewusst (Schema-Schutz). Der Rückweg ist dokumentiert: Backup des Volumes vor dem Update.
 - **Release-Notizen** auf GitHub (Deutsch) und `CHANGELOG.md`.
-- **Optional: Hinweis auf neue Versionen.** Einstellung „Nach neuen Versionen suchen“, **standardmäßig aus** (N-04). Ist sie an, fragt Netzwart einmal täglich `https://api.github.com/repos/Pyzyi/netzwart/releases/latest` über den Egress-Client ab (ohne Kennung, ohne Cookies) und zeigt „Version x.y verfügbar“ mit Link zu den Release-Notizen. Netzwart **installiert nichts selbst**: Ein Container, der sich selbst aktualisiert, bräuchte Zugriff auf den Docker-Socket. Das wäre ein erheblich größeres Risiko als der Nutzen.
+- **Optional: Hinweis auf neue Versionen.** Einstellung „Nach neuen Versionen suchen“, **standardmäßig aus** (N-04). Ist sie an, fragt Netzwart einmal täglich `https://api.github.com/repos/Pyzyi/Netward/releases/latest` über den Egress-Client ab (ohne Kennung, ohne Cookies) und zeigt „Version x.y verfügbar“ mit Link zu den Release-Notizen. Netzwart **installiert nichts selbst**: Ein Container, der sich selbst aktualisiert, bräuchte Zugriff auf den Docker-Socket. Das wäre ein erheblich größeres Risiko als der Nutzen.
 
 ## 7. Sicherheit (Ergänzungen zum Bedrohungsmodell)
 
@@ -127,7 +127,7 @@ Die Bewertung wird **beim Abruf** berechnet, nicht gespeichert. Ein Update mit n
 | T-31 | Parser-Fehler bei feindlichen Eingaben (SSH-Zeile, NTLM-Nachricht, TXT, SERVER-Header) | Reine Parser-Funktionen mit Längenbegrenzung, Fuzz-Tests in CI; NTLM: feste Offsets mit Bereichsprüfung, max. 4 KiB lesen |
 | T-32 | Aktive Proben stören Geräte oder lösen Sperren aus | SSH: nichts senden; SMB: kein Anmeldeversuch (NTLM-Challenge wird nie beantwortet) – erzeugt kein „fehlgeschlagene Anmeldung“-Ereignis; nur auf Anforderung oder per Zeitplan; 4 parallel, 3 s Timeout |
 | T-33 | Sensible Daten in TXT-Records (Seriennummern, Geräte-IDs) | Whitelist der übernommenen Schlüssel; Rohwert gekürzt auf 120 Zeichen und bereinigt (`textutil.Clean`) |
-| T-34 | Update-Abfrage verrät Nutzung an GitHub | standardmäßig aus; nur ein GET ohne Kennung; Ziel fest im Code; Egress-Dialer; Antwort max. 64 KiB, nur `tag_name` und `html_url` (nur `https://github.com/Pyzyi/netzwart/…`) übernommen |
+| T-34 | Update-Abfrage verrät Nutzung an GitHub | standardmäßig aus; nur ein GET ohne Kennung; Ziel fest im Code; Egress-Dialer; Antwort max. 64 KiB, nur `tag_name` und `html_url` (nur `https://github.com/Pyzyi/Netward/…`) übernommen |
 
 Anforderungen: F-30 (Software und Support je Gerät), F-31 (Befund „Veraltete Software“), F-32 (Hinweis auf neue Versionen, opt-in); N-04 wird um F-32 ergänzt.
 

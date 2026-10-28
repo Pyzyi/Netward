@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/fritzbox"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/fritzbox"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 type devs []store.Device

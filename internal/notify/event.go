@@ -1,6 +1,6 @@
 package notify
 
-import "github.com/Pyzyi/netzwart/internal/store"
+import "github.com/Pyzyi/Netward/internal/store"
 
 // Event kinds that can trigger notifications. Channels subscribe to a subset.
 const (

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/classify"
-	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/Netward/internal/classify"
+	"github.com/Pyzyi/Netward/internal/notify"
 )
 
 // The history of a device (docs/10, F1) keeps its milestones beyond the

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/pdf"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/pdf"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Info is what the PDF shows besides the numbers. Holder, customer number

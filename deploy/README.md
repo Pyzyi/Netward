@@ -23,7 +23,7 @@ Der ZimaOS-App-Store ist derselbe wie der von CasaOS (`IceWhaleTech/CasaOS-AppSt
    hochladen (Add file → Upload files): `docker-compose.yml`, `icon.svg`, `thumbnail.png`, `screenshot-1.png` bis
    `screenshot-4.png`.
 3. In `Apps/Netzwart/docker-compose.yml` die Bild-Adressen auf den Store umstellen, also
-   `https://cdn.jsdelivr.net/gh/Pyzyi/netzwart@main/deploy/casaos/Netzwart/` durch
+   `https://cdn.jsdelivr.net/gh/Pyzyi/Netward@main/deploy/casaos/Netzwart/` durch
    `https://cdn.jsdelivr.net/gh/IceWhaleTech/CasaOS-AppStore@main/Apps/Netzwart/` ersetzen (so machen es alle
    anderen Apps dort).
 4. **Contribute → Open pull request**. Titel: `Add Netzwart`. Text: siehe [PR-Texte](#pr-texte).
@@ -70,7 +70,7 @@ Install via YAML**.
 ## New app: Netzwart
 
 Netzwart is a self-hosted home network monitor with security checks
-(https://github.com/Pyzyi/netzwart, MIT).
+(https://github.com/Pyzyi/Netward, MIT).
 
 - Discovers every device on the LAN (ARP, DHCP, mDNS, UPnP) with readable names and icons
 - Presence, notifications (ntfy, Gotify, Telegram, …), Home Assistant via MQTT
@@ -89,12 +89,12 @@ Tested by importing the compose file as a custom app on ZimaOS.
 ```markdown
 ## New community app: Netzwart
 
-Self-hosted home network monitor with security checks — https://github.com/Pyzyi/netzwart (MIT).
+Self-hosted home network monitor with security checks — https://github.com/Pyzyi/Netward (MIT).
 
 - Uses the host network (layer-2 discovery: ARP, DHCP, mDNS). Starts as root, opens its raw
   sockets, switches to the configured user (default 568) and drops all capabilities.
 - Read-only root filesystem, built-in healthcheck (`/netzwart healthcheck`).
-- Icon: https://raw.githubusercontent.com/Pyzyi/netzwart/main/web/public/icon-512.png
+- Icon: https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png
 - Screenshots: see app.yaml
 ```
 
@@ -107,8 +107,8 @@ Netzwart finds every device on your network, gives it a readable name, shows who
 you about new devices and outages. It also checks for risky open ports, outdated systems, a rogue DHCP
 server and ARP spoofing.
 
-GitHub: https://github.com/Pyzyi/netzwart
-Image: ghcr.io/pyzyi/netzwart (amd64, arm64)
+GitHub: https://github.com/Pyzyi/Netward
+Image: ghcr.io/pyzyi/netward (amd64, arm64)
 
 Notes for Unraid:
 - Host network is required for layer-2 discovery.

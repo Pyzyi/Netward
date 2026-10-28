@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/classify"
-	"github.com/Pyzyi/netzwart/internal/proto"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/classify"
+	"github.com/Pyzyi/Netward/internal/proto"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Behaviour baseline (docs/09, F2, deliberately small): a known device that

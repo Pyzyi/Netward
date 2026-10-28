@@ -20,8 +20,8 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 	"golang.org/x/net/ipv4"
 
-	"github.com/Pyzyi/netzwart/internal/proto"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/proto"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // Ports are variables so tests can run fake responders on unprivileged ports.

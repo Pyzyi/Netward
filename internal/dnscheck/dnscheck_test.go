@@ -6,7 +6,7 @@ import (
 	"net/netip"
 	"testing"
 
-	"github.com/Pyzyi/netzwart/internal/dnscheck/dnschecktest"
+	"github.com/Pyzyi/Netward/internal/dnscheck/dnschecktest"
 )
 
 var honest = dnschecktest.Honest

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // RawCSV returns the raw data behind a report: outages, monitoring gaps,

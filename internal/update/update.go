@@ -18,9 +18,9 @@ import (
 )
 
 // URL is fixed: the release feed of this project and nothing else.
-const URL = "https://api.github.com/repos/Pyzyi/netzwart/releases/latest"
+const URL = "https://api.github.com/repos/Pyzyi/Netward/releases/latest"
 
-const releasePrefix = "https://github.com/Pyzyi/netzwart/releases/"
+const releasePrefix = "https://github.com/Pyzyi/Netward/releases/"
 
 // Status is shown in the settings and the app shell.
 type Status struct {

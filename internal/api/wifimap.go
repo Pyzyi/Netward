@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/netinfo"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/textutil"
-	"github.com/Pyzyi/netzwart/internal/wifimap"
+	"github.com/Pyzyi/Netward/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/wifimap"
 )
 
 // Wi-Fi map (docs/10, F4): floor plans, measuring points and the

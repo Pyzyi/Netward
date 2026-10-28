@@ -9,7 +9,7 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 // ErrProbeBusy means a DHCP probe is already running on the link.

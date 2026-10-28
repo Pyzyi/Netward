@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/vuln"
+	"github.com/Pyzyi/Netward/internal/vuln"
 )
 
 // Sources, in the order of their precision (most precise first).

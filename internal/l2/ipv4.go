@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 // Listener turns DHCP and mDNS traffic on a link into sightings.

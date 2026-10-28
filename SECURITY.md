@@ -1,13 +1,13 @@
 # Sicherheitsrichtlinie
 
 > **English:** Please report vulnerabilities privately via
-> [Report a vulnerability](https://github.com/Pyzyi/netzwart/security/advisories/new), not as a public issue.
+> [Report a vulnerability](https://github.com/Pyzyi/Netward/security/advisories/new), not as a public issue.
 > You will get an answer within 7 days. Security fixes are provided for the latest release.
 
 ## Sicherheitslücke melden
 
 Bitte **nicht** als öffentliches Issue. Nutze stattdessen
-[„Report a vulnerability“](https://github.com/Pyzyi/netzwart/security/advisories/new) (GitHub Private Vulnerability Reporting).
+[„Report a vulnerability“](https://github.com/Pyzyi/Netward/security/advisories/new) (GitHub Private Vulnerability Reporting).
 Du bekommst innerhalb von 7 Tagen eine Antwort. Ein Fix erscheint, sobald er geprüft ist, zusammen mit einem Advisory,
 in dem du genannt wirst, wenn du möchtest.
 
@@ -35,8 +35,8 @@ Gegenmaßnahme und Nachweis). Kurzfassung:
 ## Image prüfen
 
 ```bash
-cosign verify ghcr.io/pyzyi/netzwart:latest \
-  --certificate-identity-regexp '^https://github\.com/Pyzyi/netzwart/\.github/workflows/ci\.yml@refs/(heads/main|tags/v[0-9.]+)$' \
+cosign verify ghcr.io/pyzyi/netward:latest \
+  --certificate-identity-regexp '^https://github\.com/Pyzyi/Netward/\.github/workflows/ci\.yml@refs/(heads/main|tags/v[0-9.]+)$' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

@@ -14,7 +14,7 @@ set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo), the data directories are private to UID 10001" >&2; exit 2; }
 
 IMAGE="${1:-netzwart:local}"
-PREV_IMAGE="${2:-ghcr.io/pyzyi/netzwart:latest}"
+PREV_IMAGE="${2:-ghcr.io/pyzyi/netward:latest}"
 NET="nwtest-$$"
 OCTET=$((RANDOM % 200 + 20))
 SUBNET="172.31.$OCTET.0/24"

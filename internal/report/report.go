@@ -16,7 +16,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // MaxPeriod bounds a report; the history is not kept longer anyway.

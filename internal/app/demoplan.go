@@ -9,7 +9,7 @@ import (
 	"image/png"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // demoFloorPlan draws the sample flat for the Wi-Fi map (docs/10, F4): a

@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Pyzyi/netzwart/releases/latest"><img src="https://img.shields.io/github/v/release/Pyzyi/netzwart?label=release&color=1fa66a" alt="Latest release"></a>
-  <a href="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml"><img src="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/Pyzyi/netzwart/pkgs/container/netzwart"><img src="https://img.shields.io/badge/image-ghcr.io-2856c7" alt="Container image on ghcr.io"></a>
+  <a href="https://github.com/Pyzyi/Netward/releases/latest"><img src="https://img.shields.io/github/v/release/Pyzyi/Netward?label=release&color=1fa66a" alt="Latest release"></a>
+  <a href="https://github.com/Pyzyi/Netward/actions/workflows/ci.yml"><img src="https://github.com/Pyzyi/Netward/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Pyzyi/Netward/pkgs/container/netzwart"><img src="https://img.shields.io/badge/image-ghcr.io-2856c7" alt="Container image on ghcr.io"></a>
   <img src="https://img.shields.io/badge/arch-amd64%20%7C%20arm64-2856c7" alt="amd64 | arm64">
   <img src="https://img.shields.io/badge/license-MIT-2856c7" alt="MIT">
 </p>
@@ -111,7 +111,7 @@ Synology, a Raspberry Pi.
 
 ```bash
 mkdir netzwart && cd netzwart
-curl -fsSLO https://raw.githubusercontent.com/Pyzyi/netzwart/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/Pyzyi/Netward/main/docker-compose.yml
 # change the data path /DATA/AppData/netzwart to e.g. ./data
 docker compose up -d
 ```
@@ -126,7 +126,7 @@ name: netzwart
 
 services:
   netzwart:
-    image: ghcr.io/pyzyi/netzwart:latest
+    image: ghcr.io/pyzyi/netward:latest
     container_name: netzwart
     restart: unless-stopped
     network_mode: host          # layer-2 discovery needs the host network
@@ -162,7 +162,7 @@ Unraid template command:
 
 ```bash
 wget -O /boot/config/plugins/dockerMan/templates-user/my-netzwart.xml \
-  https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml
+  https://raw.githubusercontent.com/Pyzyi/Netward/main/deploy/unraid/netzwart.xml
 ```
 
 **First setup.** For security, the setup page is only reachable for **30 minutes after start** and only **from your
@@ -170,7 +170,7 @@ local network**. If you miss that window, restart the container.
 
 ## Updates
 
-Every release is on the [releases page](https://github.com/Pyzyi/netzwart/releases) with notes on what changed. The
+Every release is on the [releases page](https://github.com/Pyzyi/Netward/releases) with notes on what changed. The
 image tag `latest` always points to the newest release. To pin a minor version, use `0.3`. Development builds are
 tagged `edge`.
 

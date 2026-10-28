@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/monitor"
-	"github.com/Pyzyi/netzwart/internal/scanner"
-	"github.com/Pyzyi/netzwart/internal/software"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/monitor"
+	"github.com/Pyzyi/Netward/internal/scanner"
+	"github.com/Pyzyi/Netward/internal/software"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 type counts struct {

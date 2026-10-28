@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/Pyzyi/netzwart/internal/wlan"
+	"github.com/Pyzyi/Netward/internal/wlan"
 )
 
 // handleWLAN returns the Wi-Fi diagnosis (docs/09, F3) and why it might be

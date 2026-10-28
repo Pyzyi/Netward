@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Maintainer>
-  <Icon>https://raw.githubusercontent.com/Pyzyi/netzwart/main/web/public/icon-512.png</Icon>
-  <Profile>Templates for Netzwart, a self-hosted home network monitor with security checks: device discovery with readable names, presence, notifications, Home Assistant, Wi-Fi diagnosis and an internet monitor. No cloud, no telemetry. Source and support: https://github.com/Pyzyi/netzwart</Profile>
-  <WebPage>https://github.com/Pyzyi/netzwart</WebPage>
+  <Icon>https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png</Icon>
+  <Profile>Templates for Netzwart, a self-hosted home network monitor with security checks: device discovery with readable names, presence, notifications, Home Assistant, Wi-Fi diagnosis and an internet monitor. No cloud, no telemetry. Source and support: https://github.com/Pyzyi/Netward</Profile>
+  <WebPage>https://github.com/Pyzyi/Netward</WebPage>
   <Forum/>
 </Maintainer>

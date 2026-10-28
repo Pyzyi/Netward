@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Devices gives the live device state.

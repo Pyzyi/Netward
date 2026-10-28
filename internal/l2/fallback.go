@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/Pyzyi/netzwart/internal/netinfo"
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 // FallbackMaxHosts caps unprivileged sweeps so the host's neighbour table

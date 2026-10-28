@@ -20,11 +20,11 @@ import (
 	"time"
 	_ "time/tzdata" // the scratch image has no zoneinfo
 
-	"github.com/Pyzyi/netzwart/internal/app"
-	"github.com/Pyzyi/netzwart/internal/auth"
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/privdrop"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/app"
+	"github.com/Pyzyi/Netward/internal/auth"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/privdrop"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".

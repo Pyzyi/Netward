@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/l2"
+	"github.com/Pyzyi/Netward/internal/l2"
 )
 
 // ProbeDHCP sends one DHCPDISCOVER on every link and returns the offers

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // maxEvidence bounds the raw value kept with an observation.

@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/software"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/vuln"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/software"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/vuln"
 )
 
 // Software findings. They are decided from what devices reveal about

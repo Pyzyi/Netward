@@ -5,13 +5,13 @@ Issues and pull requests can be written in **English or German**.
 
 ## Reporting bugs
 
-Open an [issue](https://github.com/Pyzyi/netzwart/issues/new/choose) and include:
+Open an [issue](https://github.com/Pyzyi/Netward/issues/new/choose) and include:
 
 - Netzwart version (*Settings → About*) and platform (ZimaOS, Unraid, TrueNAS, plain Docker …)
 - what you expected and what happened
 - relevant log lines (`docker logs netzwart`); remove anything private first
 
-Security problems go to [private vulnerability reporting](https://github.com/Pyzyi/netzwart/security/advisories/new),
+Security problems go to [private vulnerability reporting](https://github.com/Pyzyi/Netward/security/advisories/new),
 not to public issues. See [SECURITY.md](SECURITY.md).
 
 ## A device is recognised wrongly

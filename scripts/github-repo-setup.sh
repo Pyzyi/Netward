@@ -3,11 +3,11 @@
 # private vulnerability reporting and protects release tags.
 # Run once on a computer with the GitHub CLI, logged in as the owner:  sh scripts/github-repo-setup.sh
 set -e
-repo=Pyzyi/netzwart
+repo=Pyzyi/Netward
 
 gh repo edit "$repo" \
   --description "Self-hosted home network monitor: see every device, who is online, new devices, outages and security issues. No cloud. ZimaOS, CasaOS, Unraid, TrueNAS, Docker." \
-  --homepage "https://github.com/Pyzyi/netzwart#readme" \
+  --homepage "https://github.com/Pyzyi/Netward#readme" \
   --enable-discussions \
   --enable-issues
 

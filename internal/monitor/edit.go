@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/classify"
-	"github.com/Pyzyi/netzwart/internal/proto"
-	"github.com/Pyzyi/netzwart/internal/software"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/classify"
+	"github.com/Pyzyi/Netward/internal/proto"
+	"github.com/Pyzyi/Netward/internal/software"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // ErrInvalid is returned for invalid user input.

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/report"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/report"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 type reportRequest struct {

@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/proto"
-	"github.com/Pyzyi/netzwart/internal/software"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/proto"
+	"github.com/Pyzyi/Netward/internal/software"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 type recorder struct {

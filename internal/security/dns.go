@@ -6,9 +6,9 @@ import (
 	"net/netip"
 	"sync"
 
-	"github.com/Pyzyi/netzwart/internal/dnscheck"
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/dnscheck"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // DNS findings (docs/10, F2). The server is the identity of a finding; what

@@ -3,7 +3,7 @@
 # Create the data folder first and adjust the path below to your pool.
 services:
   netzwart:
-    image: ghcr.io/pyzyi/netzwart:latest
+    image: ghcr.io/pyzyi/netward:latest
     container_name: netzwart
     restart: unless-stopped
     # Layer-2 discovery (ARP, DHCP, mDNS) only works on the host network.

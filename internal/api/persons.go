@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // Persons (docs/09, F4).

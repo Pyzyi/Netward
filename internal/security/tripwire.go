@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/tripwire"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/tripwire"
 )
 
 // CheckTripwire marks a device that connected to one of Netzwart's decoy

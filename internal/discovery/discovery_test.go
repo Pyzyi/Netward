@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/dns/dnsmessage"
 
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 // fakeResponder answers every datagram with reply(request).

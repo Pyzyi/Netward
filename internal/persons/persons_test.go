@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 type devs []store.Device

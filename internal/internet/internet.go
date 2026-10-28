@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // States.

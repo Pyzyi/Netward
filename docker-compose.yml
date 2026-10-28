@@ -5,7 +5,7 @@ name: netzwart
 
 services:
   netzwart:
-    image: ghcr.io/pyzyi/netzwart:latest
+    image: ghcr.io/pyzyi/netward:latest
     container_name: netzwart
     restart: unless-stopped
     # Layer-2-Scans (ARP, DHCP, mDNS) funktionieren nur im Netzwerk des Hosts.
@@ -57,7 +57,7 @@ x-casaos:
   author: Pyzyi
   developer: Netzwart
   category: Network
-  icon: https://raw.githubusercontent.com/Pyzyi/netzwart/main/web/public/icon-512.png
+  icon: https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png
   tagline:
     de_de: Jedes Gerät in deinem Netz im Blick
     en_us: Every device on your network at a glance

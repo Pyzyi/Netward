@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Message is a rendered, channel-independent notification. Title and Body

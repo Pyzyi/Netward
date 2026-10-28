@@ -1,6 +1,6 @@
 images:
   image:
-    repository: ghcr.io/pyzyi/netzwart
+    repository: ghcr.io/pyzyi/netward
     tag: 0.3.3
 
 consts:

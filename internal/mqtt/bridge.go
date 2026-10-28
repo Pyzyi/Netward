@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/internet"
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/persons"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/internet"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/persons"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Source provides the data the bridge publishes.

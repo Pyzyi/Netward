@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/dnscheck"
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/oui"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/dnscheck"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/oui"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // Who answers for the router address and who hands out addresses (docs/09,

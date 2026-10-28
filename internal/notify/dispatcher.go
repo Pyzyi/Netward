@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // batchWindow collects new-device events so a burst becomes one message.

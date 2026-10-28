@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/auth"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/auth"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 const (

@@ -3,7 +3,7 @@ package wifimap
 import (
 	"testing"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 func pt(id int64, room string, x, y, down float64) store.WifiPoint {

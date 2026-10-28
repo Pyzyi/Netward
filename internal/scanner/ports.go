@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/netinfo"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Services maps well-known TCP ports to short service names.

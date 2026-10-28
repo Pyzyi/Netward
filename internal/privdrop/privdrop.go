@@ -22,9 +22,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/netinfo"
 )
 
 // Result describes what Prepare achieved.

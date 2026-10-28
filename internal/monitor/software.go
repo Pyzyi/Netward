@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/software"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/software"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Rows the user sets; they are not observations of the device.

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/notify"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/notify"
 )
 
 // proxyThreshold is the number of addresses one MAC must answer for in a

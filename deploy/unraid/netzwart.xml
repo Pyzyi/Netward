@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>netzwart</Name>
-  <Repository>ghcr.io/pyzyi/netzwart:latest</Repository>
-  <Registry>https://github.com/Pyzyi/netzwart/pkgs/container/netzwart</Registry>
+  <Repository>ghcr.io/pyzyi/netward:latest</Repository>
+  <Registry>https://github.com/Pyzyi/Netward/pkgs/container/netzwart</Registry>
   <Network>host</Network>
   <MyIP/>
   <Shell/>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Pyzyi/netzwart/issues</Support>
-  <Project>https://github.com/Pyzyi/netzwart</Project>
-  <ReadMe>https://github.com/Pyzyi/netzwart#readme</ReadMe>
+  <Support>https://github.com/Pyzyi/Netward/issues</Support>
+  <Project>https://github.com/Pyzyi/Netward</Project>
+  <ReadMe>https://github.com/Pyzyi/Netward#readme</ReadMe>
   <Overview>See every device on your home network. Netzwart finds every device, gives it a readable name and icon, shows who is online and tells you when an unknown device appears or the internet goes down. The overview draws your network as a ring around the router.&#xD;
 &#xD;
 It also checks your network for the usual weak spots: open Telnet or RDP, devices without security updates, a second DHCP server, ARP spoofing of the router address and known exploited vulnerabilities in Apple devices, each with plain advice on what to do.&#xD;
@@ -20,8 +20,8 @@ Needs the host network for layer-2 discovery. The container is read-only and dro
   <Changes>[b]0.3.2[/b] Wi-Fi map with heatmap from phone measurements, tripwire decoy ports, DNS manipulation check, device history and inventory.</Changes>
   <Category>Network:Management Security: Tools:System</Category>
   <WebUI>http://[IP]:[PORT:8840]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Pyzyi/netzwart/main/web/public/icon-512.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/Pyzyi/Netward/main/deploy/unraid/netzwart.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Pyzyi/Netward/main/web/public/icon-512.png</Icon>
   <ExtraParams>--cap-drop=ALL --cap-add=CHOWN --cap-add=SETUID --cap-add=SETGID --cap-add=NET_RAW --security-opt=no-new-privileges:true --read-only</ExtraParams>
   <PostArgs/>
   <CPUset/>

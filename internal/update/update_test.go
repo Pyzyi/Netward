@@ -39,10 +39,10 @@ func checker(t *testing.T, body string, status int) *Checker {
 }
 
 func TestCheck(t *testing.T) {
-	c := checker(t, `{"tag_name":"v0.2.0","html_url":"https://github.com/Pyzyi/netzwart/releases/tag/v0.2.0","body":"<script>"}`, 200)
+	c := checker(t, `{"tag_name":"v0.2.0","html_url":"https://github.com/Pyzyi/Netward/releases/tag/v0.2.0","body":"<script>"}`, 200)
 	c.Check(context.Background())
 	st := c.Status()
-	if !st.Available || st.Latest != "0.2.0" || st.URL != "https://github.com/Pyzyi/netzwart/releases/tag/v0.2.0" || st.Error != "" {
+	if !st.Available || st.Latest != "0.2.0" || st.URL != "https://github.com/Pyzyi/Netward/releases/tag/v0.2.0" || st.Error != "" {
 		t.Fatalf("unexpected %+v", st)
 	}
 	c.Configure(false)
@@ -54,7 +54,7 @@ func TestCheck(t *testing.T) {
 func TestCheckRejectsForeignLinks(t *testing.T) {
 	for _, body := range []string{
 		`{"tag_name":"v0.2.0","html_url":"https://evil.example/releases/v0.2.0"}`,
-		`{"tag_name":"v0.2.0; rm -rf","html_url":"https://github.com/Pyzyi/netzwart/releases/tag/x"}`,
+		`{"tag_name":"v0.2.0; rm -rf","html_url":"https://github.com/Pyzyi/Netward/releases/tag/x"}`,
 		`not json`,
 	} {
 		c := checker(t, body, 200)

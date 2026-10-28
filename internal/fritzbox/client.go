@@ -24,7 +24,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/textutil"
 	"io"
 	"net"
 	"net/http"

@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 // SweepOptions tune a sweep. Zero values select safe defaults.

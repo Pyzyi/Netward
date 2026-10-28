@@ -7,13 +7,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/dnscheck"
-	"github.com/Pyzyi/netzwart/internal/fritzbox"
-	"github.com/Pyzyi/netzwart/internal/monitor"
-	"github.com/Pyzyi/netzwart/internal/scanner"
-	"github.com/Pyzyi/netzwart/internal/store"
-	"github.com/Pyzyi/netzwart/internal/tripwire"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/dnscheck"
+	"github.com/Pyzyi/Netward/internal/fritzbox"
+	"github.com/Pyzyi/Netward/internal/monitor"
+	"github.com/Pyzyi/Netward/internal/scanner"
+	"github.com/Pyzyi/Netward/internal/store"
+	"github.com/Pyzyi/Netward/internal/tripwire"
 )
 
 type demoDevice struct {

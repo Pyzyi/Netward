@@ -6,9 +6,9 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/Pyzyi/netzwart/internal/monitor"
-	"github.com/Pyzyi/netzwart/internal/notify"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/monitor"
+	"github.com/Pyzyi/Netward/internal/notify"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Network findings (docs/09, F1): who owns the router address and who hands

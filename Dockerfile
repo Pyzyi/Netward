@@ -28,7 +28,7 @@ FROM scratch
 ARG VERSION=dev
 LABEL org.opencontainers.image.title="Netzwart" \
       org.opencontainers.image.description="Self-hosted network monitor: discovers every device on your LAN, tracks presence and alerts you." \
-      org.opencontainers.image.source="https://github.com/Pyzyi/netzwart" \
+      org.opencontainers.image.source="https://github.com/Pyzyi/Netward" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}"
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

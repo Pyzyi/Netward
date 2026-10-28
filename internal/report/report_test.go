@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/app"
-	"github.com/Pyzyi/netzwart/internal/report"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/app"
+	"github.com/Pyzyi/Netward/internal/report"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 func open(t *testing.T) *store.Store {

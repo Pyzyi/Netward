@@ -15,8 +15,8 @@ import (
 	"golang.org/x/net/bpf"
 	"golang.org/x/sys/unix"
 
-	"github.com/Pyzyi/netzwart/internal/netinfo"
-	"github.com/Pyzyi/netzwart/internal/proto"
+	"github.com/Pyzyi/Netward/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/proto"
 )
 
 var (

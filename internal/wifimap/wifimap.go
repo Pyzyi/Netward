@@ -8,7 +8,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // Hint kinds.

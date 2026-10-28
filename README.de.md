@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Pyzyi/netzwart/releases/latest"><img src="https://img.shields.io/github/v/release/Pyzyi/netzwart?label=Version&color=1fa66a" alt="Neueste Version"></a>
-  <a href="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml"><img src="https://github.com/Pyzyi/netzwart/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Pyzyi/Netward/releases/latest"><img src="https://img.shields.io/github/v/release/Pyzyi/Netward?label=Version&color=1fa66a" alt="Neueste Version"></a>
+  <a href="https://github.com/Pyzyi/Netward/actions/workflows/ci.yml"><img src="https://github.com/Pyzyi/Netward/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Plattform-amd64%20%7C%20arm64-2856c7" alt="amd64 | arm64">
   <img src="https://img.shields.io/badge/Lizenz-MIT-2856c7" alt="MIT">
 </p>
@@ -109,7 +109,7 @@ Bis Netzwart in den Community Applications steht, im Unraid-Terminal die Vorlage
 
 ```bash
 wget -O /boot/config/plugins/dockerMan/templates-user/my-netzwart.xml \
-  https://raw.githubusercontent.com/Pyzyi/netzwart/main/deploy/unraid/netzwart.xml
+  https://raw.githubusercontent.com/Pyzyi/Netward/main/deploy/unraid/netzwart.xml
 ```
 
 Danach **Docker → Container hinzufügen → Vorlage „netzwart“** wählen und anwenden.
@@ -124,7 +124,7 @@ vorher an deinen Pool anpassen und den Ordner anlegen.
 
 ```bash
 mkdir netzwart && cd netzwart
-curl -fsSLO https://raw.githubusercontent.com/Pyzyi/netzwart/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/Pyzyi/Netward/main/docker-compose.yml
 docker compose up -d
 ```
 
@@ -138,7 +138,7 @@ name: netzwart
 
 services:
   netzwart:
-    image: ghcr.io/pyzyi/netzwart:latest
+    image: ghcr.io/pyzyi/netward:latest
     container_name: netzwart
     restart: unless-stopped
     network_mode: host
@@ -168,14 +168,14 @@ erreichbar. Wer das verpasst, startet den Container einfach neu. Es gibt kein St
 
 ### Updates
 
-Neue Versionen erscheinen unter [Releases](https://github.com/Pyzyi/netzwart/releases) mit einer Beschreibung, was
+Neue Versionen erscheinen unter [Releases](https://github.com/Pyzyi/Netward/releases) mit einer Beschreibung, was
 neu ist. Das Image-Tag `latest` zeigt immer auf das neueste Release, `0.3` auf die neueste 0.3.x-Version.
 Zwischenstände der Entwicklung heißen `edge` und sind nicht für den Alltag gedacht.
 
 **Aktualisieren ohne Neuinstallation** – Geräte, Namen, Verlauf, Konten und Einstellungen bleiben erhalten:
 
 - **ZimaOS / CasaOS:** Am zuverlässigsten: In den Einstellungen der App beim Image die Versionsnummer eintragen
-  (z. B. `ghcr.io/pyzyi/netzwart:0.3.3` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
+  (z. B. `ghcr.io/pyzyi/netward:0.3.3` statt `latest`) und speichern. Dann muss ZimaOS die neue Version laden.
   Mit `latest` die App neu erstellen bzw. das Image neu laden (je nach ZimaOS-Version „Update“, „Rebuild“ oder
   Speichern ohne Änderung).
 - **Unraid:** auf der Docker-Seite „Nach Updates suchen“.

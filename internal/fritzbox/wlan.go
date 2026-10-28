@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Pyzyi/netzwart/internal/textutil"
+	"github.com/Pyzyi/Netward/internal/textutil"
 )
 
 // WLAN diagnosis (docs/09, F3): which access point each Wi-Fi device uses,

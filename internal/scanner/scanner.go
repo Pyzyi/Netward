@@ -16,15 +16,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/discovery"
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/l2"
-	"github.com/Pyzyi/netzwart/internal/monitor"
-	"github.com/Pyzyi/netzwart/internal/netinfo"
-	"github.com/Pyzyi/netzwart/internal/proto"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/discovery"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/l2"
+	"github.com/Pyzyi/Netward/internal/monitor"
+	"github.com/Pyzyi/Netward/internal/netinfo"
+	"github.com/Pyzyi/Netward/internal/proto"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // MaxHosts is the largest subnet Netzwart will sweep at all (/16).

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/egress"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/egress"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // testClient uses a plain client so tests can reach httptest servers on

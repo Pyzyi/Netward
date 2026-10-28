@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/config"
-	"github.com/Pyzyi/netzwart/internal/hub"
-	"github.com/Pyzyi/netzwart/internal/persons"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/config"
+	"github.com/Pyzyi/Netward/internal/hub"
+	"github.com/Pyzyi/Netward/internal/persons"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 // fakeBroker implements just enough MQTT 3.1.1 to exercise the client.

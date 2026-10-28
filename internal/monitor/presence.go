@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/Pyzyi/netzwart/internal/classify"
-	"github.com/Pyzyi/netzwart/internal/store"
+	"github.com/Pyzyi/Netward/internal/classify"
+	"github.com/Pyzyi/Netward/internal/store"
 )
 
 const (

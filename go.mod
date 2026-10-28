@@ -1,4 +1,4 @@
-module github.com/Pyzyi/netzwart
+module github.com/Pyzyi/Netward
 
 go 1.27
 
